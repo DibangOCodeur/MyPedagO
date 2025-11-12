@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+
+{% block title %}Nouveau Pointage - Contrat #{{ contrat.id }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'contrat_list' %}">Contrats</a></li>
+<li class="breadcrumb-item"><a href="{% url 'contrat_detail' contrat.id %}">Contrat #{{ contrat.id }}</a></li>
+<li class="breadcrumb-item active">Pointage</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-calendar-check"></i> Nouveau Pointage</h4>
+            </div>
+            <div class="card-body">
+                <!-- Info contrat -->
+                <div class="alert alert-light">
+                    <strong>Contrat:</strong> {{ contrat.professeur.user.get_full_name }} - {{ contrat.maquette.filiere_sigle }}<br>
+                    <strong>Classe:</strong> {{ contrat.classe.nom }}
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Date et heures -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label for="{{ form.date_seance.id_for_label }}" class="form-label">
+                                <i class="bi bi-calendar"></i> Date de la Séance *
+                            </label>
+                            {{ form.date_seance }}
+                            {% if form.date_seance.errors %}
+                                <div class="text-danger">{{ form.date_seance.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.heure_debut.id_for_label }}" class="form-label">
+                                <i class="bi bi-clock"></i> Heure de Début
+                            </label>
+                            {{ form.heure_debut }}
+                            {% if form.heure_debut.errors %}
+                                <div class="text-danger">{{ form.heure_debut.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.heure_fin.id_for_label }}" class="form-label">
+                                <i class="bi bi-clock-history"></i> Heure de Fin
+                            </label>
+                            {{ form.heure_fin }}
+                            {% if form.heure_fin.errors %}
+                                <div class="text-danger">{{ form.heure_fin.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Volumes horaires -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-hourglass-split"></i> Heures Effectuées</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="{{ form.heures_cours.id_for_label }}" class="form-label">
+                                        Heures de Cours (CM)
+                                    </label>
+                                    <div class="input-group">
+                                        {{ form.heures_cours }}
+                                        <span class="input-group-text">h</span>
+                                    </div>
+                                    {% if form.heures_cours.errors %}
+                                        <div class="text-danger">{{ form.heures_cours.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label for="{{ form.heures_td.id_for_label }}" class="form-label">
+                                        Heures de TD
+                                    </label>
+                                    <div class="input-group">
+                                        {{ form.heures_td }}
+                                        <span class="input-group-text">h</span>
+                                    </div>
+                                    {% if form.heures_td.errors %}
+                                        <div class="text-danger">{{ form.heures_td.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label for="{{ form.heures_tp.id_for_label }}" class="form-label">
+                                        Heures de TP
+                                    </label>
+                                    <div class="input-group">
+                                        {{ form.heures_tp }}
+                                        <span class="input-group-text">h</span>
+                                    </div>
+                                    {% if form.heures_tp.errors %}
+                                        <div class="text-danger">{{ form.heures_tp.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <i class="bi bi-info-circle"></i> 
+                                <strong>Note:</strong> Au moins un type d'heures doit être renseigné.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Informations complémentaires -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <label for="{{ form.sujet_traite.id_for_label }}" class="form-label">
+                                <i class="bi bi-journal-text"></i> Sujet Traité
+                            </label>
+                            {{ form.sujet_traite }}
+                            {% if form.sujet_traite.errors %}
+                                <div class="text-danger">{{ form.sujet_traite.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Ex: Introduction aux bases de données relationnelles
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.taux_presence.id_for_label }}" class="form-label">
+                                <i class="bi bi-people"></i> Taux de Présence (%)
+                            </label>
+                            <div class="input-group">
+                                {{ form.taux_presence }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                            {% if form.taux_presence.errors %}
+                                <div class="text-danger">{{ form.taux_presence.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Pourcentage d'étudiants présents (0-100)
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <label for="{{ form.observations.id_for_label }}" class="form-label">
+                                <i class="bi bi-sticky"></i> Observations
+                            </label>
+                            {{ form.observations }}
+                            {% if form.observations.errors %}
+                                <div class="text-danger">{{ form.observations.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Remarques sur le déroulement de la séance
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Boutons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'contrat_detail' contrat.id %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Enregistrer le Pointage
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar avec infos -->
+    <div class="col-md-4">
+        <!-- Volumes restants -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Heures Restantes</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Cours (CM):</span>
+                        <strong>{{ heures_restantes.cours }}h</strong>
+                    </li>
+                    {% if contrat.volume_heure_td > 0 %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>TD:</span>
+                        <strong>{{ heures_restantes.td }}h</strong>
+                    </li>
+                    {% endif %}
+                    {% if contrat.volume_heure_tp > 0 %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>TP:</span>
+                        <strong>{{ heures_restantes.tp }}h</strong>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-info-circle"></i> 
+                    <small>Le système vérifie automatiquement que les heures saisies ne dépassent pas les volumes contractuels.</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Récapitulatif contrat -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations</h5>
+            </div>
+            <div class="card-body">
+                <h6>Volumes Contractuels</h6>
+                <ul class="list-unstyled">
+                    <li><strong>CM:</strong> {{ contrat.volume_heure_cours }}h</li>
+                    {% if contrat.volume_heure_td > 0 %}
+                    <li><strong>TD:</strong> {{ contrat.volume_heure_td }}h</li>
+                    {% endif %}
+                    {% if contrat.volume_heure_tp > 0 %}
+                    <li><strong>TP:</strong> {{ contrat.volume_heure_tp }}h</li>
+                    {% endif %}
+                    <li class="mt-2"><strong>TOTAL:</strong> {{ contrat.volume_total_contractuel }}h</li>
+                </ul>
+                
+                <hr>
+                
+                <h6>Progression Actuelle</h6>
+                <div class="progress mb-2" style="height: 25px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {{ contrat.taux_realisation }}%">
+                        {{ contrat.taux_realisation|floatformat:1 }}%
+                    </div>
+                </div>
+                <small class="text-muted">{{ contrat.volume_total_effectue }}h / {{ contrat.volume_total_contractuel }}h</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Calcul automatique du total d'heures
+    function calculateTotal() {
+        var cours = parseFloat($('#id_heures_cours').val()) || 0;
+        var td = parseFloat($('#id_heures_td').val()) || 0;
+        var tp = parseFloat($('#id_heures_tp').val()) || 0;
+        var total = cours + td + tp;
+        
+        if (total > 0) {
+            $('#total-heures').text(total.toFixed(1) + 'h');
+        }
+    }
+    
+    $('#id_heures_cours, #id_heures_td, #id_heures_tp').on('input', calculateTotal);
+    
+    // Validation des heures
+    $('form').on('submit', function(e) {
+        var cours = parseFloat($('#id_heures_cours').val()) || 0;
+        var td = parseFloat($('#id_heures_td').val()) || 0;
+        var tp = parseFloat($('#id_heures_tp').val()) || 0;
+        
+        if (cours === 0 && td === 0 && tp === 0) {
+            e.preventDefault();
+            alert('Veuillez renseigner au moins un type d\'heures effectuées');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

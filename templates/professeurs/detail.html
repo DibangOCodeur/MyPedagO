@@ -1,0 +1,572 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ professeur.user.get_full_name }} - Détails Professeur{% endblock %}
+
+{% block head %}
+{{ block.super }} 
+<link rel="stylesheet" href="{% static 'css/professeurs/detailler.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête du profil -->
+    <div class="profile-header">
+        <div class="row align-items-center">
+            <div class="col-md-2 text-center">
+                {% if professeur.photo %}
+                    <img src="{{ professeur.photo.url }}" alt="Photo" class="profile-photo">
+                {% else %}
+                    <div class="profile-photo d-flex align-items-center justify-content-center" style="background: white; color: #667eea;">
+                        <i class="fas fa-user fa-4x"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-md-7">
+                <h2 class="mb-2">{{ professeur.user.get_full_name }}</h2>
+                <p class="mb-1"><i class="fas fa-id-card"></i> <strong>Matricule:</strong> {{ professeur.matricule }}</p>
+                <p class="mb-1"><i class="fas fa-envelope"></i> {{ professeur.user.email }}</p>
+                <p class="mb-0"><i class="fas fa-phone"></i> {{ professeur.user.telephone|default:"Non renseigné" }}</p>
+            </div>
+            <div class="col-md-3 text-end">
+                <span class="badge badge-custom {% if professeur.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                    <i class="fas fa-circle"></i> {% if professeur.is_active %}Actif{% else %}Inactif{% endif %}
+                </span>
+                <div class="mt-3">
+                    <span class="badge bg-light text-dark">{{ professeur.get_grade_display }}</span>
+                    <span class="badge bg-info">{{ professeur.get_statut_display }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Statistiques -->
+    <div class="stats-section mb-4">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-chart-line"></i> Vue d'ensemble
+            </h3>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon age">
+                        <i class="fas fa-birthday-cake"></i>
+                    </div>
+                    <div class="stat-menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </div>
+                </div>
+                <div class="stat-number">{{ age|default:"N/A" }}</div>
+                <div class="stat-label">Âge</div>
+                <div class="stat-progress positive">
+                    <i class="fas fa-caret-up"></i>
+                    <span>Stable</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon experience">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="stat-menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </div>
+                </div>
+                <div class="stat-number">{{ professeur.annee_experience }}</div>
+                <div class="stat-label">Années d'expérience</div>
+                <div class="stat-progress positive">
+                    <i class="fas fa-caret-up"></i>
+                    <span>+{{ professeur.annee_experience }} ans</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon sections">
+                        <i class="fas fa-school"></i>
+                    </div>
+                    <div class="stat-menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </div>
+                </div>
+                <div class="stat-number">{{ sections.count }}</div>
+                <div class="stat-label">Section(s) d'enseignement</div>
+                <div class="stat-progress positive">
+                    <i class="fas fa-caret-up"></i>
+                    <span>Assignées</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon documents">
+                        <i class="fas fa-folder"></i>
+                    </div>
+                    <div class="stat-menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </div>
+                </div>
+                <div class="stat-number">{{ completude_percentage|default:0|floatformat:0 }}%</div>
+                <div class="stat-label">Dossier complété</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ completude_percentage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides -->
+    {% if request.user.role == 'ADMIN' or request.user.role == 'RESP_PEDA' or request.user.role == 'RESP_RH' %}
+    <div class="quick-actions mb-4">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-bolt"></i> Actions rapides
+            </h3>
+        </div>
+        <div class="action-buttons">
+            <a href="{% url 'professeur_update' professeur.pk %}" class="action-btn">
+                <i class="fas fa-edit"></i>
+                <span>Modifier les informations</span>
+            </a>
+            <a href="#" class="action-btn">
+                <i class="fas fa-file-upload"></i>
+                <span>Gérer les documents</span>
+            </a>
+            {% if request.user.role == 'ADMIN' %}
+            <button type="button" class="action-btn" onclick="toggleStatus({{ professeur.pk }})">
+                <i class="fas fa-power-off"></i>
+                <span>{% if professeur.is_active %}Désactiver{% else %}Activer{% endif %}</span>
+            </button>
+            <a href="{% url 'professeur_delete' professeur.pk %}" class="action-btn" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce professeur ?')">
+                <i class="fas fa-trash"></i>
+                <span>Supprimer</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Contenu principal -->
+    <div class="content-grid">
+        <!-- Colonne gauche -->
+        <div class="main-column">
+            <!-- Informations personnelles -->
+            <div class="info-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-user"></i> Informations personnelles
+                    </h3>
+                </div>
+                <div class="info-content">
+                    <div class="info-row">
+                        <span class="info-label">Nom complet</span>
+                        <span class="info-value">{{ professeur.user.get_full_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Genre</span>
+                        <span class="info-value">{{ professeur.get_genre_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Date de naissance</span>
+                        <span class="info-value">{{ professeur.date_naissance|date:"d/m/Y" }} ({{ age }} ans)</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nationalité</span>
+                        <span class="info-value">{{ professeur.nationalite|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">N° CNI</span>
+                        <span class="info-value">{{ professeur.numero_cni|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Situation matrimoniale</span>
+                        <span class="info-value">{{ professeur.get_situation_matrimoniale_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Domicile</span>
+                        <span class="info-value">{{ professeur.domicile|default:"Non renseigné" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations professionnelles -->
+            <div class="info-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-briefcase"></i> Informations professionnelles
+                    </h3>
+                </div>
+                <div class="info-content">
+                    <div class="info-row">
+                        <span class="info-label">Grade</span>
+                        <span class="info-value"><span class="badge bg-primary">{{ professeur.get_grade_display }}</span></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Statut</span>
+                        <span class="info-value"><span class="badge bg-info">{{ professeur.get_statut_display }}</span></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Spécialité</span>
+                        <span class="info-value">{{ professeur.specialite|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Diplôme</span>
+                        <span class="info-value">{{ professeur.diplome|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Années d'expérience</span>
+                        <span class="info-value">{{ professeur.annee_experience }} ans</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Date d'embauche</span>
+                        <span class="info-value">{{ professeur.date_embauche|date:"d/m/Y"|default:"Non disponible" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sections d'enseignement -->
+            <div class="info-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-school"></i> Sections d'enseignement
+                    </h3>
+                </div>
+                <div class="info-content">
+                    {% if sections %}
+                        <div class="sections-list">
+                            {% for section in sections %}
+                                <div class="section-item {% if section == professeur.section_active %}active{% endif %}">
+                                    <div class="section-info">
+                                        <h4>{{ section.get_nom_display }}</h4>
+                                        <p>{{ section.description|default:"Aucune description disponible" }}</p>
+                                    </div>
+                                    {% if section == professeur.section_active %}
+                                    <div class="section-badge active">
+                                        <i class="fas fa-star"></i> Active
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Aucune section d'enseignement assignée
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite -->
+        <div class="sidebar-column">
+            <!-- Informations de compte -->
+            <div class="info-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-user-cog"></i> Informations de compte
+                    </h3>
+                </div>
+                <div class="info-content">
+                    <div class="info-row">
+                        <span class="info-label">Email</span>
+                        <span class="info-value">{{ professeur.user.email }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Rôle</span>
+                        <span class="info-value"><span class="badge bg-success">{{ professeur.user.get_role_display }}</span></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Statut compte</span>
+                        <span class="info-value">
+                            <span class="badge {% if professeur.user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if professeur.user.is_active %}Actif{% else %}Inactif{% endif %}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Dernière connexion</span>
+                        <span class="info-value">
+                            {% if professeur.user.last_login %}
+                                {{ professeur.user.last_login|date:"d/m/Y H:i" }}
+                            {% else %}
+                                Jamais connecté
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="info-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-history"></i> Historique
+                    </h3>
+                </div>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <strong>Compte créé</strong>
+                            <p class="text-muted mb-0">{{ professeur.created_at|date:"d/m/Y à H:i" }}</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <strong>Dernière modification</strong>
+                            <p class="text-muted mb-0">{{ professeur.updated_at|date:"d/m/Y à H:i" }}</p>
+                        </div>
+                    </div>
+                    {% if professeur.date_embauche %}
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-briefcase"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <strong>Date d'embauche</strong>
+                            <p class="text-muted mb-0">{{ professeur.date_embauche|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Documents administratifs -->
+            <div class="info-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-folder-open"></i> État des documents
+                    </h3>
+                </div>
+                <div class="documents-status">
+                    <div class="document-status {% if professeur.photo %}completed{% else %}pending{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <div class="document-info">
+                            <h6>Photo</h6>
+                            {% if professeur.photo %}
+                                <small>Complété</small>
+                            {% else %}
+                                <small>Manquant</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="document-status {% if professeur.cni_document %}completed{% else %}pending{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-id-card"></i>
+                        </div>
+                        <div class="document-info">
+                            <h6>CNI</h6>
+                            {% if professeur.cni_document %}
+                                <small>Complété</small>
+                            {% else %}
+                                <small>Manquant</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="document-status {% if professeur.rib_document %}completed{% else %}pending{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-university"></i>
+                        </div>
+                        <div class="document-info">
+                            <h6>RIB</h6>
+                            {% if professeur.rib_document %}
+                                <small>Complété</small>
+                            {% else %}
+                                <small>Manquant</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="document-status {% if professeur.cv_document %}completed{% else %}pending{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="document-info">
+                            <h6>CV</h6>
+                            {% if professeur.cv_document %}
+                                <small>Complété</small>
+                            {% else %}
+                                <small>Manquant</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="document-status {% if professeur.diplome_document %}completed{% else %}pending{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="document-info">
+                            <h6>Diplôme</h6>
+                            {% if professeur.diplome_document %}
+                                <small>Complété</small>
+                            {% else %}
+                                <small>Manquant</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Barre de progression des documents -->
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span>Complétude du dossier</span>
+                        <span>{{ completude_percentage|floatformat:0 }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ completude_percentage }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            {% comment %} <!-- Actions rapides admin -->
+            {% if request.user.role == 'ADMIN' %}
+            <div class="info-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-cog"></i> Administration
+                    </h3>
+                </div>
+                <div class="admin-actions">
+                    <a href="{% url 'user_change_password' professeur.user.pk %}" class="admin-action-btn">
+                        <i class="fas fa-key"></i> Changer le mot de passe
+                    </a>
+                    <button class="admin-action-btn" onclick="resetPassword()">
+                        <i class="fas fa-redo"></i> Réinitialiser le mot de passe
+                    </button>
+                </div>
+            </div>
+            {% endif %} {% endcomment %}
+        </div>
+    </div>
+
+    <!-- Section Documents détaillée -->
+    <div class="full-width-section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-file-alt"></i> Documents administratifs
+            </h3>
+        </div>
+        <div class="documents-grid">
+            <div class="document-card {% if professeur.photo %}available{% else %}missing{% endif %}">
+                <div class="document-icon {% if professeur.photo %}available{% else %}missing{% endif %}">
+                    <i class="fas fa-image"></i>
+                </div>
+                <h6>Photo</h6>
+                {% if professeur.photo %}
+                    <small class="text-muted d-block mb-2">Uploadé le {{ professeur.photo_uploaded_at|date:"d/m/Y" }}</small>
+                    <a href="{{ professeur.photo.url }}" target="_blank" class="btn btn-sm btn-success">
+                        <i class="fas fa-eye"></i> Voir
+                    </a>
+                {% else %}
+                    <span class="badge bg-danger">Manquant</span>
+                {% endif %}
+            </div>
+
+            <div class="document-card {% if professeur.cni_document %}available{% else %}missing{% endif %}">
+                <div class="document-icon {% if professeur.cni_document %}available{% else %}missing{% endif %}">
+                    <i class="fas fa-id-card"></i>
+                </div>
+                <h6>CNI</h6>
+                {% if professeur.cni_document %}
+                    <small class="text-muted d-block mb-2">Uploadé le {{ professeur.cni_uploaded_at|date:"d/m/Y" }}</small>
+                    <a href="#" class="btn btn-sm btn-success">
+                        <i class="fas fa-download"></i> Télécharger
+                    </a>
+                {% else %}
+                    <span class="badge bg-danger">Manquant</span>
+                {% endif %}
+            </div>
+
+            <div class="document-card {% if professeur.rib_document %}available{% else %}missing{% endif %}">
+                <div class="document-icon {% if professeur.rib_document %}available{% else %}missing{% endif %}">
+                    <i class="fas fa-university"></i>
+                </div>
+                <h6>RIB</h6>
+                {% if professeur.rib_document %}
+                    <small class="text-muted d-block mb-2">Uploadé le {{ professeur.rib_uploaded_at|date:"d/m/Y" }}</small>
+                    <a href="#" class="btn btn-sm btn-success">
+                        <i class="fas fa-download"></i> Télécharger
+                    </a>
+                {% else %}
+                    <span class="badge bg-danger">Manquant</span>
+                {% endif %}
+            </div>
+
+            <div class="document-card {% if professeur.cv_document %}available{% else %}missing{% endif %}">
+                <div class="document-icon {% if professeur.cv_document %}available{% else %}missing{% endif %}">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h6>CV</h6>
+                {% if professeur.cv_document %}
+                    <small class="text-muted d-block mb-2">Uploadé le {{ professeur.cv_uploaded_at|date:"d/m/Y" }}</small>
+                    <a href="#" class="btn btn-sm btn-success">
+                        <i class="fas fa-download"></i> Télécharger
+                    </a>
+                {% else %}
+                    <span class="badge bg-danger">Manquant</span>
+                {% endif %}
+            </div>
+
+            <div class="document-card {% if professeur.diplome_document %}available{% else %}missing{% endif %}">
+                <div class="document-icon {% if professeur.diplome_document %}available{% else %}missing{% endif %}">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h6>Diplôme</h6>
+                {% if professeur.diplome_document %}
+                    <small class="text-muted d-block mb-2">Uploadé le {{ professeur.diplome_uploaded_at|date:"d/m/Y" }}</small>
+                    <a href="#" class="btn btn-sm btn-success">
+                        <i class="fas fa-download"></i> Télécharger
+                    </a>
+                {% else %}
+                    <span class="badge bg-danger">Manquant</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleStatus(professeurId) {
+    if (confirm('Êtes-vous sûr de vouloir changer le statut de ce professeur ?')) {
+        fetch(`/professeurs/${professeurId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erreur lors de la modification du statut');
+            console.error(error);
+        });
+    }
+}
+
+function resetPassword() {
+    if (confirm('Réinitialiser le mot de passe à "@elites@" ?')) {
+        alert('Fonctionnalité à implémenter');
+    }
+}
+</script>
+{% endblock %}

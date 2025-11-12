@@ -1,0 +1,175 @@
+{% extends 'bases/base_users.html' %}
+
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ classe.nom }} - MyPedago{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/classes/detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="classe-detail-container">
+    
+    <!-- En-tête -->
+    <div class="classe-header">
+        <div class="header-content">
+            <div class="classe-title">
+                <i class="fas fa-graduation-cap"></i> 
+                {{ classe.nom }}
+            </div>
+            
+            <div class="classe-badges">
+                {% if classe.is_active %}
+                    <span class="badge badge-active">Active</span>
+                {% else %}
+                    <span class="badge badge-inactive">Inactive</span>
+                {% endif %}
+                
+                {% if classe.needs_sync %}
+                    <span class="badge badge-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Synchronisation requise
+                    </span>
+                {% endif %}
+                {{ classe.departement }}
+            </div>
+        </div>
+        
+        <div class="header-actions">
+            {% if peut_synchroniser %}
+            <a href="{% url 'sync_all_api_data' %}?classe_id={{ classe.pk }}" class="btn btn-sync">
+                <i class="fas fa-sync-alt"></i> Synchroniser
+            </a>
+            {% endif %}
+            
+            {% if user.role == 'ADMIN' or user.role == 'RESP_PEDA' %}
+            <a href="{% url 'classe_update' classe.pk %}" class="btn btn-edit">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Informations générales -->
+    <div class="classe-content-grid">
+        <div class="info-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-info-circle"></i> Informations générales
+                </h2>
+            </div>
+            
+            <div class="info-cards">
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <span class="info-card-title">Classe</span>
+                    </div>
+                    <div class="info-card-content code-highlight">{{ classe.nom }} - {{ classe.annee_academique }}</div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <span class="info-card-title">Filière</span>
+                    </div>
+                    <div class="info-card-content">{{ classe.filiere }}</div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <span class="info-card-title">Niveau</span>
+                    </div>
+                    <div class="info-card-content">{{ classe.niveau }}</div>
+                </div>
+                
+                {% comment %} <div class="info-card">
+                    <div class="info-card-header">
+                        <span class="info-card-title">Section</span>
+                    </div>
+                    <div class="info-card-content">
+                        {% if classe.section %}
+                            <a href="{% url 'section_detail' classe.section.pk %}" class="section-link">
+                                {{ classe.section.get_nom_display }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted"></span>
+                        {% endif %}
+                    </div>
+                </div> {% endcomment %}
+                
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <span class="info-card-title">Effectif</span>
+                    </div>
+                    <div class="info-card-content">
+                        <strong>{{ classe.effectif_total|default:"0" }}</strong> étudiants
+                        {% if classe.nombre_groupes %}
+                            <br><small>{{ classe.nombre_groupes }} groupe{{ classe.nombre_groupes|pluralize }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-chart-bar"></i> Statistiques
+                </h2>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-icon maquettes-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="stat-value">{{ total_maquettes }}</div>
+                    <div class="stat-label">Maquette{{ total_maquettes|pluralize }}</div>
+                </div>
+                
+                <div class="stat-box">
+                    <div class="stat-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="stat-value">{{ stats_maquettes.total_ues }}</div>
+                    <div class="stat-label">Unités d'enseignement</div>
+                </div>
+                
+                <div class="stat-box">
+                    <div class="stat-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="stat-value">{{ stats_maquettes.total_matieres }}</div>
+                    <div class="stat-label">Matière{{ stats_maquettes.total_matieres|pluralize }}</div>
+                </div>
+                
+                <div class="stat-box">
+                    <div class="stat-icon hours-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-value">{{ stats_maquettes.total_heures }}</div>
+                    <div class="stat-label">Heures totales</div>
+                </div>
+                
+                <div class="stat-box">
+                    <div class="stat-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-value">{{ stats_maquettes.cout_total|floatformat:0|intcomma }}</div>
+                    <div class="stat-label">Coût total (FCFA)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Filtre personnalisé pour calculer la somme d'un attribut (pour le total)
+document.addEventListener('DOMContentLoaded', function() {
+    // Vous pouvez ajouter du JavaScript personnalisé ici si nécessaire
+    console.log("Détail classe chargé - {{ total_matieres }} matière(s)");
+});
+</script>
+{% endblock %}

@@ -1,0 +1,422 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'css/utilisateurs/liste.css' %}">
+
+<!-- En-tête de page -->
+<div class="users-header">
+    {% comment %} <div class="page-info">
+        <h2 class="page-title">Liste des Professeurs</h2>
+        <p class="page-subtitle">Total: <strong>{{ total_professeurs }}</strong> professeurs</p>
+    </div> {% endcomment %}
+    <div class="users-actions">
+        <div class="search-box">
+            <input type="text" class="search-input" placeholder="Rechercher un professeur...">
+            <button class="search-btn">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+        <button class="btn-primary" id="addProfessorBtn">
+            <i class="fas fa-user-plus"></i>
+            Nouveau Professeur
+        </button>
+        <button class="btn-secondary" id="filterBtn">
+            <i class="fas fa-filter"></i>
+            Filtres
+        </button>
+    </div>
+</div>
+
+<!-- Statistiques rapides -->
+<div class="stats-overview">
+    <div class="stat-item">
+        <div class="stat-icon total">
+            <i class="fas fa-chalkboard-teacher"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number">{{ professeurs|length }}</div>
+            <div class="stat-label">Total Professeurs</div>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon active">
+            <i class="fas fa-user-check"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number">{{ active_professeurs }}</div>
+            <div class="stat-label">Professeurs Actifs</div>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon classes">
+            <i class="fas fa-book"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number">{{ total_classes }}</div>
+            <div class="stat-label">Classes Assignées</div>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon hours">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number">{{ total_heures }}</div>
+            <div class="stat-label">Heures/Semaine</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tableau des professeurs -->
+<div class="users-table-container">
+    <div class="table-header">
+        <div class="table-actions">
+            <select class="action-select">
+                <option value="">Actions groupées</option>
+                <option value="activate">Activer</option>
+                <option value="deactivate">Désactiver</option>
+                <option value="assign-class">Assigner une classe</option>
+                <option value="export">Exporter</option>
+            </select>
+            <button class="btn-apply">Appliquer</button>
+        </div>
+        <div class="table-info">
+            Affichage de <strong>{{ professeurs|length }}</strong> professeurs
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th class="checkbox-cell">
+                        <input type="checkbox" id="selectAll">
+                    </th>
+                    <th class="user-cell">Professeur</th>
+                    <th class="nationalite-cell">Nationalité</th>
+                    <th class="specialite-cell">Spécialité</th>
+                    <th class="classes-cell">Grade</th>
+                    <th class="type-cell">Type</th>
+                    <th class="status-cell">Statut</th>
+                    <th class="date-cell">Inscription</th>
+                    <th class="heures-cell">Contact</th>
+                    <th class="actions-cell">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for professeur in professeurs %}
+                <tr class="user-row">
+                    <td class="checkbox-cell">
+                        <input type="checkbox" class="user-checkbox" value="{{ professeur.id }}">
+                    </td>
+                    <td class="user-cell">
+                        <div class="user-avatar-small professor">
+                            {% if professeur.profile_picture %}
+                                <img src="{{ professeur.profile_picture.url }}" alt="{{ professeur.get_full_name }}">
+                            {% else %}
+                                <i class="fas fa-chalkboard-teacher"></i>
+                            {% endif %}
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">{{ professeur.user.get_full_name }}</div>
+                            <div class="user-email">{{ professeur.user.email }}</div>
+                        </div>
+                    </td>
+                    <td class="nationalite-cell">
+                        <span class="nationalite-badge">{{ professeur.nationalite|default:"Général" }}</span>
+                    </td>
+                    <td class="specialite-cell">
+                        <span class="specialite-badge">{{ professeur.specialite|default:"Général" }}</span>
+                    </td>
+                    <td class="classes-cell">
+                        <div class="classes-list">
+                            {{ professeur.grade}}
+                        </div>
+                    </td>
+                    <td class="type-cell">
+                        <div class="classes-list">
+                            {{ professeur.statut}}
+                        </div>
+                    </td>
+                    <td class="status-cell">
+                        <span class="status-badge {% if professeur.is_active %}active{% else %}inactive{% endif %}">
+                            {% if professeur.is_active %}
+                                <i class="fas fa-circle"></i> Actif
+                            {% else %}
+                                <i class="fas fa-circle"></i> Inactif
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td class="date-cell">
+                        {{ professeur.user.date_joined|date:"d/m/Y" }}
+                    </td>
+                    <td class="heures-cell">
+                        <div class="heures-content">
+                            <div class="user-phone">
+                                <i class="fas fa-phone"></i> {{ professeur.user.telephone|default:"Non renseigné" }}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="actions-cell">
+                        <div class="action-buttons">
+                            <!-- Lien de visualisation -->
+                            <a href="{% url 'professeur_detail' professeur.id %}" class="btn-action view" title="Voir le profil" onclick="viewProfessor({{ professeur.id }}); return false;">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            
+                            <!-- Bouton d'édition -->
+                            <button class="btn-action edit" title="Modifier" onclick="editProfessor({{ professeur.id }})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            
+                            <!-- Lien d'emploi du temps -->
+                            <a href="{% url 'professeur_print' professeur.id %}" class="btn-action schedule" title="Imprimer" onclick="viewSchedule({{ professeur.id }}); return false;">
+                                <i class="fas fa-calendar-alt"></i>
+                            </a>
+                            
+                            <!-- Bouton contrat -->
+                            <button class="btn-action contract" title="Contrat" onclick="viewContract({{ professeur.id }})">
+                                <i class="fas fa-file-contract"></i>
+                            </button>
+                            
+                            <!-- Bouton plus d'actions -->
+                            <button class="btn-action more" title="Plus d'actions">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="no-data">
+                        <div class="no-data-content">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <h3>Aucun professeur trouvé</h3>
+                            <p>Commencez par ajouter un nouveau professeur</p>
+                            <button class="btn-primary" id="addProfessorBtnEmpty">
+                                <i class="fas fa-user-plus"></i>
+                                Ajouter un professeur
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if professeurs %}
+    <div class="pagination-container">
+        <div class="pagination-info">
+            Page {{ current_page }} sur {{ total_pages }}
+        </div>
+        <div class="pagination-controls">
+            {% if has_previous %}
+            <a href="?page={{ previous_page }}" class="pagination-btn prev">
+                <i class="fas fa-chevron-left"></i>
+                Précédent
+            </a>
+            {% else %}
+            <span class="pagination-btn prev disabled">
+                <i class="fas fa-chevron-left"></i>
+                Précédent
+            </span>
+            {% endif %}
+            
+            <div class="pagination-numbers">
+                {% for page in page_range %}
+                    {% if page == current_page %}
+                        <span class="page-number active">{{ page }}</span>
+                    {% else %}
+                        <a href="?page={{ page }}" class="page-number">{{ page }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            {% if has_next %}
+            <a href="?page={{ next_page }}" class="pagination-btn next">
+                Suivant
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% else %}
+            <span class="pagination-btn next disabled">
+                Suivant
+                <i class="fas fa-chevron-right"></i>
+            </span>
+            {% endif %}
+        </div>
+        <div class="pagination-size">
+            <select class="page-size-select" id="pageSizeSelect">
+                <option value="10" {% if page_size == 10 %}selected{% endif %}>10 par page</option>
+                <option value="25" {% if page_size == 25 %}selected{% endif %}>25 par page</option>
+                <option value="50" {% if page_size == 50 %}selected{% endif %}>50 par page</option>
+                <option value="100" {% if page_size == 100 %}selected{% endif %}>100 par page</option>
+            </select>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Mise à jour de l'heure en temps réel
+    function updateCurrentTime() {
+        const now = new Date();
+        const dateString = now.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        const timeString = now.toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        const currentTimeElement = document.getElementById('currentTime');
+        if (currentTimeElement) {
+            currentTimeElement.textContent = `${dateString} à ${timeString}`;
+        }
+    }
+
+    // Fonctions spécifiques aux professeurs
+    function viewProfessor(professorId) {
+        console.log('Voir le professeur:', professorId);
+        // Implémentation de la vue du profil
+        window.location.href = `/utilisateur/professeurs/${professorId}/`;
+    }
+
+    function editProfessor(professorId) {
+        console.log('Modifier le professeur:', professorId);
+        // Implémentation de l'édition
+        window.location.href = `/utilisateur/professeurs/${professorId}/edit/`;
+    }
+
+    function viewSchedule(professorId) {
+        console.log('Voir emploi du temps:', professorId);
+        // Implémentation de la vue de l'emploi du temps
+        window.location.href = `/utilisateur/professeurs/${professorId}/imprimer/`;
+    }
+
+    function viewContract(professorId) {
+        console.log('Voir contrat:', professorId);
+        // Implémentation de la vue du contrat
+        window.location.href = `/utilisateur/professeurs/${professorId}/contrat/`;
+    }
+
+    // Initialiser l'heure
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 60000);
+
+        // Gestion de la sélection multiple
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.user-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+            });
+        }
+
+        // Ouverture du modal d'ajout
+        const addProfessorBtn = document.getElementById('addProfessorBtn');
+        const addProfessorBtnEmpty = document.getElementById('addProfessorBtnEmpty');
+        const addProfessorModal = document.getElementById('addProfessorModal');
+
+        if (addProfessorBtn) {
+            addProfessorBtn.addEventListener('click', function() {
+                if (addProfessorModal) {
+                    addProfessorModal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                }
+            });
+        }
+
+        if (addProfessorBtnEmpty) {
+            addProfessorBtnEmpty.addEventListener('click', function() {
+                if (addProfessorModal) {
+                    addProfessorModal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                }
+            });
+        }
+
+        // Fermeture des modals
+        document.querySelectorAll('.modal-close, .modal-btn.cancel').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modal = this.closest('.modal-overlay');
+                if (modal) {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        });
+
+        // Recherche en temps réel
+        const searchInput = document.querySelector('.search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('.user-row');
+                
+                rows.forEach(row => {
+                    const userName = row.querySelector('.user-name').textContent.toLowerCase();
+                    const userEmail = row.querySelector('.user-email').textContent.toLowerCase();
+                    const specialite = row.querySelector('.specialite-badge').textContent.toLowerCase();
+                    
+                    if (userName.includes(searchTerm) || userEmail.includes(searchTerm) || specialite.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Gestion du changement de taille de page
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', function() {
+                const url = new URL(window.location);
+                url.searchParams.set('page_size', this.value);
+                url.searchParams.set('page', '1');
+                window.location.href = url.toString();
+            });
+        }
+
+        // Fermer le modal en cliquant à l'extérieur
+        if (addProfessorModal) {
+            addProfessorModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        }
+
+        // Empêcher la fermeture du modal en cliquant à l'intérieur
+        document.querySelectorAll('.modal-content').forEach(modalContent => {
+            modalContent.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        });
+
+        // Gestion des sélections multiples dans le modal
+        const multipleSelect = document.querySelector('.multiple-select');
+        if (multipleSelect) {
+            multipleSelect.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                const option = e.target;
+                if (option.tagName === 'OPTION') {
+                    option.selected = !option.selected;
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

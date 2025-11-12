@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MyPedago{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/utilisateurs/creation.css' %}">
+    <link rel="stylesheet" href="{% static 'css/maquettes/liste.css' %}">
+    {% block extra_css %}{% endblock %}
+    
+</head>
+<body>
+    <p>Test</p>
+    {% block content %}
+    
+    
+    {% endblock %}
+    {% block extra_js %}{% endblock %}
+
+</body>
+</html>

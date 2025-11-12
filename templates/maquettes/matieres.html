@@ -1,0 +1,361 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+{% load humanize %}
+{% load gestion_tags %}
+
+{% block title %}Matières - {{ maquette.filiere_nom }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        background-color: #fff;
+        z-index: 10;
+    }
+    .semestre-section {
+        scroll-margin-top: 100px;
+    }
+    .badge-semestre {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }
+    @media print {
+        .no-print {
+            display: none;
+        }
+        .card {
+            break-inside: avoid;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- En-tête avec fil d'Ariane -->
+    <div class="row mb-4 no-print">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Tableau de bord</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'maquette_list' %}">Maquettes</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'maquette_detail' maquette.pk %}">{{ maquette.filiere_sigle }}</a></li>
+                    <li class="breadcrumb-item active">Matières</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Titre et actions -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <h1 class="h2 mb-2">
+                <i class="fas fa-book text-primary me-2"></i>
+                Matières - {{ maquette.filiere_nom }}
+            </h1>
+            <p class="text-muted mb-0">
+                <span class="badge bg-info me-2">{{ maquette.filiere_sigle }}</span>
+                <span class="badge bg-secondary">{{ maquette.niveau_libelle }}</span>
+            </p>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0 no-print">
+            <div class="btn-group" role="group">
+                <button onclick="window.print()" class="btn btn-outline-secondary">
+                    <i class="fas fa-print"></i> Imprimer
+                </button>
+                <button onclick="exportToExcel()" class="btn btn-outline-success">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+                <a href="{% url 'maquette_detail' maquette.pk %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques globales -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Récapitulatif global
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 col-md-2 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-primary mb-1">{{ total_ues }}</div>
+                                <small class="text-muted">UE</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-success mb-1">{{ total_matieres }}</div>
+                                <small class="text-muted">Matières</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-info mb-1">{{ total_coefficient }}</div>
+                                <small class="text-muted">Coefficient</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-warning mb-1">{{ total_volume_cm }}</div>
+                                <small class="text-muted">Vol. CM (h)</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-warning mb-1">{{ total_volume_td }}</div>
+                                <small class="text-muted">Vol. TD (h)</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-danger mb-1">{{ total_volume_horaire }}</div>
+                                <small class="text-muted">Vol. Total (h)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques par semestre -->
+    {% if stats_par_semestre %}
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Statistiques par semestre
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Semestre</th>
+                                    <th class="text-center">Matières</th>
+                                    <th class="text-center">Coefficient</th>
+                                    <th class="text-center">Vol. CM</th>
+                                    <th class="text-center">Vol. TD</th>
+                                    <th class="text-center">Vol. Total</th>
+                                    <th class="text-end">Coût estimé</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in stats_par_semestre %}
+                                <tr>
+                                    <td>
+                                        <a href="#semestre-{{ stat.semestre }}" class="badge bg-secondary badge-semestre">
+                                            Semestre {{ stat.semestre }}
+                                        </a>
+                                    </td>
+                                    <td class="text-center">{{ stat.nombre_matieres }}</td>
+                                    <td class="text-center"><strong>{{ stat.coefficient_total }}</strong></td>
+                                    <td class="text-center">{{ stat.volume_cm }}h</td>
+                                    <td class="text-center">{{ stat.volume_td }}h</td>
+                                    <td class="text-center"><strong>{{ stat.volume_total }}h</strong></td>
+                                    <td class="text-end">{{ stat.cout_total|floatformat:0|intcomma }} FCFA</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-secondary fw-bold">
+                                <tr>
+                                    <td>TOTAL</td>
+                                    <td class="text-center">{{ total_matieres }}</td>
+                                    <td class="text-center">{{ total_coefficient }}</td>
+                                    <td class="text-center">{{ total_volume_cm }}h</td>
+                                    <td class="text-center">{{ total_volume_td }}h</td>
+                                    <td class="text-center">{{ total_volume_horaire }}h</td>
+                                    <td class="text-end">{{ total_cout|floatformat:0|intcomma }} FCFA</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Liste des matières par semestre -->
+    {% if has_matieres %}
+        {% for semestre in semestres %}
+        <div class="row mb-4 semestre-section" id="semestre-{{ semestre }}">
+            <div class="col-lg-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <h5 class="mb-0">
+                            <i class="fas fa-layer-group me-2"></i>
+                            Semestre {{ semestre }}
+                            <span class="badge bg-light text-dark ms-2">
+                                {{ matieres_par_semestre|get_item:semestre|length }} matière{{ matieres_par_semestre|get_item:semestre|length|pluralize }}
+                            </span>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped mb-0">
+                                <thead class="table-dark sticky-header">
+                                    <tr>
+                                        <th style="width: 5%">#</th>
+                                        <th style="width: 25%">Matière</th>
+                                        <th style="width: 20%">Unité d'enseignement</th>
+                                        <th class="text-center" style="width: 8%">Coef.</th>
+                                        <th class="text-center" style="width: 8%">CM</th>
+                                        <th class="text-center" style="width: 8%">TD</th>
+                                        <th class="text-center" style="width: 8%">Total</th>
+                                        <th class="text-end" style="width: 10%">Taux CM</th>
+                                        <th class="text-end" style="width: 10%">Taux TD</th>
+                                        <th class="text-end" style="width: 12%">Coût</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for matiere in matieres_par_semestre|get_item:semestre %}
+                                    <tr>
+                                        <td class="text-muted">{{ forloop.counter }}</td>
+                                        <td>
+                                            <div>
+                                                <strong>{{ matiere.nom }}</strong>
+                                                {% if matiere.code %}
+                                                    <br><small class="text-muted">{{ matiere.code }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">{{ matiere.ue_libelle }}</span>
+                                            {% if matiere.ue_code %}
+                                                <br><small class="text-muted">{{ matiere.ue_code }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info">{{ matiere.coefficient }}</span>
+                                        </td>
+                                        <td class="text-center">{{ matiere.volume_horaire_cm }}h</td>
+                                        <td class="text-center">{{ matiere.volume_horaire_td }}h</td>
+                                        <td class="text-center">
+                                            <strong>{{ matiere.volume_horaire_total }}h</strong>
+                                        </td>
+                                        <td class="text-end text-muted">
+                                            {{ matiere.taux_horaire_cm|floatformat:0|intcomma }}
+                                        </td>
+                                        <td class="text-end text-muted">
+                                            {{ matiere.taux_horaire_td|floatformat:0|intcomma }}
+                                        </td>
+                                        <td class="text-end">
+                                            <strong>{{ matiere.total_taux_horaire|floatformat:0|intcomma }}</strong>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Aucune matière n'a été trouvée pour cette maquette.
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Bouton retour en bas -->
+    <div class="row mt-4 no-print">
+        <div class="col-lg-12 text-center">
+            <a href="{% url 'maquette_detail' maquette.pk %}" class="btn btn-lg btn-primary">
+                <i class="fas fa-arrow-left me-2"></i>
+                Retour au détail de la maquette
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+    // Fonction pour exporter vers Excel
+    function exportToExcel() {
+        // Préparer les données
+        const data = [];
+        
+        // En-têtes
+        data.push(['Matière', 'Code', 'UE', 'Semestre', 'Coefficient', 'CM', 'TD', 'Total', 'Taux CM', 'Taux TD', 'Coût']);
+        
+        // Données
+        {% for matiere in matieres %}
+        data.push([
+            '{{ matiere.nom|escapejs }}',
+            '{{ matiere.code|escapejs }}',
+            '{{ matiere.ue_libelle|escapejs }}',
+            '{{ matiere.semestre }}',
+            {{ matiere.coefficient }},
+            {{ matiere.volume_horaire_cm }},
+            {{ matiere.volume_horaire_td }},
+            {{ matiere.volume_horaire_total }},
+            {{ matiere.taux_horaire_cm }},
+            {{ matiere.taux_horaire_td }},
+            {{ matiere.total_taux_horaire }}
+        ]);
+        {% endfor %}
+        
+        // Totaux
+        data.push([]);
+        data.push(['TOTAL', '', '', '', {{ total_coefficient }}, {{ total_volume_cm }}, {{ total_volume_td }}, {{ total_volume_horaire }}, '', '', {{ total_cout }}]);
+        
+        // Créer le workbook
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        // Largeur des colonnes
+        ws['!cols'] = [
+            {wch: 30}, {wch: 15}, {wch: 30}, {wch: 10},
+            {wch: 10}, {wch: 10}, {wch: 10}, {wch: 10},
+            {wch: 12}, {wch: 12}, {wch: 15}
+        ];
+        
+        // Ajouter la feuille au workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Matières');
+        
+        // Télécharger
+        const filename = 'maquette_{{ maquette.filiere_sigle }}_{{ maquette.niveau_libelle }}_matieres.xlsx';
+        XLSX.writeFile(wb, filename);
+    }
+
+    // Smooth scroll pour les liens vers les semestres
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('a[href^="#semestre-"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

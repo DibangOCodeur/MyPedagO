@@ -1,0 +1,382 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}Classes - MyPedago{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/classes/liste.css' %}">
+<div class="container-fluid mt-4">
+    
+    <!-- En-tête -->
+    <div class="classes-header">
+        <div class="header-content">
+            <h2><i class="fas fa-graduation-cap"></i> Classes</h2>
+            <p class="header-description">
+                Gestion des classes synchronisées depuis l'API MyIIPEA
+            </p>
+        </div>
+        <div class="header-actions">
+            {% if user.role == 'ADMIN' or user.role == 'INFORMATICIEN' %}
+            <button type="button" class="btn btn-primary btn-sync-all" onclick="syncAllData()">
+                <i class="fas fa-sync-alt"></i> Synchroniser tout
+            </button>
+            {% endif %}
+            
+            {% if user.role == 'ADMIN' or user.role == 'RESP_PEDA' %}
+            <a href="{% url 'classe_create' %}" class="btn btn-success btn-add">
+                <i class="fas fa-plus"></i> Ajouter
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Statistiques -->
+    <div class="stats-container">
+        <div class="stat-card stat-total">
+            <div class="stat-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-number">{{ stats.total }}</h3>
+                <p class="stat-label">Total</p>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-active">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-number">{{ stats.actives }}</h3>
+                <p class="stat-label">Actives</p>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-inactive">
+            <div class="stat-icon">
+                <i class="fas fa-pause-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-number">{{ stats.inactives }}</h3>
+                <p class="stat-label">Inactives</p>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-sync">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-number">{{ classes_needs_sync }}</h3>
+                <p class="stat-label">À synchroniser</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtres -->
+    <div class="filter-card">
+        <div class="filter-content">
+            <form method="get" class="filter-form">
+                <div class="form-group">
+                    <input 
+                        type="text" 
+                        name="search" 
+                        class="form-control" 
+                        placeholder="Rechercher..."
+                        value="{{ request.GET.search }}"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <select name="filiere" class="form-control">
+                        <option value="">Toutes les filières</option>
+                        {% for filiere in filieres %}
+                        <option value="{{ filiere }}" 
+                            {% if request.GET.filiere == filiere %}selected{% endif %}>
+                            {{ filiere }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <select name="niveau" class="form-control">
+                        <option value="">Tous les niveaux</option>
+                        {% for niveau in niveaux %}
+                        <option value="{{ niveau }}" 
+                            {% if request.GET.niveau == niveau %}selected{% endif %}>
+                            {{ niveau }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <select name="status" class="form-control">
+                        <option value="">Tous les statuts</option>
+                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>
+                            Actives
+                        </option>
+                        <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>
+                            Inactives
+                        </option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-filter">
+                        <i class="fas fa-search"></i> Filtrer
+                    </button>
+                    
+                    <a href="{% url 'classe_list' %}" class="btn btn-secondary btn-reset">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Table des classes -->
+    <div class="table-card">
+        <div class="table-content">
+            <div class="table-responsive">
+                <table class="classes-table">
+                    <thead>
+                        <tr>
+                            <th>Nom de la classe</th>
+                            <th>Filière</th>
+                            <th>Niveau</th>
+                            <th>Département</th>
+                            <th>Effectif</th>
+                            <th>Groupes</th>
+                            <th>Dernière sync</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for classe in page_obj %}
+                        <tr class="class-row">
+                            <td class="class-name">
+                                <strong>{{ classe.nom }}</strong>
+                            </td>
+                            <td class="class-filiere">
+                                <span class="badge badge-info">
+                                    {{ classe.filiere }}
+                                </span>
+                            </td>
+                            <td class="class-niveau">
+                                <span class="badge badge-secondary">
+                                    {{ classe.niveau }}
+                                </span>
+                            </td>
+                            <td class="class-departement">
+                                <span>{{ classe.departement }}</span>
+                            </td>
+                            <td class="class-effectif">
+                                <span class="badge badge-primary">
+                                    {{ classe.effectif_total }}
+                                </span>
+                            </td>
+                            <td class="class-groupes">
+                                <span class="badge badge-dark">
+                                    {{ classe.nombre_groupes }}
+                                </span>
+                            </td>
+                            <td class="class-sync">
+                                <div class="sync-info">
+                                    <span class="sync-time">{{ classe.last_synced|timesince }}</span>
+                                    {% if classe.needs_sync %}
+                                        <i class="fas fa-exclamation-triangle sync-warning" 
+                                           title="Synchronisation requise"></i>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="class-status">
+                                {% if classe.is_active %}
+                                    <span class="status-badge status-active">Active</span>
+                                {% else %}
+                                    <span class="status-badge status-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="class-actions">
+                                <div class="action-buttons">
+                                    <a href="{% url 'classe_detail' classe.pk %}" 
+                                       class="btn btn-sm btn-info btn-action" 
+                                       title="Détails">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
+                                    {% if user.role == 'ADMIN' or user.role == 'RESP_PEDA' %}
+                                    <a href="{% url 'classe_update' classe.pk %}" 
+                                       class="btn btn-sm btn-primary btn-action" 
+                                       title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if user.role == 'ADMIN' or user.role == 'INFORMATICIEN' %}
+                                    <button type="button" 
+                                            class="btn btn-sm btn-warning btn-action btn-sync" 
+                                            onclick="syncClasse({{ classe.pk }})"
+                                            title="Synchroniser">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr class="empty-row">
+                            <td colspan="9" class="empty-state">
+                                <div class="empty-content">
+                                    <i class="fas fa-inbox empty-icon"></i>
+                                    <h3>Aucune classe trouvée</h3>
+                                    <p>Aucune classe ne correspond à vos critères de recherche</p>
+                                    {% if user.role == 'ADMIN' or user.role == 'INFORMATICIEN' %}
+                                    <button type="button" class="btn btn-primary btn-empty-sync" onclick="syncAllData()">
+                                        <i class="fas fa-sync-alt"></i> Synchroniser les données
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    <span>Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+                    <span class="pagination-total">• {{ page_obj.paginator.count }} classes au total</span>
+                </div>
+                
+                <nav class="pagination-nav">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link page-first" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link page-prev" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link page-next" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link page-last" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                
+                <div class="pagination-size">
+                    <span>Afficher 10 classes par page</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+</div>
+
+<script>
+// Synchroniser une classe spécifique
+function syncClasse(classeId) {
+    if (!confirm('Synchroniser toutes les données avec l\'API ?')) {
+        return;
+    }
+    
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    fetch(`/gestion/classes/${classeId}/synchroniser/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Erreur: ' + error);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    });
+}
+
+// Synchroniser toutes les données
+function syncAllData() {
+    if (!confirm('Synchroniser toutes les classes et maquettes ? Cela peut prendre quelques minutes.')) {
+        return;
+    }
+    
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Synchronisation...';
+    
+    fetch('{% url "sync_all_api_data" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Synchronisation complète réussie !');
+            location.reload();
+        } else {
+            alert('❌ Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Erreur: ' + error);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    });
+}
+</script>
+{% endblock %}

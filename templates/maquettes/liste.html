@@ -1,0 +1,331 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/maquettes/liste.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-md-9">
+            <h2>
+                <i class="fas fa-book"></i> 
+                Maquettes Pédagogiques
+            </h2>
+            <p class="text-muted">
+                Gestion des maquettes pédagogiques synchronisées depuis l'API MyIIPEA
+            </p>
+        </div>
+        <div class="col-md-3 text-right">
+            {% if user.role == 'ADMIN' or user.role == 'INFORMATICIEN' or user.role == 'RESP_PEDA' %}
+            <a href="{% url 'sync_all_api_data' %}" class="btn btn-outline-primary">
+                <i class="fas fa-sync-alt"></i> Synchronisation
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Statistiques -->
+    <div class="stats-container">
+        <div class="stat-card bg-primary text-white">
+            <div>
+                <div class="stat-label">Total Maquettes</div>
+                <div class="stat-number">{{ stats.total }}</div>
+            </div>
+            <div>
+                <i class="fas fa-book-open fa-3x"></i>
+            </div>
+        </div>
+        
+        <div class="stat-card bg-success text-white">
+            <div>
+                <div class="stat-label">Maquettes Actives</div>
+                <div class="stat-number">{{ stats.actives }}</div>
+            </div>
+            <div>
+                <i class="fas fa-check-circle fa-3x"></i>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtres et Tableau -->
+    <div class="table-container">
+        <!-- Filtres -->
+        <div class="filter-card">
+            <form method="get" id="filterForm">
+                <div class="filter-row">
+                    <div class="form-group">
+                        <label for="search">
+                            <i class="fas fa-search"></i> Rechercher
+                        </label>
+                        <input 
+                            type="text" 
+                            name="search" 
+                            id="search"
+                            class="form-control" 
+                            placeholder="Filière, sigle, niveau..."
+                            value="{{ request.GET.search }}"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="classe">
+                            <i class="fas fa-graduation-cap"></i> Classe
+                        </label>
+                        <select name="classe" id="classe" class="form-control">
+                            <option value="">Toutes les classes</option>
+                            {% for classe in classes %}
+                            <option value="{{ classe.id }}" 
+                                {% if request.GET.classe == classe.id|stringformat:"s" %}selected{% endif %}>
+                                {{ classe.nom|truncatechars:50 }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="niveau">
+                            <i class="fas fa-layer-group"></i> Niveau
+                        </label>
+                        <select name="niveau" id="niveau" class="form-control">
+                            <option value="">Tous les niveaux</option>
+                            {% for niveau in niveaux %}
+                            <option value="{{ niveau }}" 
+                                {% if request.GET.niveau == niveau %}selected{% endif %}>
+                                {{ niveau }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="parcour">
+                            <i class="fas fa-route"></i> Parcours
+                        </label>
+                        <select name="parcour" id="parcour" class="form-control">
+                            <option value="">Tous</option>
+                            <option value="Universitaire" 
+                                {% if request.GET.parcour == 'Universitaire' %}selected{% endif %}>
+                                Universitaire
+                            </option>
+                            <option value="Professionnel" 
+                                {% if request.GET.parcour == 'Professionnel' %}selected{% endif %}>
+                                Professionnel
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="status">
+                            <i class="fas fa-toggle-on"></i> Statut
+                        </label>
+                        <select name="status" id="status" class="form-control">
+                            <option value="">Tous</option>
+                            <option value="active" 
+                                {% if request.GET.status == 'active' %}selected{% endif %}>
+                                Actives
+                            </option>
+                            <option value="inactive" 
+                                {% if request.GET.status == 'inactive' %}selected{% endif %}>
+                                Inactives
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                    
+                    <a href="{% url 'maquette_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tableau des maquettes -->
+        {% if maquettes %}
+        <div class="table-card">
+            <div class="table-responsive">
+                <table class="maquettes-table">
+                    <thead>
+                        <tr>
+                            <th>Filière</th>
+                            <th>Sigle</th>
+                            <th>Niveau</th>
+                            <th>Année</th>
+                            <th>Parcours</th>
+                            <th>Classe</th>
+                            <th>UEs</th>
+                            <th>Statut</th>
+                            <th>Dernière sync</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for maquette in maquettes %}
+                        <tr>
+                            <td>
+                                <div class="filiere-info">
+                                    <strong>{{ maquette.filiere_nom|truncatechars:30 }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-primary">{{ maquette.filiere_sigle }}</span>
+                            </td>
+                            <td>{{ maquette.niveau_libelle }}</td>
+                            <td>{{ maquette.annee_academique }}</td>
+                            <td>
+                                {% if maquette.parcour %}
+                                    {{ maquette.parcour }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if maquette.classe %}
+                                    <a href="{% url 'classe_detail' maquette.classe.pk %}" class="classe-link">
+                                        {{ maquette.classe.nom|truncatechars:25 }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">Non liée</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if maquette.get_total_ues > 0 %}
+                                    <span class="ue-count">{{ maquette.get_total_ues }}</span>
+                                {% else %}
+                                    <span class="text-muted">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if maquette.is_active %}
+                                    <span class="status-badge active">
+                                        <i class="fas fa-check-circle"></i> Active
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge inactive">
+                                        <i class="fas fa-times-circle"></i> Inactive
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ maquette.last_synced|timesince }}
+                                </small>
+                            </td>
+                            <td>
+                                <div class="table-actions">
+                                    <a href="{% url 'maquette_detail' maquette.pk %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if user.role == 'ADMIN' or user.role == 'RESP_PEDA' %}
+                                    <a href="{% url 'maquette_update' maquette.pk %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="pagination-container">
+            <div class="pagination-info">
+                <span>Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+                <span class="pagination-total">• {{ page_obj.paginator.count }} maquettes au total</span>
+            </div>
+            
+            <nav class="pagination-nav">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-left"></i> Première
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-left"></i> Précédente
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            Suivante <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            Dernière <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <!-- État vide -->
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <h4>Aucune maquette trouvée</h4>
+            <p class="text-muted">
+                {% if request.GET.search or request.GET.classe or request.GET.niveau %}
+                    Aucune maquette ne correspond à vos critères de recherche.
+                    <br>
+                    <a href="{% url 'maquette_list' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-redo"></i> Voir toutes les maquettes
+                    </a>
+                {% else %}
+                    Aucune maquette n'a encore été synchronisée depuis l'API.
+                    {% if user.role == 'ADMIN' or user.role == 'INFORMATICIEN' %}
+                    <br>
+                    <a href="{% url 'sync_dashboard' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-sync-alt"></i> Synchroniser maintenant
+                    </a>
+                    {% endif %}
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Auto-submit du formulaire lors du changement de filtre
+document.addEventListener('DOMContentLoaded', function() {
+    const selectFilters = document.querySelectorAll('#classe, #niveau, #parcour, #status');
+    
+    selectFilters.forEach(function(select) {
+        select.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+    });
+});
+</script>
+{% endblock %}

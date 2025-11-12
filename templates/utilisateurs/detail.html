@@ -1,0 +1,581 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}Détails - {{ user_detail.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/utilisateurs/detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête avec informations principales -->
+    <div class="profile-header">
+        {% if user_detail.role == 'PROFESSEUR' and professeur and professeur.photo %}
+            <img src="{{ professeur.photo.url }}" alt="Photo" class="profile-avatar">
+        {% else %}
+            <div class="avatar-placeholder">
+                {{ user_detail.first_name|first|upper }}{{ user_detail.last_name|first|upper }}
+            </div>
+        {% endif %}
+        
+        <div class="profile-info flex-grow-1">
+            <h2>{{ user_detail.get_full_name }}</h2>
+            <p class="mb-1">
+                <i class="fas fa-envelope"></i> {{ user_detail.email }}
+                {% if user_detail.telephone %}
+                    &nbsp;|&nbsp; <i class="fas fa-phone"></i> {{ user_detail.telephone }}
+                {% endif %}
+            </p>
+            <div>
+                <span class="badge badge-{{ user_detail.get_role_display_badge }} badge-custom">
+                    {{ user_detail.get_role_display }}
+                </span>
+                {% if user_detail.is_active and user_detail.is_active_user %}
+                    <span class="badge badge-success badge-custom">
+                        <i class="fas fa-check-circle"></i> Actif
+                    </span>
+                {% else %}
+                    <span class="badge badge-danger badge-custom">
+                        <i class="fas fa-times-circle"></i> Inactif
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            {% if peut_modifier %}
+                <a href="{% url 'user_change_password' user_detail.pk %}" class="btn btn-warning">
+                    <i class="fas fa-key"></i> Changer mot de passe
+                </a>
+            {% endif %}
+            
+            {% if peut_supprimer %}
+                <button type="button" class="btn btn-danger" id="deleteBtn">
+                    <i class="fas fa-trash"></i> Supprimer
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Colonne principale -->
+        <div class="col-lg-8">
+            <!-- Informations générales -->
+            <div class="card detail-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user"></i> Informations générales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label">Nom complet :</span>
+                        <span class="info-value">{{ user_detail.get_full_name|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Prénom :</span>
+                        <span class="info-value">{{ user_detail.first_name|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nom :</span>
+                        <span class="info-value">{{ user_detail.last_name|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Email :</span>
+                        <span class="info-value">{{ user_detail.email }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Téléphone :</span>
+                        <span class="info-value">{{ user_detail.telephone|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Rôle :</span>
+                        <span class="info-value">
+                            <span class="badge badge-{{ user_detail.get_role_display_badge }}">
+                                {{ user_detail.get_role_display }}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Statut :</span>
+                        <span class="info-value">
+                            {% if user_detail.is_active and user_detail.is_active_user %}
+                                <span class="status-active"><i class="fas fa-check-circle"></i> Actif</span>
+                            {% else %}
+                                <span class="status-inactive"><i class="fas fa-times-circle"></i> Inactif</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sections -->
+            <div class="card detail-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-building"></i> Sections</h5>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label">Section principale :</span>
+                        <span class="info-value">
+                            {% if user_detail.section_principale %}
+                                <span class="section-badge">
+                                    {{ user_detail.section_principale.get_nom_display }}
+                                </span>
+                            {% else %}
+                                Non assignée
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    {% if sections_autorisees %}
+                    <div class="info-row">
+                        <span class="info-label">Sections autorisées :</span>
+                        <div class="info-value">
+                            {% for section in sections_autorisees %}
+                                <span class="section-badge">{{ section.get_nom_display }}</span>
+                            {% empty %}
+                                <span class="text-muted">Aucune section autorisée</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if sections_disponibles %}
+                    <div class="info-row">
+                        <span class="info-label">Sections disponibles :</span>
+                        <div class="info-value">
+                            {% for section in sections_disponibles %}
+                                <span class="section-badge">{{ section.get_nom_display }}</span>
+                            {% empty %}
+                                <span class="text-muted">Aucune section disponible</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Informations spécifiques PROFESSEUR -->
+            {% if user_detail.role == 'PROFESSEUR' and professeur %}
+            <div class="card detail-card" style="margin-bottom: 0;">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chalkboard-teacher"></i> Informations Professeur</h5>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label">Matricule :</span>
+                        <span class="info-value"><strong>{{ professeur.matricule }}</strong></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Grade :</span>
+                        <span class="info-value">{{ professeur.get_grade_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Statut :</span>
+                        <span class="info-value">{{ professeur.get_statut_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Genre :</span>
+                        <span class="info-value">{{ professeur.get_genre_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Date de naissance :</span>
+                        <span class="info-value">
+                            {{ professeur.date_naissance|date:"d/m/Y" }}
+                            {% if age %}
+                                <span class="text-muted">({{ age }} ans)</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nationalité :</span>
+                        <span class="info-value">{{ professeur.nationalite|default:"Non renseignée" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Numéro CNI :</span>
+                        <span class="info-value">{{ professeur.numero_cni|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Situation matrimoniale :</span>
+                        <span class="info-value">{{ professeur.get_situation_matrimoniale_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Domicile :</span>
+                        <span class="info-value">{{ professeur.domicile|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Spécialité :</span>
+                        <span class="info-value">{{ professeur.specialite|default:"Non renseignée" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Diplôme :</span>
+                        <span class="info-value">{{ professeur.diplome|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Années d'expérience :</span>
+                        <span class="info-value">{{ professeur.annee_experience }} an(s)</span>
+                    </div>
+                    
+                    {% if sections_enseignement %}
+                    <div class="info-row">
+                        <span class="info-label">Sections d'enseignement :</span>
+                        <div class="info-value">
+                            {% for section in sections_enseignement %}
+                                <span class="section-badge">{{ section.get_nom_display }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if professeur.section_active %}
+                    <div class="info-row">
+                        <span class="info-label">Section active :</span>
+                        <span class="info-value">
+                            <span class="badge badge-primary">{{ professeur.section_active.get_nom_display }}</span>
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Documents du professeur -->
+            {% if professeur %}
+            <div class="card detail-card" style="margin-top: 0;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-file-alt"></i> Documents</h5>
+                    <a href="{% url 'professeur_documents_update' professeur.id %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-upload"></i> Gérer les documents
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="document-item {% if professeur.photo %}present{% else %}missing{% endif %}">
+                        <div>
+                            <i class="fas fa-image"></i> Photo de profil
+                            {% if professeur.photo_uploaded_at %}
+                                <small class="text-muted ml-2">
+                                    Téléchargée le {{ professeur.photo_uploaded_at|date:"d/m/Y à H:i" }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        {% if professeur.photo %}
+                            <a href="{% url 'professeur_document_download' professeur.id 'photo' %}" 
+                               class="btn btn-sm btn-success">
+                                <i class="fas fa-download"></i> Télécharger
+                            </a>
+                        {% else %}
+                            <span class="badge badge-danger">Manquant</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="document-item {% if professeur.cni_document %}present{% else %}missing{% endif %}">
+                        <div>
+                            <i class="fas fa-id-card"></i> CNI
+                            {% if professeur.cni_uploaded_at %}
+                                <small class="text-muted ml-2">
+                                    Téléchargée le {{ professeur.cni_uploaded_at|date:"d/m/Y à H:i" }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        {% if professeur.cni_document %}
+                            <a href="{% url 'download_professeur_document' professeur.id 'cni' %}" 
+                               class="btn btn-sm btn-success">
+                                <i class="fas fa-download"></i> Télécharger
+                            </a>
+                        {% else %}
+                            <span class="badge badge-danger">Manquant</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="document-item {% if professeur.rib_document %}present{% else %}missing{% endif %}">
+                        <div>
+                            <i class="fas fa-university"></i> RIB
+                            {% if professeur.rib_uploaded_at %}
+                                <small class="text-muted ml-2">
+                                    Téléchargé le {{ professeur.rib_uploaded_at|date:"d/m/Y à H:i" }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        {% if professeur.rib_document %}
+                            <a href="{% url 'download_professeur_document' professeur.id 'rib' %}" 
+                               class="btn btn-sm btn-success">
+                                <i class="fas fa-download"></i> Télécharger
+                            </a>
+                        {% else %}
+                            <span class="badge badge-danger">Manquant</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="document-item {% if professeur.cv_document %}present{% else %}missing{% endif %}">
+                        <div>
+                            <i class="fas fa-file-pdf"></i> CV
+                            {% if professeur.cv_uploaded_at %}
+                                <small class="text-muted ml-2">
+                                    Téléchargé le {{ professeur.cv_uploaded_at|date:"d/m/Y à H:i" }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        {% if professeur.cv_document %}
+                            <a href="{% url 'download_professeur_document' professeur.id 'cv' %}" 
+                               class="btn btn-sm btn-success">
+                                <i class="fas fa-download"></i> Télécharger
+                            </a>
+                        {% else %}
+                            <span class="badge badge-danger">Manquant</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="document-item {% if professeur.diplome_document %}present{% else %}missing{% endif %}">
+                        <div>
+                            <i class="fas fa-certificate"></i> Diplôme
+                            {% if professeur.diplome_uploaded_at %}
+                                <small class="text-muted ml-2">
+                                    Téléchargé le {{ professeur.diplome_uploaded_at|date:"d/m/Y à H:i" }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        {% if professeur.diplome_document %}
+                            <a href="{% url 'download_professeur_document' professeur.id 'diplome' %}" 
+                               class="btn btn-sm btn-success">
+                                <i class="fas fa-download"></i> Télécharger
+                            </a>
+                        {% else %}
+                            <span class="badge badge-danger">Manquant</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- Informations spécifiques COMPTABLE -->
+            {% if user_detail.role == 'COMPTABLE' and comptable %}
+            <div class="card detail-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calculator"></i> Informations Comptable</h5>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label">Matricule :</span>
+                        <span class="info-value"><strong>{{ comptable.matricule }}</strong></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Code unique :</span>
+                        <span class="info-value"><strong>{{ comptable.code_unique }}</strong></span>
+                    </div>
+                    {% if comptable.date_naissance %}
+                    <div class="info-row">
+                        <span class="info-label">Date de naissance :</span>
+                        <span class="info-value">
+                            {{ comptable.date_naissance|date:"d/m/Y" }}
+                            {% if age %}
+                                <span class="text-muted">({{ age }} ans)</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    <div class="info-row">
+                        <span class="info-label">Ancienneté :</span>
+                        <span class="info-value">
+                            {{ anciennete_jours }} jours ({{ anciennete_annees }} années)
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Statut :</span>
+                        <span class="info-value">
+                            {% if comptable.is_active %}
+                                <span class="badge badge-success">Actif</span>
+                            {% else %}
+                                <span class="badge badge-danger">Inactif</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Colonne latérale -->
+        <div class="col-lg-4">
+            <!-- Dates importantes -->
+            <div class="card detail-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar"></i> Dates importantes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label">Création du compte :</span>
+                        <span class="info-value">{{ date_creation|date:"d/m/Y à H:i" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Dernière modification :</span>
+                        <span class="info-value">{{ derniere_modification|date:"d/m/Y à H:i" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Dernière connexion :</span>
+                        <span class="info-value">
+                            {% if derniere_connexion %}
+                                {{ derniere_connexion|date:"d/m/Y à H:i" }}
+                            {% else %}
+                                <span class="text-muted">Jamais connecté</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="card detail-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tools"></i> Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% if peut_modifier %}
+                        <a href="{% url 'user_change_password' user_detail.pk %}" class="btn btn-warning btn-block mb-2">
+                            <i class="fas fa-key"></i> Changer le mot de passe
+                        </a>
+                        
+                        {% if user.role == 'ADMIN' %}
+                        <button type="button" class="btn btn-info btn-block mb-2" onclick="toggleUserStatus({{ user_detail.pk }})">
+                            <i class="fas fa-toggle-on"></i> 
+                            {% if user_detail.is_active_user %}Désactiver{% else %}Activer{% endif %} le compte
+                        </button>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if user_detail.role == 'PROFESSEUR' and professeur %}
+                        <a href="{% url 'professeur_detail' professeur.pk %}" class="btn btn-primary btn-block mb-2">
+                            <i class="fas fa-user-tie"></i> Voir le profil professeur
+                        </a>
+                    {% endif %}
+                    
+                    {% if user_detail.role == 'COMPTABLE' and comptable %}
+                        <a href="{% url 'comptable_detail' comptable.pk %}" class="btn btn-primary btn-block mb-2">
+                            <i class="fas fa-calculator"></i> Voir le profil comptable
+                        </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'user_list' %}" class="btn btn-secondary btn-block">
+                        <i class="fas fa-arrow-left"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+
+            <!-- Permissions et groupes -->
+            {% if user.role == 'ADMIN' %}
+            <div class="card detail-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Permissions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label">Staff :</span>
+                        <span class="info-value">
+                            {% if user_detail.is_staff %}
+                                <i class="fas fa-check text-success"></i> Oui
+                            {% else %}
+                                <i class="fas fa-times text-danger"></i> Non
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Superutilisateur :</span>
+                        <span class="info-value">
+                            {% if user_detail.is_superuser %}
+                                <i class="fas fa-check text-success"></i> Oui
+                            {% else %}
+                                <i class="fas fa-times text-danger"></i> Non
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> Confirmer la suppression</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{{ user_detail.get_full_name }}</strong> ?</p>
+            <p class="text-danger"><i class="fas fa-exclamation-circle"></i> Cette action est irréversible et supprimera toutes les données associées.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn cancel">Annuler</button>
+            <form action="{% url 'user_delete' user_detail.pk %}" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="modal-btn confirm">
+                    Supprimer définitivement
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Gestion du modal de suppression
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteBtn = document.getElementById('deleteBtn');
+    const deleteModal = document.getElementById('deleteModal');
+    const closeBtn = document.querySelector('.modal-close');
+    const cancelBtn = document.querySelector('.modal-btn.cancel');
+    
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            deleteModal.style.display = 'flex';
+            // Scroll vers le haut pour voir le modal
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+    
+    function closeModal() {
+        deleteModal.style.display = 'none';
+    }
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    
+    // Fermer le modal en cliquant à l'extérieur
+    deleteModal.addEventListener('click', function(e) {
+        if (e.target === deleteModal) {
+            closeModal();
+        }
+    });
+});
+
+function toggleUserStatus(userId) {
+    if (!confirm('Voulez-vous vraiment changer le statut de cet utilisateur ?')) {
+        return;
+    }
+    
+    fetch(`/utilisateurs/${userId}/toggle-active/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors du changement de statut');
+    });
+}
+</script>
+{% endblock %}

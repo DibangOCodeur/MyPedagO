@@ -1,0 +1,1739 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/utilisateurs/create.css' %}">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card creation-card">
+                <div class="card-header">
+                    <h5 class="mb-0">Création d'un nouvel utilisateur</h5>
+                    <p class="text-muted mb-0">Remplissez les informations étape par étape</p>
+                </div>
+                <div class="card-body">
+                    <!-- Indicateur d'étapes -->
+                    <div class="step-indicator">
+                        <div class="step active" data-step="1">
+                            <div class="step-number">1</div>
+                            <div class="step-label">Informations<br>Générales</div>
+                        </div>
+                        <div class="step" data-step="2">
+                            <div class="step-number">2</div>
+                            <div class="step-label">Sections &<br>Permissions</div>
+                        </div>
+                        <div class="step" data-step="3">
+                            <div class="step-number">3</div>
+                            <div class="step-label">Profil<br>Spécifique</div>
+                        </div>
+                        <div class="step" data-step="4">
+                            <div class="step-number">4</div>
+                            <div class="step-label">Documents</div>
+                        </div>
+                        <div class="step" data-step="5">
+                            <div class="step-number">5</div>
+                            <div class="step-label">Confirmation</div>
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" novalidate id="multiStepForm">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Étape 1: Informations Générales -->
+                        <div class="form-step active" data-step="1">
+                            <fieldset class="form-fieldset">
+                                <legend class="form-legend">
+                                    <i class="fas fa-user"></i>
+                                    Informations Générales
+                                </legend>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                            {{ form.last_name.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.last_name }}
+                                        {% if form.last_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.last_name.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                            {{ form.first_name.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.first_name }}
+                                        {% if form.first_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.first_name.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.email.id_for_label }}" class="form-label">
+                                            {{ form.email.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.email }}
+                                        {% if form.email.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.email.errors }}
+                                        </div>
+                                        {% endif %}
+                                        <small class="form-text text-muted">{{ form.email.help_text }}</small>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.telephone.id_for_label }}" class="form-label">
+                                            {{ form.telephone.label }}
+                                        </label>
+                                        {{ form.telephone }}
+                                        {% if form.telephone.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.telephone.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.role.id_for_label }}" class="form-label">
+                                            {{ form.role.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.role }}
+                                        {% if form.role.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.role.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check mt-4">
+                                            {{ form.is_active_user }}
+                                            <label class="form-check-label" for="{{ form.is_active_user.id_for_label }}">
+                                                {{ form.is_active_user.label }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-step-actions">
+                                <button type="button" class="btn btn-next" data-next="2">
+                                    Suivant <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Étape 2: Sections et Permissions -->
+                        <div class="form-step" data-step="2">
+                            <fieldset class="form-fieldset">
+                                <legend class="form-legend">
+                                    <i class="fas fa-building"></i>
+                                    Sections et Permissions
+                                </legend>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.section_principale.id_for_label }}" class="form-label">
+                                            {{ form.section_principale.label }}
+                                        </label>
+                                        {{ form.section_principale }}
+                                        {% if form.section_principale.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.section_principale.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.sections_autorisees.id_for_label }}" class="form-label">
+                                            {{ form.sections_autorisees.label }}
+                                        </label>
+                                        {{ form.sections_autorisees }}
+                                        {% if form.sections_autorisees.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.sections_autorisees.errors }}
+                                        </div>
+                                        {% endif %}
+                                        <small class="form-text text-muted">Maintenez Ctrl pour sélectionner plusieurs sections</small>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-step-actions">
+                                <button type="button" class="btn btn-prev" data-prev="1">
+                                    <i class="fas fa-arrow-left"></i> Précédent
+                                </button>
+                                <button type="button" class="btn btn-next" data-next="3">
+                                    Suivant <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Étape 3: Profil Spécifique -->
+                        <div class="form-step" data-step="3">
+                            <fieldset class="form-fieldset">
+                                <legend class="form-legend">
+                                    <i class="fas fa-id-card"></i>
+                                    Informations du Profil
+                                </legend>
+                                
+                                <!-- Champs spécifiques pour PROFESSEUR -->
+                                <div class="role-specific-fields" id="professeur-fields">
+                                    <div class="role-header">
+                                        <i class="fas fa-chalkboard-teacher"></i>
+                                        Informations Professeur
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="{{ form.date_naissance_prof.id_for_label }}" class="form-label">
+                                                {{ form.date_naissance_prof.label }} <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.date_naissance_prof }}
+                                            {% if form.date_naissance_prof.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.date_naissance_prof.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <label for="{{ form.grade.id_for_label }}" class="form-label">
+                                                {{ form.grade.label }}
+                                            </label>
+                                            {{ form.grade }}
+                                            {% if form.grade.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.grade.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <label for="{{ form.statut.id_for_label }}" class="form-label">
+                                                {{ form.statut.label }}
+                                            </label>
+                                            {{ form.statut }}
+                                            {% if form.statut.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.statut.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.genre.id_for_label }}" class="form-label">
+                                                {{ form.genre.label }}
+                                            </label>
+                                            {{ form.genre }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.nationalite.id_for_label }}" class="form-label">
+                                                {{ form.nationalite.label }}
+                                            </label>
+                                            {{ form.nationalite }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.numero_cni.id_for_label }}" class="form-label">
+                                                {{ form.numero_cni.label }}
+                                            </label>
+                                            {{ form.numero_cni }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.situation_matrimoniale.id_for_label }}" class="form-label">
+                                                {{ form.situation_matrimoniale.label }}
+                                            </label>
+                                            {{ form.situation_matrimoniale }}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.domicile.id_for_label }}" class="form-label">
+                                                {{ form.domicile.label }}
+                                            </label>
+                                            {{ form.domicile }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.specialite.id_for_label }}" class="form-label">
+                                                {{ form.specialite.label }}
+                                            </label>
+                                            {{ form.specialite }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.diplome.id_for_label }}" class="form-label">
+                                                {{ form.diplome.label }}
+                                            </label>
+                                            {{ form.diplome }}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.annee_experience.id_for_label }}" class="form-label">
+                                                {{ form.annee_experience.label }}
+                                            </label>
+                                            {{ form.annee_experience }}
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.sections_enseignement.id_for_label }}" class="form-label">
+                                                {{ form.sections_enseignement.label }} <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.sections_enseignement }}
+                                            {% if form.sections_enseignement.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.sections_enseignement.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Champs spécifiques pour COMPTABLE -->
+                                <div class="role-specific-fields" id="comptable-fields">
+                                    <div class="role-header">
+                                        <i class="fas fa-calculator"></i>
+                                        Informations Comptable
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.date_naissance_compta.id_for_label }}" class="form-label">
+                                                {{ form.date_naissance_compta.label }} <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.date_naissance_compta }}
+                                            {% if form.date_naissance_compta.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.date_naissance_compta.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Message pour autres rôles -->
+                                <div class="role-specific-fields" id="autre-role-fields">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Aucune information supplémentaire n'est requise pour ce rôle.
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-step-actions">
+                                <button type="button" class="btn btn-prev" data-prev="2">
+                                    <i class="fas fa-arrow-left"></i> Précédent
+                                </button>
+                                <button type="button" class="btn btn-next" data-next="4">
+                                    Suivant <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Étape 4: Documents (uniquement pour PROFESSEUR) -->
+                        <div class="form-step" data-step="4">
+                            <fieldset class="form-fieldset">
+                                <legend class="form-legend">
+                                    <i class="fas fa-folder-open"></i>
+                                    Documents
+                                </legend>
+                                
+                                <!-- Documents pour PROFESSEUR -->
+                                <div class="role-specific-fields" id="professeur-documents">
+                                    <div class="alert alert-info mb-4">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Information:</strong> Les documents sont optionnels lors de la création. 
+                                        Vous pourrez les ajouter ultérieurement depuis le profil du professeur.
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-4">
+                                            <div class="document-upload-card">
+                                                <label for="{{ form.photo.id_for_label }}" class="form-label">
+                                                    <i class="fas fa-user-circle"></i> {{ form.photo.label }}
+                                                </label>
+                                                {{ form.photo }}
+                                                {% if form.photo.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.photo.errors }}
+                                                </div>
+                                                {% endif %}
+                                                <small class="form-text text-muted">{{ form.photo.help_text }}</small>
+                                                <div class="file-preview" id="photo-preview"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-4">
+                                            <div class="document-upload-card">
+                                                <label for="{{ form.cni_document.id_for_label }}" class="form-label">
+                                                    <i class="fas fa-id-card"></i> {{ form.cni_document.label }}
+                                                </label>
+                                                {{ form.cni_document }}
+                                                {% if form.cni_document.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.cni_document.errors }}
+                                                </div>
+                                                {% endif %}
+                                                <small class="form-text text-muted">{{ form.cni_document.help_text }}</small>
+                                                <div class="file-preview" id="cni-preview"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-4">
+                                            <div class="document-upload-card">
+                                                <label for="{{ form.rib_document.id_for_label }}" class="form-label">
+                                                    <i class="fas fa-university"></i> {{ form.rib_document.label }}
+                                                </label>
+                                                {{ form.rib_document }}
+                                                {% if form.rib_document.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.rib_document.errors }}
+                                                </div>
+                                                {% endif %}
+                                                <small class="form-text text-muted">{{ form.rib_document.help_text }}</small>
+                                                <div class="file-preview" id="rib-preview"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-4">
+                                            <div class="document-upload-card">
+                                                <label for="{{ form.cv_document.id_for_label }}" class="form-label">
+                                                    <i class="fas fa-file-alt"></i> {{ form.cv_document.label }}
+                                                </label>
+                                                {{ form.cv_document }}
+                                                {% if form.cv_document.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.cv_document.errors }}
+                                                </div>
+                                                {% endif %}
+                                                <small class="form-text text-muted">{{ form.cv_document.help_text }}</small>
+                                                <div class="file-preview" id="cv-preview"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-4">
+                                            <div class="document-upload-card">
+                                                <label for="{{ form.diplome_document.id_for_label }}" class="form-label">
+                                                    <i class="fas fa-certificate"></i> {{ form.diplome_document.label }}
+                                                </label>
+                                                {{ form.diplome_document }}
+                                                {% if form.diplome_document.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.diplome_document.errors }}
+                                                </div>
+                                                {% endif %}
+                                                <small class="form-text text-muted">{{ form.diplome_document.help_text }}</small>
+                                                <div class="file-preview" id="diplome-preview"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Message pour autres rôles -->
+                                <div class="role-specific-fields" id="autre-role-documents">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Aucun document n'est requis pour ce rôle.
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-step-actions">
+                                <button type="button" class="btn btn-prev" data-prev="3">
+                                    <i class="fas fa-arrow-left"></i> Précédent
+                                </button>
+                                <button type="button" class="btn btn-next" data-next="5">
+                                    Suivant <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Étape 5: Confirmation -->
+                        <div class="form-step" data-step="5">
+                            <fieldset class="form-fieldset">
+                                <legend class="form-legend">
+                                    <i class="fas fa-check-circle"></i>
+                                    Confirmation
+                                </legend>
+                                
+                                <div class="confirmation-summary">
+                                    <div class="summary-header">
+                                        <h5>Récapitulatif de la création</h5>
+                                        <p class="text-muted">Vérifiez les informations avant de créer l'utilisateur</p>
+                                    </div>
+                                    
+                                    <div class="summary-content">
+                                        <div class="summary-section">
+                                            <h6><i class="fas fa-user"></i> Informations Générales</h6>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Nom complet:</span>
+                                                <span class="summary-value" id="summary-fullname"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Email:</span>
+                                                <span class="summary-value" id="summary-email"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Rôle:</span>
+                                                <span class="summary-value" id="summary-role"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Téléphone:</span>
+                                                <span class="summary-value" id="summary-phone"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="summary-section">
+                                            <h6><i class="fas fa-building"></i> Sections</h6>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Section principale:</span>
+                                                <span class="summary-value" id="summary-main-section"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Sections autorisées:</span>
+                                                <span class="summary-value" id="summary-allowed-sections"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="summary-section" id="summary-professor" style="display: none;">
+                                            <h6><i class="fas fa-chalkboard-teacher"></i> Informations Professeur</h6>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Date de naissance:</span>
+                                                <span class="summary-value" id="summary-prof-birthdate"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Grade:</span>
+                                                <span class="summary-value" id="summary-prof-grade"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Spécialité:</span>
+                                                <span class="summary-value" id="summary-prof-specialty"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="summary-section" id="summary-documents" style="display: none;">
+                                            <h6><i class="fas fa-folder-open"></i> Documents chargés</h6>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Photo de profil:</span>
+                                                <span class="summary-value" id="summary-doc-photo">Non fournie</span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">CNI:</span>
+                                                <span class="summary-value" id="summary-doc-cni">Non fournie</span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">RIB:</span>
+                                                <span class="summary-value" id="summary-doc-rib">Non fourni</span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">CV:</span>
+                                                <span class="summary-value" id="summary-doc-cv">Non fourni</span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Diplôme:</span>
+                                                <span class="summary-value" id="summary-doc-diplome">Non fourni</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="summary-section" id="summary-comptable" style="display: none;">
+                                            <h6><i class="fas fa-calculator"></i> Informations Comptable</h6>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Date de naissance:</span>
+                                                <span class="summary-value" id="summary-compta-birthdate"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="password-info">
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-key"></i>
+                                            <strong>Mot de passe par défaut:</strong> @elites@
+                                            <br>
+                                            <small>L'utilisateur devra changer son mot de passe lors de sa première connexion.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-step-actions">
+                                <button type="button" class="btn btn-prev" data-prev="4">
+                                    <i class="fas fa-arrow-left"></i> Précédent
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-user-plus"></i> Créer l'utilisateur
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des pays pour la nationalité -->
+<datalist id="pays-list">
+    <option value="Côte d'Ivoire">
+    <option value="France">
+    <option value="Sénégal">
+    <option value="Mali">
+    <option value="Burkina Faso">
+    <option value="Niger">
+    <option value="Bénin">
+    <option value="Togo">
+    <option value="Ghana">
+    <option value="Nigeria">
+    <!-- Ajoutez d'autres pays si nécessaire -->
+</datalist>
+
+<style>
+/* Styles pour les cartes de documents */
+.document-upload-card {
+    padding: 20px;
+    border: 2px dashed rgba(30, 60, 114, 0.2);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.document-upload-card:hover {
+    border-color: rgba(30, 60, 114, 0.5);
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateY(-2px);
+}
+
+.document-upload-card label {
+    font-weight: 600;
+    color: #1e3c72;
+    margin-bottom: 10px;
+}
+
+.document-upload-card label i {
+    margin-right: 8px;
+}
+
+.file-preview {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(30, 60, 114, 0.05);
+    display: none;
+}
+
+.file-preview.active {
+    display: block;
+}
+
+.file-preview img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.file-info i {
+    font-size: 24px;
+    color: #1e3c72;
+}
+
+.file-details {
+    flex: 1;
+}
+
+.file-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.file-size {
+    font-size: 0.85rem;
+    color: #666;
+}
+</style>
+
+<script src="{% static 'js/mobile/create.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestion des étapes
+    const steps = document.querySelectorAll('.form-step');
+    const stepIndicators = document.querySelectorAll('.step');
+    let currentStep = 1;
+
+    // Navigation entre les étapes
+    document.querySelectorAll('.btn-next').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const nextStep = parseInt(this.dataset.next);
+            if (validateStep(currentStep)) {
+                goToStep(nextStep);
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-prev').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const prevStep = parseInt(this.dataset.prev);
+            goToStep(prevStep);
+        });
+    });
+
+    function goToStep(step) {
+        document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
+        document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+        
+        document.querySelector(`.form-step[data-step="${step}"]`).classList.add('active');
+        document.querySelector(`.step[data-step="${step}"]`).classList.add('active');
+        
+        stepIndicators.forEach(indicator => {
+            const indicatorStep = parseInt(indicator.dataset.step);
+            if (indicatorStep < step) {
+                indicator.classList.add('completed');
+            } else if (indicatorStep > step) {
+                indicator.classList.remove('completed');
+            }
+        });
+
+        currentStep = step;
+
+        if (step === 5) {
+            updateSummary();
+        }
+        
+        // Gérer l'affichage des documents selon le rôle
+        if (step === 4) {
+            toggleDocumentFields();
+        }
+    }
+
+    function validateStep(step) {
+        const currentStepElement = document.querySelector(`.form-step[data-step="${step}"]`);
+        const requiredFields = currentStepElement.querySelectorAll('[required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+
+        if (!isValid) {
+            alert('Veuillez remplir tous les champs obligatoires');
+        }
+
+        return isValid;
+    }
+
+    // Gestion des champs spécifiques par rôle
+    const roleSelect = document.getElementById('id_role');
+    const professeurFields = document.getElementById('professeur-fields');
+    const comptableFields = document.getElementById('comptable-fields');
+    const autreRoleFields = document.getElementById('autre-role-fields');
+    const professeurDocuments = document.getElementById('professeur-documents');
+    const autreRoleDocuments = document.getElementById('autre-role-documents');
+    
+    function toggleRoleFields() {
+        const selectedRole = roleSelect.value;
+        
+        document.querySelectorAll('.role-specific-fields').forEach(field => {
+            field.style.display = 'none';
+        });
+        
+        if (selectedRole === 'PROFESSEUR') {
+            professeurFields.style.display = 'block';
+        } else if (selectedRole === 'COMPTABLE') {
+            comptableFields.style.display = 'block';
+        } else {
+            autreRoleFields.style.display = 'block';
+        }
+    }
+    
+    function toggleDocumentFields() {
+        const selectedRole = roleSelect.value;
+        
+        if (selectedRole === 'PROFESSEUR') {
+            professeurDocuments.style.display = 'block';
+            autreRoleDocuments.style.display = 'none';
+        } else {
+            professeurDocuments.style.display = 'none';
+            autreRoleDocuments.style.display = 'block';
+        }
+    }
+    
+    toggleRoleFields();
+    roleSelect.addEventListener('change', toggleRoleFields);
+
+    // Prévisualisation des fichiers
+    const fileInputs = {
+        'id_photo': 'photo-preview',
+        'id_cni_document': 'cni-preview',
+        'id_rib_document': 'rib-preview',
+        'id_cv_document': 'cv-preview',
+        'id_diplome_document': 'diplome-preview'
+    };
+
+    Object.keys(fileInputs).forEach(inputId => {
+        const input = document.getElementById(inputId);
+        const previewId = fileInputs[inputId];
+        
+        if (input) {
+            input.addEventListener('change', function(e) {
+                handleFilePreview(e.target, previewId);
+            });
+        }
+    });
+
+    function handleFilePreview(input, previewId) {
+        const preview = document.getElementById(previewId);
+        const file = input.files[0];
+        
+        if (file) {
+            preview.classList.add('active');
+            
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                preview.innerHTML = `
+                    <div class="file-info">
+                        <i class="fas fa-file-pdf"></i>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${fileSize} MB</div>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            preview.classList.remove('active');
+            preview.innerHTML = '';
+        }
+    }
+
+    // Mettre à jour le récapitulatif
+    function updateSummary() {
+        // Informations générales
+        document.getElementById('summary-fullname').textContent = 
+            `${document.getElementById('id_first_name').value} ${document.getElementById('id_last_name').value}`;
+        document.getElementById('summary-email').textContent = document.getElementById('id_email').value;
+        document.getElementById('summary-role').textContent = roleSelect.options[roleSelect.selectedIndex].text;
+        document.getElementById('summary-phone').textContent = document.getElementById('id_telephone').value || 'Non renseigné';
+
+        // Sections
+        const mainSectionSelect = document.getElementById('id_section_principale');
+        document.getElementById('summary-main-section').textContent = 
+            mainSectionSelect.selectedIndex > 0 ? mainSectionSelect.options[mainSectionSelect.selectedIndex].text : 'Non définie';
+
+        const allowedSectionsSelect = document.getElementById('id_sections_autorisees');
+        const selectedSections = Array.from(allowedSectionsSelect.selectedOptions).map(option => option.text);
+        document.getElementById('summary-allowed-sections').textContent = 
+            selectedSections.length > 0 ? selectedSections.join(', ') : 'Aucune';
+
+        // Informations spécifiques au rôle
+        const selectedRole = roleSelect.value;
+        
+        if (selectedRole === 'PROFESSEUR') {
+            document.getElementById('summary-professor').style.display = 'block';
+            document.getElementById('summary-comptable').style.display = 'none';
+            document.getElementById('summary-documents').style.display = 'block';
+            
+            document.getElementById('summary-prof-birthdate').textContent = 
+                document.getElementById('id_date_naissance_prof').value || 'Non renseignée';
+            
+            const gradeSelect = document.getElementById('id_grade');
+            document.getElementById('summary-prof-grade').textContent = 
+                gradeSelect.selectedIndex > 0 ? gradeSelect.options[gradeSelect.selectedIndex].text : 'Non renseigné';
+            
+            document.getElementById('summary-prof-specialty').textContent = 
+                document.getElementById('id_specialite').value || 'Non renseignée';
+            
+            // Documents
+            document.getElementById('summary-doc-photo').textContent = 
+                document.getElementById('id_photo').files.length > 0 ? 
+                document.getElementById('id_photo').files[0].name : 'Non fournie';
+            
+            document.getElementById('summary-doc-cni').textContent = 
+                document.getElementById('id_cni_document').files.length > 0 ? 
+                document.getElementById('id_cni_document').files[0].name : 'Non fournie';
+            
+            document.getElementById('summary-doc-rib').textContent = 
+                document.getElementById('id_rib_document').files.length > 0 ? 
+                document.getElementById('id_rib_document').files[0].name : 'Non fourni';
+            
+            document.getElementById('summary-doc-cv').textContent = 
+                document.getElementById('id_cv_document').files.length > 0 ? 
+                document.getElementById('id_cv_document').files[0].name : 'Non fourni';
+            
+            document.getElementById('summary-doc-diplome').textContent = 
+                document.getElementById('id_diplome_document').files.length > 0 ? 
+                document.getElementById('id_diplome_document').files[0].name : 'Non fourni';
+                
+        } else if (selectedRole === 'COMPTABLE') {
+            document.getElementById('summary-professor').style.display = 'none';
+            document.getElementById('summary-comptable').style.display = 'block';
+            document.getElementById('summary-documents').style.display = 'none';
+            
+            document.getElementById('summary-compta-birthdate').textContent = 
+                document.getElementById('id_date_naissance_compta').value || 'Non renseignée';
+        } else {
+            document.getElementById('summary-professor').style.display = 'none';
+            document.getElementById('summary-comptable').style.display = 'none';
+            document.getElementById('summary-documents').style.display = 'none';
+        }
+    }
+});
+</script>
+{% endblock %}
+
+
+
+
+{% comment %} {% extends 'bases/base_users.html' %}
+
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/utilisateurs/create.css' %}">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card creation-card">
+                <div class="card-header">
+                    <h5 class="mb-0">Création d'un nouvel utilisateur</h5>
+                    <p class="text-muted mb-0">Remplissez les informations étape par étape</p>
+                </div>
+                <div class="card-body">
+                    <!-- Indicateur d'étapes -->
+                    <div class="step-indicator">
+                        <div class="step active" data-step="1">
+                            <div class="step-number">1</div>
+                            <div class="step-label">Informations<br>Générales</div>
+                        </div>
+                        <div class="step" data-step="2">
+                            <div class="step-number">2</div>
+                            <div class="step-label">Sections &<br>Permissions</div>
+                        </div>
+                        <div class="step" data-step="3">
+                            <div class="step-number">3</div>
+                            <div class="step-label">Profil<br>Spécifique</div>
+                        </div>
+                        <div class="step" data-step="4">
+                            <div class="step-number">4</div>
+                            <div class="step-label">Confirmation</div>
+                        </div>
+                    </div>
+
+                    <form method="post" novalidate id="multiStepForm">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Étape 1: Informations Générales -->
+                        <div class="form-step active" data-step="1">
+                            <fieldset class="form-fieldset">
+                                <legend class="form-legend">
+                                    <i class="fas fa-user"></i>
+                                    Informations Générales
+                                </legend>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                            {{ form.first_name.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.first_name }}
+                                        {% if form.first_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.first_name.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                            {{ form.last_name.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.last_name }}
+                                        {% if form.last_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.last_name.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.email.id_for_label }}" class="form-label">
+                                            {{ form.email.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.email }}
+                                        {% if form.email.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.email.errors }}
+                                        </div>
+                                        {% endif %}
+                                        <small class="form-text text-muted">{{ form.email.help_text }}</small>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.telephone.id_for_label }}" class="form-label">
+                                            {{ form.telephone.label }}
+                                        </label>
+                                        {{ form.telephone }}
+                                        {% if form.telephone.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.telephone.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.role.id_for_label }}" class="form-label">
+                                            {{ form.role.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.role }}
+                                        {% if form.role.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.role.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check mt-4">
+                                            {{ form.is_active_user }}
+                                            <label class="form-check-label" for="{{ form.is_active_user.id_for_label }}">
+                                                {{ form.is_active_user.label }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-step-actions">
+                                <button type="button" class="btn btn-next" data-next="2">
+                                    Suivant <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Étape 2: Sections et Permissions -->
+                        <div class="form-step" data-step="2">
+                            <fieldset class="form-fieldset">
+                                <legend class="form-legend">
+                                    <i class="fas fa-building"></i>
+                                    Sections et Permissions
+                                </legend>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.section_principale.id_for_label }}" class="form-label">
+                                            {{ form.section_principale.label }}
+                                        </label>
+                                        {{ form.section_principale }}
+                                        {% if form.section_principale.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.section_principale.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.sections_autorisees.id_for_label }}" class="form-label">
+                                            {{ form.sections_autorisees.label }}
+                                        </label>
+                                        {{ form.sections_autorisees }}
+                                        {% if form.sections_autorisees.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.sections_autorisees.errors }}
+                                        </div>
+                                        {% endif %}
+                                        <small class="form-text text-muted">Maintenez Ctrl pour sélectionner plusieurs sections</small>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-step-actions">
+                                <button type="button" class="btn btn-prev" data-prev="1">
+                                    <i class="fas fa-arrow-left"></i> Précédent
+                                </button>
+                                <button type="button" class="btn btn-next" data-next="3">
+                                    Suivant <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Étape 3: Profil Spécifique -->
+                        <div class="form-step" data-step="3">
+                            <fieldset class="form-fieldset">
+                                <legend class="form-legend">
+                                    <i class="fas fa-id-card"></i>
+                                    Informations du Profil
+                                </legend>
+                                
+                                <!-- Champs spécifiques pour PROFESSEUR -->
+                                <div class="role-specific-fields" id="professeur-fields">
+                                    <div class="role-header">
+                                        <i class="fas fa-chalkboard-teacher"></i>
+                                        Informations Professeur
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="{{ form.date_naissance_prof.id_for_label }}" class="form-label">
+                                                {{ form.date_naissance_prof.label }} <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.date_naissance_prof }}
+                                            {% if form.date_naissance_prof.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.date_naissance_prof.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <label for="{{ form.grade.id_for_label }}" class="form-label">
+                                                {{ form.grade.label }}
+                                            </label>
+                                            {{ form.grade }}
+                                            {% if form.grade.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.grade.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <label for="{{ form.statut.id_for_label }}" class="form-label">
+                                                {{ form.statut.label }}
+                                            </label>
+                                            {{ form.statut }}
+                                            {% if form.statut.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.statut.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.genre.id_for_label }}" class="form-label">
+                                                {{ form.genre.label }}
+                                            </label>
+                                            {{ form.genre }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.nationalite.id_for_label }}" class="form-label">
+                                                {{ form.nationalite.label }}
+                                            </label>
+                                            {{ form.nationalite }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.numero_cni.id_for_label }}" class="form-label">
+                                                {{ form.numero_cni.label }}
+                                            </label>
+                                            {{ form.numero_cni }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.situation_matrimoniale.id_for_label }}" class="form-label">
+                                                {{ form.situation_matrimoniale.label }}
+                                            </label>
+                                            {{ form.situation_matrimoniale }}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.domicile.id_for_label }}" class="form-label">
+                                                {{ form.domicile.label }}
+                                            </label>
+                                            {{ form.domicile }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.specialite.id_for_label }}" class="form-label">
+                                                {{ form.specialite.label }}
+                                            </label>
+                                            {{ form.specialite }}
+                                        </div>
+
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ form.diplome.id_for_label }}" class="form-label">
+                                                {{ form.diplome.label }}
+                                            </label>
+                                            {{ form.diplome }}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.annee_experience.id_for_label }}" class="form-label">
+                                                {{ form.annee_experience.label }}
+                                            </label>
+                                            {{ form.annee_experience }}
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.sections_enseignement.id_for_label }}" class="form-label">
+                                                {{ form.sections_enseignement.label }} <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.sections_enseignement }}
+                                            {% if form.sections_enseignement.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.sections_enseignement.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Champs spécifiques pour COMPTABLE -->
+                                <div class="role-specific-fields" id="comptable-fields">
+                                    <div class="role-header">
+                                        <i class="fas fa-calculator"></i>
+                                        Informations Comptable
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.date_naissance_compta.id_for_label }}" class="form-label">
+                                                {{ form.date_naissance_compta.label }} <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.date_naissance_compta }}
+                                            {% if form.date_naissance_compta.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.date_naissance_compta.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Message pour autres rôles -->
+                                <div class="role-specific-fields" id="autre-role-fields">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Aucune information supplémentaire n'est requise pour ce rôle.
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-step-actions">
+                                <button type="button" class="btn btn-prev" data-prev="2">
+                                    <i class="fas fa-arrow-left"></i> Précédent
+                                </button>
+                                <button type="button" class="btn btn-next" data-next="4">
+                                    Suivant <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Étape 4: Confirmation -->
+                        <div class="form-step" data-step="4">
+                            <fieldset class="form-fieldset">
+                                <legend class="form-legend">
+                                    <i class="fas fa-check-circle"></i>
+                                    Confirmation
+                                </legend>
+                                
+                                <div class="confirmation-summary">
+                                    <div class="summary-header">
+                                        <h5>Récapitulatif de la création</h5>
+                                        <p class="text-muted">Vérifiez les informations avant de créer l'utilisateur</p>
+                                    </div>
+                                    
+                                    <div class="summary-content">
+                                        <div class="summary-section">
+                                            <h6>Informations Générales</h6>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Nom complet:</span>
+                                                <span class="summary-value" id="summary-fullname"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Email:</span>
+                                                <span class="summary-value" id="summary-email"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Rôle:</span>
+                                                <span class="summary-value" id="summary-role"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Téléphone:</span>
+                                                <span class="summary-value" id="summary-phone"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="summary-section">
+                                            <h6>Sections</h6>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Section principale:</span>
+                                                <span class="summary-value" id="summary-main-section"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Sections autorisées:</span>
+                                                <span class="summary-value" id="summary-allowed-sections"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="summary-section" id="summary-professor" style="display: none;">
+                                            <h6>Informations Professeur</h6>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Date de naissance:</span>
+                                                <span class="summary-value" id="summary-prof-birthdate"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Grade:</span>
+                                                <span class="summary-value" id="summary-prof-grade"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Spécialité:</span>
+                                                <span class="summary-value" id="summary-prof-specialty"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="summary-section" id="summary-comptable" style="display: none;">
+                                            <h6>Informations Comptable</h6>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Date de naissance:</span>
+                                                <span class="summary-value" id="summary-compta-birthdate"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="password-info">
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-key"></i>
+                                            <strong>Mot de passe par défaut:</strong> @elites@
+                                            <br>
+                                            <small>L'utilisateur devra changer son mot de passe lors de sa première connexion.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-step-actions">
+                                <button type="button" class="btn btn-prev" data-prev="3">
+                                    <i class="fas fa-arrow-left"></i> Précédent
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-user-plus"></i> Créer l'utilisateur
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des pays pour la nationalité -->
+<datalist id="pays-list">
+    <option value="Afghanistan">
+    <option value="Afrique du Sud">
+    <option value="Albanie">
+    <option value="Algérie">
+    <option value="Allemagne">
+    <option value="Andorre">
+    <option value="Angola">
+    <option value="Antigua-et-Barbuda">
+    <option value="Arabie saoudite">
+    <option value="Argentine">
+    <option value="Arménie">
+    <option value="Australie">
+    <option value="Autriche">
+    <option value="Azerbaïdjan">
+    <option value="Bahamas">
+    <option value="Bahreïn">
+    <option value="Bangladesh">
+    <option value="Barbade">
+    <option value="Bélarus">
+    <option value="Belgique">
+    <option value="Belize">
+    <option value="Bénin">
+    <option value="Bhoutan">
+    <option value="Bolivie">
+    <option value="Bosnie-Herzégovine">
+    <option value="Botswana">
+    <option value="Brésil">
+    <option value="Brunei">
+    <option value="Bulgarie">
+    <option value="Burkina Faso">
+    <option value="Burundi">
+    <option value="Cambodge">
+    <option value="Cameroun">
+    <option value="Canada">
+    <option value="Cap-Vert">
+    <option value="Centrafrique">
+    <option value="Chili">
+    <option value="Chine">
+    <option value="Chypre">
+    <option value="Colombie">
+    <option value="Comores">
+    <option value="Congo">
+    <option value="Corée du Nord">
+    <option value="Corée du Sud">
+    <option value="Costa Rica">
+    <option value="Côte d'Ivoire">
+    <option value="Croatie">
+    <option value="Cuba">
+    <option value="Danemark">
+    <option value="Djibouti">
+    <option value="Dominique">
+    <option value="Égypte">
+    <option value="Émirats arabes unis">
+    <option value="Équateur">
+    <option value="Érythrée">
+    <option value="Espagne">
+    <option value="Estonie">
+    <option value="Eswatini">
+    <option value="États-Unis">
+    <option value="Éthiopie">
+    <option value="Fidji">
+    <option value="Finlande">
+    <option value="France">
+    <option value="Gabon">
+    <option value="Gambie">
+    <option value="Géorgie">
+    <option value="Ghana">
+    <option value="Grèce">
+    <option value="Grenade">
+    <option value="Guatemala">
+    <option value="Guinée">
+    <option value="Guinée équatoriale">
+    <option value="Guinée-Bissau">
+    <option value="Guyana">
+    <option value="Haïti">
+    <option value="Honduras">
+    <option value="Hongrie">
+    <option value="Îles Marshall">
+    <option value="Îles Salomon">
+    <option value="Inde">
+    <option value="Indonésie">
+    <option value="Irak">
+    <option value="Iran">
+    <option value="Irlande">
+    <option value="Islande">
+    <option value="Israël">
+    <option value="Italie">
+    <option value="Jamaïque">
+    <option value="Japon">
+    <option value="Jordanie">
+    <option value="Kazakhstan">
+    <option value="Kenya">
+    <option value="Kirghizistan">
+    <option value="Kiribati">
+    <option value="Kosovo">
+    <option value="Koweït">
+    <option value="Laos">
+    <option value="Lesotho">
+    <option value="Lettonie">
+    <option value="Liban">
+    <option value="Liberia">
+    <option value="Libye">
+    <option value="Liechtenstein">
+    <option value="Lituanie">
+    <option value="Luxembourg">
+    <option value="Macédoine du Nord">
+    <option value="Madagascar">
+    <option value="Malaisie">
+    <option value="Malawi">
+    <option value="Maldives">
+    <option value="Mali">
+    <option value="Malte">
+    <option value="Maroc">
+    <option value="Maurice">
+    <option value="Mauritanie">
+    <option value="Mexique">
+    <option value="Micronésie">
+    <option value="Moldavie">
+    <option value="Monaco">
+    <option value="Mongolie">
+    <option value="Monténégro">
+    <option value="Mozambique">
+    <option value="Namibie">
+    <option value="Nauru">
+    <option value="Népal">
+    <option value="Nicaragua">
+    <option value="Niger">
+    <option value="Nigéria">
+    <option value="Norvège">
+    <option value="Nouvelle-Zélande">
+    <option value="Oman">
+    <option value="Ouganda">
+    <option value="Ouzbékistan">
+    <option value="Pakistan">
+    <option value="Palaos">
+    <option value="Palestine">
+    <option value="Panama">
+    <option value="Papouasie-Nouvelle-Guinée">
+    <option value="Paraguay">
+    <option value="Pays-Bas">
+    <option value="Pérou">
+    <option value="Philippines">
+    <option value="Pologne">
+    <option value="Portugal">
+    <option value="Qatar">
+    <option value="Roumanie">
+    <option value="Royaume-Uni">
+    <option value="Russie">
+    <option value="Rwanda">
+    <option value="Saint-Christophe-et-Niévès">
+    <option value="Sainte-Lucie">
+    <option value="Saint-Marin">
+    <option value="Saint-Vincent-et-les-Grenadines">
+    <option value="Salvador">
+    <option value="Samoa">
+    <option value="Sao Tomé-et-Principe">
+    <option value="Sénégal">
+    <option value="Serbie">
+    <option value="Seychelles">
+    <option value="Sierra Leone">
+    <option value="Singapour">
+    <option value="Slovaquie">
+    <option value="Slovénie">
+    <option value="Somalie">
+    <option value="Soudan">
+    <option value="Soudan du Sud">
+    <option value="Sri Lanka">
+    <option value="Suède">
+    <option value="Suisse">
+    <option value="Suriname">
+    <option value="Syrie">
+    <option value="Tadjikistan">
+    <option value="Tanzanie">
+    <option value="Tchad">
+    <option value="République tchèque">
+    <option value="Thaïlande">
+    <option value="Timor oriental">
+    <option value="Togo">
+    <option value="Tonga">
+    <option value="Trinité-et-Tobago">
+    <option value="Tunisie">
+    <option value="Turkménistan">
+    <option value="Turquie">
+    <option value="Tuvalu">
+    <option value="Ukraine">
+    <option value="Uruguay">
+    <option value="Vanuatu">
+    <option value="Vatican">
+    <option value="Venezuela">
+    <option value="Viêt Nam">
+    <option value="Yémen">
+    <option value="Zambie">
+    <option value="Zimbabwe">
+</datalist>
+
+<script src="{% static 'js/mobile/create.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestion des étapes
+    const steps = document.querySelectorAll('.form-step');
+    const stepIndicators = document.querySelectorAll('.step');
+    let currentStep = 1;
+
+    // Navigation entre les étapes
+    document.querySelectorAll('.btn-next').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const nextStep = parseInt(this.dataset.next);
+            if (validateStep(currentStep)) {
+                goToStep(nextStep);
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-prev').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const prevStep = parseInt(this.dataset.prev);
+            goToStep(prevStep);
+        });
+    });
+
+    function goToStep(step) {
+        // Masquer l'étape actuelle
+        document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
+        document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+        
+        // Afficher la nouvelle étape
+        document.querySelector(`.form-step[data-step="${step}"]`).classList.add('active');
+        document.querySelector(`.step[data-step="${step}"]`).classList.add('active');
+        
+        // Marquer les étapes précédentes comme complétées
+        stepIndicators.forEach(indicator => {
+            const indicatorStep = parseInt(indicator.dataset.step);
+            if (indicatorStep < step) {
+                indicator.classList.add('completed');
+            } else if (indicatorStep > step) {
+                indicator.classList.remove('completed');
+            }
+        });
+
+        currentStep = step;
+
+        // Mettre à jour le récapitulatif à l'étape 4
+        if (step === 4) {
+            updateSummary();
+        }
+    }
+
+    function validateStep(step) {
+        const currentStepElement = document.querySelector(`.form-step[data-step="${step}"]`);
+        const requiredFields = currentStepElement.querySelectorAll('[required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+
+        if (!isValid) {
+            showNotification('Veuillez remplir tous les champs obligatoires', 'error');
+        }
+
+        return isValid;
+    }
+
+    // Gestion des champs spécifiques par rôle
+    const roleSelect = document.getElementById('id_role');
+    const professeurFields = document.getElementById('professeur-fields');
+    const comptableFields = document.getElementById('comptable-fields');
+    const autreRoleFields = document.getElementById('autre-role-fields');
+    
+    function toggleRoleFields() {
+        const selectedRole = roleSelect.value;
+        
+        // Masquer tous les champs spécifiques
+        document.querySelectorAll('.role-specific-fields').forEach(field => {
+            field.style.display = 'none';
+        });
+        
+        // Afficher les champs correspondant au rôle
+        if (selectedRole === 'PROFESSEUR') {
+            professeurFields.style.display = 'block';
+        } else if (selectedRole === 'COMPTABLE') {
+            comptableFields.style.display = 'block';
+        } else {
+            autreRoleFields.style.display = 'block';
+        }
+    }
+    
+    // Appliquer au chargement et au changement
+    toggleRoleFields();
+    roleSelect.addEventListener('change', toggleRoleFields);
+
+    // Mettre à jour le récapitulatif
+    function updateSummary() {
+        // Informations générales
+        document.getElementById('summary-fullname').textContent = 
+            `${document.getElementById('id_first_name').value} ${document.getElementById('id_last_name').value}`;
+        document.getElementById('summary-email').textContent = document.getElementById('id_email').value;
+        document.getElementById('summary-role').textContent = roleSelect.options[roleSelect.selectedIndex].text;
+        document.getElementById('summary-phone').textContent = document.getElementById('id_telephone').value || 'Non renseigné';
+
+        // Sections
+        const mainSectionSelect = document.getElementById('id_section_principale');
+        document.getElementById('summary-main-section').textContent = 
+            mainSectionSelect.options[mainSectionSelect.selectedIndex].text || 'Non définie';
+
+        const allowedSectionsSelect = document.getElementById('id_sections_autorisees');
+        const selectedSections = Array.from(allowedSectionsSelect.selectedOptions).map(option => option.text);
+        document.getElementById('summary-allowed-sections').textContent = 
+            selectedSections.length > 0 ? selectedSections.join(', ') : 'Aucune';
+
+        // Informations spécifiques au rôle
+        const selectedRole = roleSelect.value;
+        
+        if (selectedRole === 'PROFESSEUR') {
+            document.getElementById('summary-professor').style.display = 'block';
+            document.getElementById('summary-comptable').style.display = 'none';
+            
+            document.getElementById('summary-prof-birthdate').textContent = 
+                document.getElementById('id_date_naissance_prof').value || 'Non renseignée';
+            document.getElementById('summary-prof-grade').textContent = 
+                document.getElementById('id_grade').options[document.getElementById('id_grade').selectedIndex].text;
+            document.getElementById('summary-prof-specialty').textContent = 
+                document.getElementById('id_specialite').value || 'Non renseignée';
+        } else if (selectedRole === 'COMPTABLE') {
+            document.getElementById('summary-professor').style.display = 'none';
+            document.getElementById('summary-comptable').style.display = 'block';
+            
+            document.getElementById('summary-compta-birthdate').textContent = 
+                document.getElementById('id_date_naissance_compta').value || 'Non renseignée';
+        } else {
+            document.getElementById('summary-professor').style.display = 'none';
+            document.getElementById('summary-comptable').style.display = 'none';
+        }
+    }
+
+    function showNotification(message, type = 'info') {
+        // Implémentez votre système de notification ici
+        alert(message); // Solution temporaire
+    }
+
+    // Ajouter la liste des pays à l'input nationalité
+    const nationaliteInput = document.getElementById('id_nationalite');
+    if (nationaliteInput) {
+        nationaliteInput.setAttribute('list', 'pays-list');
+    }
+});
+</script>
+{% endblock %} {% endcomment %}

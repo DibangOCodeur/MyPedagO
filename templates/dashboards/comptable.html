@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Comptable</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/dashboards/comptable.css' %}">
+</head>
+<body>
+    <!-- Bouton de changement de thème -->
+    <button id="themeToggle" class="theme-toggle" aria-label="Changer de thème">
+        <i class="fas fa-moon"></i>
+        <i class="fas fa-sun"></i>
+    </button>
+
+    <!-- Menu mobile -->
+    <button id="mobileMenuToggle" class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="{% static 'images/logo/IIPEA.png' %}" alt="Logo" class="logo-img">
+                <h2>{{user.get_full_name}}</h2>
+                <p>{{user.email}}</p>
+                {% if user.comptable %}
+                    <p>{{ user.comptable.matricule }}</p>
+                    <p>{{ user.comptable.code_unique }}</p>
+                {% else %}
+                    <p>Pas de profil comptable lié à cet utilisateur.</p>
+                {% endif %}
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Tableau de bord
+                    </a>
+                </div>
+                
+                <!-- Paiements avec sous-menu -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Paiements
+                        <span class="notification-badge">3</span>
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Tous les paiements</a>
+                        <a href="#" class="submenu-item">Paiements en attente</a>
+                        <a href="#" class="submenu-item">Paiements validés</a>
+                        <a href="#" class="submenu-item">Nouveau paiement</a>
+                    </div>
+                </div>
+                
+                <!-- Salaires avec sous-menu -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-wallet"></i>
+                        Salaires
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Feuilles de paie</a>
+                        <a href="#" class="submenu-item">Calcul des salaires</a>
+                        <a href="#" class="submenu-item">Historique</a>
+                    </div>
+                </div>
+
+                <!-- Facturation -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        Facturation
+                        <span class="notification-badge">5</span>
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Factures en attente</a>
+                        <a href="#" class="submenu-item">Factures payées</a>
+                        <a href="#" class="submenu-item">Créer une facture</a>
+                    </div>
+                </div>
+
+                <!-- Rapports financiers -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-chart-bar"></i>
+                        Rapports
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Bilan financier</a>
+                        <a href="#" class="submenu-item">État des revenus</a>
+                        <a href="#" class="submenu-item">Rapport de trésorerie</a>
+                    </div>
+                </div>
+
+                <!-- Dépenses -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-receipt"></i>
+                        Dépenses
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Suivi des dépenses</a>
+                        <a href="#" class="submenu-item">Notes de frais</a>
+                        <a href="#" class="submenu-item">Budget mensuel</a>
+                    </div>
+                </div>
+
+                <!-- Contrats -->
+                <div class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-file-contract"></i>
+                        Contrats
+                    </a>
+                </div>
+
+                <!-- Pointages -->
+                <div class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-clipboard-list"></i>
+                        Pointages
+                    </a>
+                </div>
+
+                <!-- Paramètres financiers -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-cogs"></i>
+                        Paramètres
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Taux horaires</a>
+                        <a href="#" class="submenu-item">Paramètres comptables</a>
+                        <a href="#" class="submenu-item">Export données</a>
+                    </div>
+                </div>
+
+                <div class="nav-item logout">
+                    <a href="{% url 'deconnexion' %}" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Déconnexion
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="welcome-section">
+                    <h1>Tableau de bord Comptable</h1>
+                    <p>Gestion financière et comptable - <span id="currentTime"></span></p>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar accountant">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <div class="user-info">
+                        <h3>{{user.get_full_name}}</h3>
+                        <span> {{user.role}} </span>
+                    </div>
+                    <div class="user-notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">8</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon revenue">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">245,680 €</div>
+                    <div class="stat-label">Revenus ce mois</div>
+                    <div class="stat-progress">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>15% vs mois dernier</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon expenses">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">89,430 €</div>
+                    <div class="stat-label">Dépenses ce mois</div>
+                    <div class="stat-progress negative">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>8% vs mois dernier</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon pending">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">12</div>
+                    <div class="stat-label">Paiements en attente</div>
+                    <div class="stat-progress warning">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>3 en retard</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon profit">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">156,250 €</div>
+                    <div class="stat-label">Bénéfice net</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 65%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Actions rapides -->
+                {% comment %} <section class="quick-actions">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-bolt"></i>
+                            Actions Rapides
+                        </h2>
+                        <button class="section-menu">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    <div class="action-buttons">
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            Nouvelle Facture
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-money-check"></i>
+                            Enregistrer Paiement
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-calculator"></i>
+                            Calculer Salaires
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-chart-pie"></i>
+                            Rapport Financier
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-receipt"></i>
+                            Notes de Frais
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-file-export"></i>
+                            Exporter Données
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-sync-alt"></i>
+                            Réconcilier
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-print"></i>
+                            Imprimer États
+                        </a>
+                    </div>
+                </section> {% endcomment %}
+                <!-- Dernières transactions -->
+                <section class="recent-transactions">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-exchange-alt"></i>
+                            Dernières Transactions
+                        </h2>
+                        <button class="section-menu">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    <div class="transactions-list">
+                        <div class="transaction-item income">
+                            <div class="transaction-icon">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-title">Paiement frais scolarité</div>
+                                <div class="transaction-desc">Étudiant: M. Traoré</div>
+                            </div>
+                            <div class="transaction-amount">+ 450 €</div>
+                            <div class="transaction-time">Aujourd'hui, 14:30</div>
+                        </div>
+                        <div class="transaction-item expense">
+                            <div class="transaction-icon">
+                                <i class="fas fa-arrow-up"></i>
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-title">Achat matériel pédagogique</div>
+                                <div class="transaction-desc">Fournisseur: EduMat</div>
+                            </div>
+                            <div class="transaction-amount">- 1,200 €</div>
+                            <div class="transaction-time">Hier, 11:15</div>
+                        </div>
+                        <div class="transaction-item income">
+                            <div class="transaction-icon">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-title">Formation continue</div>
+                                <div class="transaction-desc">Entreprise: TechCorp</div>
+                            </div>
+                            <div class="transaction-amount">+ 3,500 €</div>
+                            <div class="transaction-time">Hier, 09:45</div>
+                        </div>
+                    </div>
+                    <a href="#" class="view-all">Voir toutes les transactions <i class="fas fa-arrow-right"></i></a>
+                </section>
+
+                <!-- Paiements en attente -->
+                <section class="pending-payments">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-clock"></i>
+                            Paiements en Attente
+                        </h2>
+                        <button class="section-menu">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    <div class="payments-list">
+                        <div class="payment-item urgent">
+                            <div class="payment-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="payment-content">
+                                <div class="payment-title">Salaire - Prof. Diallo</div>
+                                <div class="payment-desc">En retard - Échéance: 05/12/2024</div>
+                                <div class="payment-amount">1,850 €</div>
+                            </div>
+                            <button class="payment-action">Payer</button>
+                        </div>
+                        <div class="payment-item">
+                            <div class="payment-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="payment-content">
+                                <div class="payment-title">Loyer mensuel</div>
+                                <div class="payment-desc">Échéance: 10/12/2024</div>
+                                <div class="payment-amount">4,200 €</div>
+                            </div>
+                            <button class="payment-action">Payer</button>
+                        </div>
+                        <div class="payment-item">
+                            <div class="payment-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="payment-content">
+                                <div class="payment-title">Facture Électricité</div>
+                                <div class="payment-desc">Échéance: 15/12/2024</div>
+                                <div class="payment-amount">320 €</div>
+                            </div>
+                            <button class="payment-action">Payer</button>
+                        </div>
+                    </div>
+                    <a href="#" class="view-all">Voir tous les paiements <i class="fas fa-arrow-right"></i></a>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal pour actions rapides -->
+    <div id="actionModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Action Comptable</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Fonctionnalité comptable en cours de développement...</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel">Annuler</button>
+                <button class="modal-btn confirm">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/bases/script.js' %}"></script>
+
+    <script>
+    // Fonction pour mettre à jour l'heure en temps réel
+    function updateCurrentTime() {
+        const now = new Date();
+        const dateString = now.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        const timeString = now.toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        document.getElementById('currentTime').textContent = `${dateString} à ${timeString}`;
+    }
+
+    // Initialiser et mettre à jour toutes les secondes
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+
+    // Gestion des paiements
+    document.querySelectorAll('.payment-action').forEach(button => {
+        button.addEventListener('click', function() {
+            const paymentItem = this.closest('.payment-item');
+            const paymentTitle = paymentItem.querySelector('.payment-title').textContent;
+            
+            // Simulation de paiement
+            this.textContent = 'Payé ✓';
+            this.style.backgroundColor = '#4CAF50';
+            this.disabled = true;
+            
+            // Animation de confirmation
+            paymentItem.style.boxShadow = '0 0 0 3px rgba(76, 175, 80, 0.3)';
+            setTimeout(() => {
+                paymentItem.style.boxShadow = 'none';
+            }, 1000);
+        });
+    });
+    </script>
+</body>
+</html>

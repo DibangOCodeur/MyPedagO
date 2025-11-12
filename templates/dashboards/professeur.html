@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+{% load static  %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Professeur</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/dashboards/prof.css' %}">
+</head>
+<body>
+    <!-- Bouton de changement de thème -->
+    <button id="themeToggle" class="theme-toggle" aria-label="Changer de thème">
+        <i class="fas fa-moon"></i>
+        <i class="fas fa-sun"></i>
+    </button>
+
+    <!-- Menu mobile -->
+    <button id="mobileMenuToggle" class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                {% if user.professeur.photo %}
+                <img src="{{user.professeur.photo.url}}" alt="Logo" class="logo-img">
+                {% else %}
+                <img src="{% static 'images/logo/IIPEA.png' %}" alt="Logo" class="logo-img">
+                {% endif %}
+                <h2>{{user.get_full_name}}</h2>
+                <p>{{user.email}} </p>
+                <span class="professor-badge">{{user.professeur.grade}}</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Tableau de bord
+                    </a>
+                </div>
+                
+                <!-- Cours et matières -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-book"></i>
+                        Cours & Matières
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Mes matières</a>
+                        <a href="#" class="submenu-item">Planning des cours</a>
+                        <a href="#" class="submenu-item">Ressources pédagogiques</a>
+                    </div>
+                </div>
+                
+                <!-- Classes -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-users"></i>
+                        Classes
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Mes classes</a>
+                        <a href="#" class="submenu-item">Liste des étudiants</a>
+                        <a href="#" class="submenu-item">Groupes de travail</a>
+                    </div>
+                </div>
+                
+                <!-- Évaluations -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-clipboard-check"></i>
+                        Évaluations
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Notes et appréciations</a>
+                        <a href="#" class="submenu-item">Créer une évaluation</a>
+                        <a href="#" class="submenu-item">Historique des notes</a>
+                    </div>
+                </div>
+                
+                <!-- Pointages -->
+                <div class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-clipboard-list"></i>
+                        Pointages
+                    </a>
+                </div>
+                
+                <!-- Emplois du temps -->
+                <div class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        Emploi du temps
+                    </a>
+                </div>
+                
+                <!-- Documents -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-folder-open"></i>
+                        Documents
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Mes documents</a>
+                        <a href="#" class="submenu-item">Partagés avec moi</a>
+                        <a href="#" class="submenu-item">Documents étudiants</a>
+                    </div>
+                </div>
+                
+                <!-- Communication -->
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-comments"></i>
+                        Communication
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="#" class="submenu-item">Messagerie</a>
+                        <a href="#" class="submenu-item">Annonces</a>
+                        <a href="#" class="submenu-item">Forum</a>
+                    </div>
+                </div>
+                
+                <!-- Paramètres -->
+                <div class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-cogs"></i>
+                        Paramètres
+                    </a>
+                </div>
+
+                <div class="nav-item logout">
+                    <a href="{% url 'deconnexion' %}" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Déconnexion
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="welcome-section">
+                    <h1>Tableau de bord Professeur</h1>
+                    <p>Gérez vos cours et vos étudiants - <span id="currentTime"></span></p>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar professor">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="user-info">
+                        <h3>{{user.get_full_name}}</h3>
+                        <span>Professeur</span>
+                    </div>
+                    <div class="user-notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon classes">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">Classes assignées</div>
+                    <div class="stat-progress">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>1 nouvelle cette semaine</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon courses">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">12</div>
+                    <div class="stat-label">Cours cette semaine</div>
+                    <div class="stat-progress">
+                        <i class="fas fa-check-circle"></i>
+                        <span>3 terminés</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon evaluations">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Évaluations en attente</div>
+                    <div class="stat-progress negative">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>2 urgentes</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon messages">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">15</div>
+                    <div class="stat-label">Messages non lus</div>
+                    <div class="stat-progress">
+                        <i class="fas fa-bell"></i>
+                        <span>5 nouveaux</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Prochain cours -->
+                <section class="next-class">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-clock"></i>
+                            Prochain cours
+                        </h2>
+                        <button class="section-menu">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    <div class="class-info">
+                        <div class="class-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div class="class-details">
+                            <h3>Algorithmique avancée</h3>
+                            <p>Classe: Licence 3 Informatique</p>
+                            <div class="class-time">
+                                <i class="fas fa-calendar"></i>
+                                <span>Aujourd'hui, 14h00 - 16h00</span>
+                            </div>
+                            <div class="class-location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>Salle B204</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="class-actions">
+                        <button class="btn btn-primary">
+                            <i class="fas fa-play-circle"></i>
+                            Démarrer le cours
+                        </button>
+                        <button class="btn btn-secondary">
+                            <i class="fas fa-file-alt"></i>
+                            Préparations
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Évaluations en attente -->
+                <section class="pending-evaluations">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-clipboard-list"></i>
+                            Évaluations en attente
+                        </h2>
+                        <button class="section-menu">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    <div class="evaluations-list">
+                        <div class="evaluation-item urgent">
+                            <div class="evaluation-icon">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="evaluation-content">
+                                <div class="evaluation-title">Contrôle de Programmation</div>
+                                <div class="evaluation-class">Licence 2 Informatique</div>
+                                <div class="evaluation-deadline">Échéance: Demain</div>
+                            </div>
+                            <button class="evaluation-action">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                        <div class="evaluation-item">
+                            <div class="evaluation-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="evaluation-content">
+                                <div class="evaluation-title">Devoir de Mathématiques</div>
+                                <div class="evaluation-class">Licence 1 Sciences</div>
+                                <div class="evaluation-deadline">Échéance: 3 jours</div>
+                            </div>
+                            <button class="evaluation-action">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                        <div class="evaluation-item">
+                            <div class="evaluation-icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <div class="evaluation-content">
+                                <div class="evaluation-title">Projet Algorithmique</div>
+                                <div class="evaluation-class">Licence 3 Informatique</div>
+                                <div class="evaluation-deadline">Échéance: 1 semaine</div>
+                            </div>
+                            <button class="evaluation-action">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <a href="#" class="view-all">Voir toutes les évaluations <i class="fas fa-arrow-right"></i></a>
+                </section>
+
+                <!-- Quick Actions -->
+                <section class="quick-actions">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-bolt"></i>
+                            Actions rapides
+                        </h2>
+                        <button class="section-menu">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    <div class="action-buttons">
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-plus-circle"></i>
+                            Nouveau cours
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-clipboard-check"></i>
+                            Saisir notes
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-file-upload"></i>
+                            Déposer document
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-calendar-plus"></i>
+                            Planifier cours
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-envelope"></i>
+                            Envoyer message
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-user-check"></i>
+                            Faire l'appel
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-chart-line"></i>
+                            Statistiques classe
+                        </a>
+                        <a href="#" class="action-btn">
+                            <i class="fas fa-download"></i>
+                            Exporter notes
+                        </a>
+                    </div>
+                </section>
+
+                <!-- Dernières activités -->
+                <section class="recent-activity">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-history"></i>
+                            Activités récentes
+                        </h2>
+                        <button class="section-menu">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon course">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Cours d'Algorithmique terminé</div>
+                                <div class="activity-desc">Licence 3 Informatique - 25 étudiants présents</div>
+                            </div>
+                            <div class="activity-time">Il y a 2 heures</div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon evaluation">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Devoir noté</div>
+                                <div class="activity-desc">Mathématiques - Licence 1 Sciences</div>
+                            </div>
+                            <div class="activity-time">Aujourd'hui, 10:30</div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon message">
+                                <i class="fas fa-comment"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Nouveau message</div>
+                                <div class="activity-desc">De l'étudiant Diallo Bintou</div>
+                            </div>
+                            <div class="activity-time">Hier, 17:45</div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon document">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Document partagé</div>
+                                <div class="activity-desc">Support de cours Algorithmique</div>
+                            </div>
+                            <div class="activity-time">Hier, 14:20</div>
+                        </div>
+                    </div>
+                    <a href="#" class="view-all">Voir tout l'historique <i class="fas fa-arrow-right"></i></a>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="{% static 'js/bases/script.js' %}"></script>
+    <script src="{% static 'js/bases/rebase.js' %}"></script>
+    <script src="{% static 'js/mobile/script.js' %}"></script>
+    <script>
+    // Fonction pour mettre à jour l'heure en temps réel
+    function updateCurrentTime() {
+        const now = new Date();
+        const dateString = now.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        const timeString = now.toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        document.getElementById('currentTime').textContent = `${dateString} à ${timeString}`;
+    }
+
+    // Initialiser et mettre à jour toutes les secondes
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+    </script>
+</body>
+</html>

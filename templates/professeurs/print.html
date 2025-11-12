@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiche Professeur - {{ professeur.user.get_full_name }}</title>
+    <link rel="stylesheet" href="{% static 'css/professeurs/print.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Nouvelle meta tag pour forcer les couleurs -->
+    <meta name="forced-colors" content="none">
+</head>
+<body>
+    <button onclick="window.print()" class="no-print print-button">
+        <i class="fas fa-print"></i> Imprimer
+    </button>
+
+    <!-- Conteneur du filigrane -->
+    <div class="watermark-container">
+        <div class="watermark"></div>
+        
+        <div class="print-container">
+            <!-- En-tête -->
+            <div class="header">
+                <h1 class="institution-name">INSTITUT INTERNATIONAL POLYTECHNIQUE DES ELITES D'ABIDJAN</h1>
+                <h2 class="document-title">FICHE PROFESSEUR</h2>
+                <p class="matricule">Matricule: <strong>{{ professeur.matricule }}</strong></p>
+            </div>
+
+            <!-- Section Profil -->
+            <div class="profile-section">
+                <div class="profile-photo-container">
+                    {% if professeur.photo %}
+                        <img src="{{ professeur.photo.url }}" alt="Photo" class="profile-photo">
+                    {% else %}
+                        <div class="profile-placeholder">
+                            <i class="fas fa-user fa-2x"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h2 class="profile-name">{{ professeur.user.get_full_name }}</h2>
+                    <span class="profile-status {% if professeur.is_active %}status-active{% else %}status-inactive{% endif %}">
+                        {% if professeur.is_active %}ACTIF{% else %}INACTIF{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Informations personnelles -->
+            <div class="section">
+                <div class="section-header">
+                    <i class="fas fa-user"></i>
+                    <h3>INFORMATIONS PERSONNELLES</h3>
+                </div>
+                <div class="compact-grid">
+                    <div class="info-row">
+                        <span class="info-label">Nom et Prénom(s)</span>
+                        <span class="info-value">{{ professeur.user.get_full_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Genre</span>
+                        <span class="info-value">{{ professeur.get_genre_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Date de naissance</span>
+                        <span class="info-value">{{ professeur.date_naissance|date:"d/m/Y" }} ({{ age }} ans)</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nationalité</span>
+                        <span class="info-value">{{ professeur.nationalite|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">N° CNI</span>
+                        <span class="info-value">{{ professeur.numero_cni|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Situation matrimoniale</span>
+                        <span class="info-value">{{ professeur.get_situation_matrimoniale_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Téléphone</span>
+                        <span class="info-value">{{ professeur.user.telephone|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Email</span>
+                        <span class="info-value">{{ professeur.user.email }}</span>
+                    </div>
+                    <div class="info-row full-width">
+                        <span class="info-label">Domicile</span>
+                        <span class="info-value">{{ professeur.domicile|default:"Non renseigné" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations professionnelles -->
+            <div class="section">
+                <div class="section-header">
+                    <i class="fas fa-briefcase"></i>
+                    <h3>INFORMATIONS PROFESSIONNELLES</h3>
+                </div>
+                <div class="compact-grid">
+                    <div class="info-row">
+                        <span class="info-label">Matricule</span>
+                        <span class="info-value"><strong>{{ professeur.matricule }}</strong></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Grade</span>
+                        <span class="info-value">
+                            <span class="badge badge-primary">{{ professeur.get_grade_display }}</span>
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Statut</span>
+                        <span class="info-value">
+                            <span class="badge badge-info">{{ professeur.get_statut_display }}</span>
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Spécialité</span>
+                        <span class="info-value">{{ professeur.specialite|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Diplôme</span>
+                        <span class="info-value">{{ professeur.diplome|default:"Non renseigné" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Années d'expérience</span>
+                        <span class="info-value">{{ professeur.annee_experience }} ans</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Date d'embauche</span>
+                        <span class="info-value">{{ professeur.date_embauche|date:"d/m/Y"|default:"Non disponible" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Date de création</span>
+                        <span class="info-value">{{ professeur.created_at|date:"d/m/Y" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sections d'enseignement -->
+            <div class="section">
+                <div class="section-header">
+                    <i class="fas fa-school"></i>
+                    <h3>SECTIONS D'ENSEIGNEMENT</h3>
+                </div>
+                <div class="sections-content">
+                    {% if sections %}
+                        <div class="sections-list">
+                            {% for section in sections %}
+                                <span class="section-badge {% if section == professeur.section_active %}active{% endif %}">
+                                    {{ section.get_nom_display }}
+                                    {% if section == professeur.section_active %}<i class="fas fa-star"></i>{% endif %}
+                                </span>
+                            {% endfor %}
+                        </div>
+                        {% if professeur.section_active %}
+                        <div class="active-section">
+                            <strong>Section active:</strong> {{ professeur.section_active.get_nom_display }}
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="no-sections">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Aucune section d'enseignement assignée
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Documents administratifs -->
+            <div class="section">
+                <div class="section-header">
+                    <i class="fas fa-folder-open"></i>
+                    <h3>DOCUMENTS ADMINISTRATIFS</h3>
+                </div>
+                
+                <div class="documents-grid">
+                    <div class="document-item {% if professeur.photo %}available{% else %}missing{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <div class="document-name"><strong>Photo</strong></div>
+                        {% if professeur.photo %}
+                            <div class="document-status available">
+                                <i class="fas fa-check"></i> Disponible
+                            </div>
+                            <div class="document-date">{{ professeur.photo_uploaded_at|date:"d/m/Y" }}</div>
+                        {% else %}
+                            <div class="document-status missing">
+                                <i class="fas fa-times"></i> Manquant
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="document-item {% if professeur.cni_document %}available{% else %}missing{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-id-card"></i>
+                        </div>
+                        <div class="document-name"><strong>CNI</strong></div>
+                        {% if professeur.cni_document %}
+                            <div class="document-status available">
+                                <i class="fas fa-check"></i> Disponible
+                            </div>
+                            <div class="document-date">{{ professeur.cni_uploaded_at|date:"d/m/Y" }}</div>
+                        {% else %}
+                            <div class="document-status missing">
+                                <i class="fas fa-times"></i> Manquant
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="document-item {% if professeur.rib_document %}available{% else %}missing{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-university"></i>
+                        </div>
+                        <div class="document-name"><strong>RIB</strong></div>
+                        {% if professeur.rib_document %}
+                            <div class="document-status available">
+                                <i class="fas fa-check"></i> Disponible
+                            </div>
+                            <div class="document-date">{{ professeur.rib_uploaded_at|date:"d/m/Y" }}</div>
+                        {% else %}
+                            <div class="document-status missing">
+                                <i class="fas fa-times"></i> Manquant
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="document-item {% if professeur.cv_document %}available{% else %}missing{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="document-name"><strong>CV</strong></div>
+                        {% if professeur.cv_document %}
+                            <div class="document-status available">
+                                <i class="fas fa-check"></i> Disponible
+                            </div>
+                            <div class="document-date">{{ professeur.cv_uploaded_at|date:"d/m/Y" }}</div>
+                        {% else %}
+                            <div class="document-status missing">
+                                <i class="fas fa-times"></i> Manquant
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="document-item {% if professeur.diplome_document %}available{% else %}missing{% endif %}">
+                        <div class="document-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="document-name"><strong>Diplôme</strong></div>
+                        {% if professeur.diplome_document %}
+                            <div class="document-status available">
+                                <i class="fas fa-check"></i> Disponible
+                            </div>
+                            <div class="document-date">{{ professeur.diplome_uploaded_at|date:"d/m/Y" }}</div>
+                        {% else %}
+                            <div class="document-status missing">
+                                <i class="fas fa-times"></i> Manquant
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="completion-section">
+                    <div class="completion-header">
+                        <strong>Taux de complétude du dossier:</strong>
+                        <span class="completion-percentage {% if completude_percentage >= 80 %}high{% elif completude_percentage >= 50 %}medium{% else %}low{% endif %}">
+                            {{ completude_percentage|floatformat:0 }}%
+                        </span>
+                    </div>
+                    <div class="completion-bar">
+                        <div class="completion-fill" style="width: {{ completude_percentage }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pied de page -->
+            <div class="footer">
+                <p><strong>Institut International Polytechnique des Elites d'Abidjan (IIPEA)</strong></p>
+                <p>Document généré le {{ now|date:"d/m/Y à H:i" }}</p>
+                <p class="confidential">
+                    <i class="fas fa-lock"></i>
+                    Ce document est confidentiel et destiné à un usage interne uniquement.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Impression automatique si paramètre présent
+        if (window.location.search.includes('auto-print=1')) {
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    window.print();
+                }, 500);
+            });
+        }
+        
+        // Optimisation pour l'impression
+        window.addEventListener('beforeprint', function() {
+            document.body.classList.add('printing');
+        });
+        
+        window.addEventListener('afterprint', function() {
+            document.body.classList.remove('printing');
+        });
+    </script>
+</body>
+</html>

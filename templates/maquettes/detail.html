@@ -1,0 +1,402 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Détail Maquette - {{ maquette }}{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/maquettes/detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête principal -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card header-card shadow-lg">
+                <div class="card-body p-4">
+                    <div class="header-content">
+                        <div class="header-main">
+                            <div class="header-icon-container">
+                                <div class="header-icon">
+                                    <i class="fas fa-book-open"></i>
+                                </div>
+                                <div class="header-titles">
+                                    <h1 class="header-title">
+                                        {{ maquette.filiere_sigle }} {{ maquette.niveau_libelle }}
+                                    </h1>
+                                    <p class="header-subtitle">
+                                        <strong>{{ maquette.filiere_nom }}</strong> • {{ maquette.annee_academique }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% if maquette.parcour %}
+                            <div class="header-badges">
+                                <span class="header-badge parcours-badge">
+                                    <i class="fas fa-road"></i> Parcours: {{ maquette.parcour }}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="header-actions">
+                            <a href="{% url 'maquette_list' %}" class="btn btn-secondary btn-icon">
+                                <i class="fas fa-arrow-left"></i> Retour
+                            </a>
+                            {% if user.role == 'ADMIN' or user.role == 'RESP_PEDA' %}
+                            <a href="{% url 'maquette_update' maquette.pk %}" class="btn btn-primary btn-icon">
+                                <i class="fas fa-edit"></i> Modifier
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques globales -->
+    <div class="stats-container">
+        <div class="stat-card bg-primary">
+            <div>
+                <div class="stat-label">Unités d'Enseignement</div>
+                <h3 class="stat-number mb-0">{{ total_ues }}</h3>
+            </div>
+            <i class="fas fa-layer-group fa-3x"></i>
+        </div>
+        <div class="stat-card bg-success">
+            <div>
+                <div class="stat-label">Matières/Modules</div>
+                <h3 class="stat-number mb-0">{{ total_matieres }}</h3>
+            </div>
+            <i class="fas fa-book fa-3x"></i>
+        </div>
+        <div class="stat-card bg-primary">
+            <div>
+                <div class="stat-label">Volume Horaire Total</div>
+                <h3 class="stat-number mb-0">{{ total_volume_horaire }}h</h3>
+            </div>
+            <i class="fas fa-clock fa-3x"></i>
+        </div>
+        <div class="stat-card bg-success">
+            <div>
+                <div class="stat-label">Coefficient Total</div>
+                <h3 class="stat-number mb-0">{{ total_coefficient|floatformat:1 }}</h3>
+            </div>
+            <i class="fas fa-weight-hanging fa-3x"></i>
+        </div>
+    </div>
+
+    <!-- Boutons de bascule d'affichage -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-3">
+                    <button class="view-toggle-btn active" id="btn-table-view">
+                        <i class="fas fa-table"></i>
+                        Vue Tableau
+                    </button>
+                    <button class="view-toggle-btn" id="btn-grid-view">
+                        <i class="fas fa-th-large"></i>
+                        Vue Grille
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if has_matieres %}
+    <!-- Affichage des modules par semestre -->
+    
+    <!-- VUE TABLEAU -->
+    <div id="table-view-content">
+        {% for semestre in semestres %}
+        <div class="semestre-section">
+            <!-- En-tête du semestre avec stats -->
+            <div class="semestre-header-banner">
+                <h2 class="semestre-title-main">
+                    <i class="fas fa-graduation-cap"></i>
+                    Semestre {{ semestre }}
+                </h2>
+                
+                {% for stat in stats_par_semestre %}
+                {% if stat.semestre == semestre %}
+                <div class="semestre-stats-grid">
+                    <div class="semestre-stat-box">
+                        <div class="stat-number">{{ stat.nombre_ues }}</div>
+                        <div class="stat-label">UE(s)</div>
+                    </div>
+                    <div class="semestre-stat-box">
+                        <div class="stat-number">{{ stat.nombre_matieres }}</div>
+                        <div class="stat-label">Matière(s)</div>
+                    </div>
+                    <div class="semestre-stat-box">
+                        <div class="stat-number">{{ stat.credits_total|floatformat:0 }}</div>
+                        <div class="stat-label">Crédits</div>
+                    </div>
+                    <div class="semestre-stat-box">
+                        <div class="stat-number">{{ stat.volume_total|floatformat:0 }}h</div>
+                        <div class="stat-label">Volume</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            
+            <!-- Tableau des matières du semestre -->
+            {% with semestre_matieres=matieres|filter_semestre:semestre %}
+            {% if semestre_matieres %}
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="table maquettes-table">
+                        <thead>
+                            <tr>
+                                <th class="col-ue">UE</th>
+                                <th class="col-module">Modules</th>
+                                <th class="col-coef text-center">Coef.</th>
+                                <th class="col-volume text-center">Vol. CM</th>
+                                <th class="col-taux text-center">Taux CM</th>
+                                <th class="col-volume text-center">Vol. TD</th>
+                                <th class="col-taux text-center">Taux TD</th>
+                                <th class="col-volume text-center">Vol. Total</th>
+                                <th class="col-taux text-center">Coût Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for matiere in semestre_matieres %}
+                            <tr class="matiere-row">
+                                <td class="cell-ue">
+                                    <div class="ue-info">
+                                        <span class="ue-code-badge">{{ matiere.ue_code }}</span>
+                                        <div class="ue-libelle">{{ matiere.ue_libelle }}</div>
+                                    </div>
+                                </td>
+                                <td class="cell-module">
+                                    <div class="matiere-info">
+                                        <strong class="matiere-nom">{{ matiere.nom }}</strong>
+                                        {% if matiere.code %}
+                                        <div class="matiere-code">Code: {{ matiere.code }}</div>
+                                        {% endif %}
+                                        {% if matiere.professeur_nom %}
+                                        <div class="matiere-prof">
+                                            <i class="fas fa-user"></i> {{ matiere.professeur_nom }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="cell-coef text-center">
+                                    <span class="badge bg-warning coefficient-badge">
+                                        {{ matiere.coefficient|floatformat:1 }}
+                                    </span>
+                                </td>
+                                <td class="cell-volume text-center">
+                                    <strong class="volume-value">{{ matiere.volume_cm|floatformat:0 }}h</strong>
+                                </td>
+                                <td class="cell-taux text-center">
+                                    <span class="taux-value">{{ matiere.taux_cm|floatformat:0 }}F</span>
+                                </td>
+                                <td class="cell-volume text-center">
+                                    <span class="volume-value">{{ matiere.volume_td|floatformat:0 }}h</span>
+                                </td>
+                                <td class="cell-taux text-center">
+                                    <span class="taux-value">{{ matiere.taux_td|floatformat:0 }}F</span>
+                                </td>
+                                <td class="cell-volume text-center">
+                                    <strong class="volume-total">{{ matiere.volume_total|floatformat:0 }}h</strong>
+                                </td>
+                                <td class="cell-taux text-center">
+                                    <strong class="taux-total">{{ matiere.cout_total|floatformat:0 }}F</strong>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- VUE GRILLE -->
+    <div id="grid-view-content" class="d-none">
+        {% for semestre in semestres %}
+        <div class="semestre-section">
+            <!-- En-tête du semestre avec stats -->
+            <div class="semestre-header-banner">
+                <h2 class="semestre-title-main">
+                    <i class="fas fa-graduation-cap"></i>
+                    Semestre {{ semestre }}
+                </h2>
+                
+                {% for stat in stats_par_semestre %}
+                {% if stat.semestre == semestre %}
+                <div class="semestre-stats-grid">
+                    <div class="semestre-stat-box">
+                        <div class="stat-number">{{ stat.nombre_ues }}</div>
+                        <div class="stat-label">UE(s)</div>
+                    </div>
+                    <div class="semestre-stat-box">
+                        <div class="stat-number">{{ stat.nombre_matieres }}</div>
+                        <div class="stat-label">Matière(s)</div>
+                    </div>
+                    <div class="semestre-stat-box">
+                        <div class="stat-number">{{ stat.credits_total|floatformat:0 }}</div>
+                        <div class="stat-label">Crédits</div>
+                    </div>
+                    <div class="semestre-stat-box">
+                        <div class="stat-number">{{ stat.volume_total|floatformat:0 }}h</div>
+                        <div class="stat-label">Volume</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            
+            <!-- Grille des matières du semestre -->
+            {% with semestre_matieres=matieres|filter_semestre:semestre %}
+            {% if semestre_matieres %}
+            <div class="grid-view-container">
+                {% for matiere in semestre_matieres %}
+                <div class="matiere-card">
+                    <div class="matiere-card-header">
+                        <h3 class="matiere-card-title">{{ matiere.nom }}</h3>
+                        <span class="matiere-card-ue">{{ matiere.ue_code }} - {{ matiere.ue_libelle }}</span>
+                        {% if matiere.code %}
+                        <div style="margin-top: 8px; font-size: 12px; color: #64748b;">
+                            Code: {{ matiere.code }}
+                        </div>
+                        {% endif %}
+                        {% if matiere.professeur_nom %}
+                        <div style="margin-top: 8px; font-size: 13px; color: #475569;">
+                            <i class="fas fa-user"></i> {{ matiere.professeur_nom }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="matiere-card-body">
+                        <div class="matiere-card-info">
+                            <div class="matiere-card-label">Coefficient</div>
+                            <div class="matiere-card-value">{{ matiere.coefficient|floatformat:1 }}</div>
+                        </div>
+                        <div class="matiere-card-info">
+                            <div class="matiere-card-label">Volume Total</div>
+                            <div class="matiere-card-value">{{ matiere.volume_total|floatformat:0 }}h</div>
+                        </div>
+                        <div class="matiere-card-info">
+                            <div class="matiere-card-label">Vol. CM</div>
+                            <div class="matiere-card-value">{{ matiere.volume_cm|floatformat:0 }}h</div>
+                        </div>
+                        <div class="matiere-card-info">
+                            <div class="matiere-card-label">Vol. TD</div>
+                            <div class="matiere-card-value">{{ matiere.volume_td|floatformat:0 }}h</div>
+                        </div>
+                        <div class="matiere-card-info">
+                            <div class="matiere-card-label">Vol. TP</div>
+                            <div class="matiere-card-value">{{ matiere.volume_tp|floatformat:0 }}h</div>
+                        </div>
+                        <div class="matiere-card-info">
+                            <div class="matiere-card-label">Coût Total</div>
+                            <div class="matiere-card-value">{{ matiere.cout_total|floatformat:0 }}F</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% elif has_ues %}
+    <!-- Si pas de matières mais des UEs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning alert-with-icon">
+                <div class="alert-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="alert-content">
+                    <strong>Information :</strong> Cette maquette contient {{ total_ues }} UE(s) mais les matières n'ont pas encore été synchronisées.
+                    {% if user.role == 'ADMIN' %}
+                    <a href="{% url 'sync_maquettes' %}" class="alert-link">Synchroniser maintenant</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Aucune donnée -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle fa-3x mb-3"></i>
+                <h4>Aucune donnée disponible</h4>
+                <p>Cette maquette ne contient pas encore d'unités d'enseignement ni de matières.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments
+        const btnTableView = document.getElementById('btn-table-view');
+        const btnGridView = document.getElementById('btn-grid-view');
+        const tableViewContent = document.getElementById('table-view-content');
+        const gridViewContent = document.getElementById('grid-view-content');
+        
+        // Fonction pour basculer vers la vue tableau
+        function showTableView() {
+            tableViewContent.classList.remove('d-none');
+            gridViewContent.classList.add('d-none');
+            btnTableView.classList.add('active');
+            btnGridView.classList.remove('active');
+            localStorage.setItem('preferredView', 'table');
+        }
+        
+        // Fonction pour basculer vers la vue grille
+        function showGridView() {
+            tableViewContent.classList.add('d-none');
+            gridViewContent.classList.remove('d-none');
+            btnGridView.classList.add('active');
+            btnTableView.classList.remove('active');
+            localStorage.setItem('preferredView', 'grid');
+        }
+        
+        // Écouteurs d'événements
+        btnTableView.addEventListener('click', showTableView);
+        btnGridView.addEventListener('click', showGridView);
+        
+        // Restaurer la vue préférée depuis localStorage
+        const preferredView = localStorage.getItem('preferredView');
+        if (preferredView === 'grid') {
+            showGridView();
+        }
+        
+        // Animation au scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        // Observer les sections de semestre
+        document.querySelectorAll('.semestre-section').forEach(section => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(20px)';
+            section.style.transition = 'all 0.6s ease';
+            observer.observe(section);
+        });
+    });
+</script>
+{% endblock %}

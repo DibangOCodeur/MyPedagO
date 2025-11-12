@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - 
+        {% if user.role == 'ADMIN' %}Administrateur
+        {% elif user.role == 'RESP_PEDA' %}Responsable Pédagogique
+        {% elif user.role == 'RESP_RH' %}Responsable RH
+        {% elif user.role == 'COMPTABLE' %}Comptable
+        {% else %}Utilisateur
+        {% endif %}
+    </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/dashboards/admin.css' %}">
+    <link rel="stylesheet" href="{% static 'css/professeurs/detail.css' %}">
+    <link rel="stylesheet" href="{% static 'css/professeurs/print.css' %}">
+
+    {% comment %} <link rel="stylesheet" href="{% static 'css/mobile/mobile.css' %}"> {% endcomment %}
+    {% if user.role == 'COMPTABLE' %}
+    <link rel="stylesheet" href="{% static 'css/dashboards/comptable.css' %}">
+    {% endif %}
+    {% block extra_css %}{% endblock %}
+
+</head>
+<body>
+    <!-- Bouton de changement de thème -->
+    <button id="themeToggle" class="theme-toggle" aria-label="Changer de thème">
+        <i class="fas fa-moon"></i>
+        <i class="fas fa-sun"></i>
+    </button>
+
+    <!-- Menu mobile -->
+    <button id="mobileMenuToggle" class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="{% static 'images/logo/IIPEA.png' %}" alt="Logo" class="logo-img">
+                <h2>{{ user.get_full_name }}</h2>
+                <p>{{ user.email }}</p>
+                {% if user.role == 'COMPTABLE' and user.comptable %}
+                <div class="comptable-info">
+                    <small>Matricule: {{ user.comptable.matricule }}</small>
+                    <small>Code: {{ user.comptable.code_unique }}</small>
+                </div>
+                {% endif %}
+            </div>
+            
+            <nav class="sidebar-nav">
+                {% if user.role == 'ADMIN' %}
+                    {% include 'partials/sidebar_admin.html' %}
+                {% elif user.role == 'RESP_PEDA' %}
+                    {% include 'partials/sidebar_resp_peda.html' %}
+                {% elif user.role == 'RESP_RH' %}
+                    {% include 'partials/sidebar_resp_rh.html' %}
+                {% elif user.role == 'COMPTABLE' %}
+                    {% include 'partials/sidebar_comptable.html' %}
+                {% endif %}
+                
+                <!-- Déconnexion commune à tous -->
+                <div class="nav-item logout">
+                    <a href="{% url 'deconnexion' %}" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Déconnexion
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="welcome-section">
+                    <h1>
+                        {% if user.role == 'ADMIN' %}Tableau de bord Administrateur
+                        {% elif user.role == 'RESP_PEDA' %}Tableau de bord Responsable Pédagogique
+                        {% elif user.role == 'RESP_RH' %}Tableau de bord Responsable RH
+                        {% elif user.role == 'COMPTABLE' %}Tableau de bord Comptable
+                        {% else %}Tableau de bord
+                        {% endif %}
+                    </h1>
+                    <p>
+                        {% if user.role == 'ADMIN' %}Accès complet au système
+                        {% else %}Accès limité au système
+                        {% endif %}
+                        - <span id="currentTime"></span>
+                    </p>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar 
+                        {% if user.role == 'ADMIN' %}admin
+                        {% elif user.role == 'COMPTABLE' %}accountant
+                        {% else %}default
+                        {% endif %}">
+                        {% if user.role == 'ADMIN' %}
+                            <a href="{% url 'admin:index' %}">
+                                <i class="fas fa-user-shield"></i>
+                            </a>
+                        {% elif user.role == 'COMPTABLE' %}
+                            <i class="fas fa-calculator"></i>
+                        {% else %}
+                            <i class="fas fa-user"></i>
+                        {% endif %}
+                    </div>
+                    <div class="user-info">
+                        <h3>{{ user.get_full_name }}</h3>
+                        <span>{{ user.get_role_display }}</span>
+                    </div>
+                    <div class="user-notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">
+                            {% if user.role == 'COMPTABLE' %}8{% else %}7{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Contenu spécifique à chaque page -->
+            <div class="content-wrapper">
+                {% block content %}
+                <!-- Le contenu spécifique de chaque page viendra ici -->
+                {% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script src="{% static 'js/bases/script.js' %}"></script>
+    <script src="{% static 'js/mobile/script.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+
+
+    <script>
+    // Fonction pour mettre à jour l'heure en temps réel
+    function updateCurrentTime() {
+        const now = new Date();
+        const dateString = now.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        const timeString = now.toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        const currentTimeElement = document.getElementById('currentTime');
+        if (currentTimeElement) {
+            currentTimeElement.textContent = `${dateString} à ${timeString}`;
+        }
+    }
+
+    // Initialiser et mettre à jour toutes les secondes
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+
+        // Gestion des sous-menus
+        const submenuToggles = document.querySelectorAll('.submenu-toggle');
+        submenuToggles.forEach(toggle => {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                const parentItem = this.closest('.nav-item.has-submenu');
+                parentItem.classList.toggle('open');
+                
+                // Fermer les autres sous-menus
+                document.querySelectorAll('.nav-item.has-submenu').forEach(item => {
+                    if (item !== parentItem && item.classList.contains('open')) {
+                        item.classList.remove('open');
+                    }
+                });
+            });
+        });
+
+        // Menu mobile
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        
+        if (mobileMenuToggle && sidebar) {
+            mobileMenuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+            });
+        }
+
+        // Fermer le menu mobile en cliquant sur un lien
+        document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>

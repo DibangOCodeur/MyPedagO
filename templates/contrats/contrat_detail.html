@@ -1,0 +1,459 @@
+{% extends 'base.html' %}
+
+{% block title %}Contrat #{{ contrat.id }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'contrat_list' %}">Contrats</a></li>
+<li class="breadcrumb-item active">Contrat #{{ contrat.id }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .progress-section {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .progress-bar-animated {
+        animation: progress-animation 2s ease-in-out;
+    }
+    
+    @keyframes progress-animation {
+        from { width: 0; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Informations du contrat -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-file-earmark-check"></i> Contrat #{{ contrat.id }}
+                </h4>
+                <span class="badge 
+                    {% if contrat.status == 'VALIDATED' %}bg-info
+                    {% elif contrat.status == 'IN_PROGRESS' %}bg-primary
+                    {% elif contrat.status == 'COMPLETED' %}bg-success
+                    {% elif contrat.status == 'PENDING_DOCUMENTS' %}bg-warning
+                    {% elif contrat.status == 'READY_FOR_PAYMENT' %}bg-success
+                    {% elif contrat.status == 'PAID' %}bg-dark
+                    {% endif %}
+                    badge-status">
+                    {{ contrat.get_status_display }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-person"></i> Professeur</h6>
+                        <p class="mb-0">{{ contrat.professeur.user.get_full_name }}</p>
+                        <small class="text-muted">{{ contrat.professeur.user.email }}</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-book"></i> Module</h6>
+                        <p class="mb-0"><strong>{{ contrat.maquette.filiere_sigle }}</strong></p>
+                        <small class="text-muted">{{ contrat.maquette.niveau_libelle }}</small>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-people"></i> Classe</h6>
+                        <p class="mb-0">{{ contrat.classe.nom }}</p>
+                        <small class="text-muted">{{ contrat.classe.departement }}</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-layout-text-sidebar"></i> Type d'Enseignement</h6>
+                        <p class="mb-0">{{ contrat.get_type_enseignement_display }}</p>
+                        {% if contrat.type_enseignement == 'TRONC_COMMUN' %}
+                        <small class="text-muted">
+                            Avec: 
+                            {% for classe in contrat.classes_tronc_commun.all %}
+                                {{ classe.nom }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <p class="text-muted mb-0">Volume Total</p>
+                        <h3 class="text-primary">{{ contrat.volume_total_contractuel }}h</h3>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <p class="text-muted mb-0">Heures Effectuées</p>
+                        <h3 class="text-success">{{ contrat.volume_total_effectue }}h</h3>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <p class="text-muted mb-0">Taux Réalisation</p>
+                        <h3 class="
+                            {% if contrat.taux_realisation >= 90 %}text-success
+                            {% elif contrat.taux_realisation >= 50 %}text-warning
+                            {% else %}text-danger{% endif %}">
+                            {{ contrat.taux_realisation|floatformat:1 }}%
+                        </h3>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <p class="text-muted mb-0">Montant Contractuel</p>
+                        <h3 class="text-info">{{ contrat.montant_total_contractuel|floatformat:0 }}</h3>
+                        <small class="text-muted">FCFA</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Progression détaillée -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Progression du Cours</h5>
+            </div>
+            <div class="card-body">
+                <div class="progress-section">
+                    <!-- Cours Magistral -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>Cours Magistral (CM)</strong></span>
+                            <span>{{ heures_effectuees.cours }} / {{ contrat.volume_heure_cours }}h</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: {% widthratio heures_effectuees.cours contrat.volume_heure_cours 100 %}%">
+                                {% widthratio heures_effectuees.cours contrat.volume_heure_cours 100 %}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- TD -->
+                    {% if contrat.volume_heure_td > 0 %}
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>Travaux Dirigés (TD)</strong></span>
+                            <span>{{ heures_effectuees.td }} / {{ contrat.volume_heure_td }}h</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: {% widthratio heures_effectuees.td contrat.volume_heure_td 100 %}%">
+                                {% widthratio heures_effectuees.td contrat.volume_heure_td 100 %}%
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- TP -->
+                    {% if contrat.volume_heure_tp > 0 %}
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>Travaux Pratiques (TP)</strong></span>
+                            <span>{{ heures_effectuees.tp }} / {{ contrat.volume_heure_tp }}h</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: {% widthratio heures_effectuees.tp contrat.volume_heure_tp 100 %}%">
+                                {% widthratio heures_effectuees.tp contrat.volume_heure_tp 100 %}%
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Progression globale -->
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>PROGRESSION GLOBALE</strong></span>
+                            <span><strong>{{ contrat.volume_total_effectue }} / {{ contrat.volume_total_contractuel }}h</strong></span>
+                        </div>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: {{ contrat.taux_realisation }}%">
+                                <strong>{{ contrat.taux_realisation|floatformat:1 }}%</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Graphique -->
+                <div class="mt-4">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pointages -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Pointages</h5>
+                {% if can_add_pointage %}
+                <a href="{% url 'pointage_create' contrat.id %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle"></i> Nouveau Pointage
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if pointages %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Heures</th>
+                                <th>Sujet</th>
+                                <th>Présence</th>
+                                <th>Enregistré par</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pointage in pointages %}
+                            <tr>
+                                <td>
+                                    <strong>{{ pointage.date_seance|date:"d/m/Y" }}</strong><br>
+                                    {% if pointage.heure_debut %}
+                                    <small class="text-muted">{{ pointage.heure_debut }} - {{ pointage.heure_fin }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if pointage.heures_cours > 0 %}
+                                    <span class="badge bg-info">CM: {{ pointage.heures_cours }}h</span>
+                                    {% endif %}
+                                    {% if pointage.heures_td > 0 %}
+                                    <span class="badge bg-primary">TD: {{ pointage.heures_td }}h</span>
+                                    {% endif %}
+                                    {% if pointage.heures_tp > 0 %}
+                                    <span class="badge bg-warning">TP: {{ pointage.heures_tp }}h</span>
+                                    {% endif %}
+                                    <br>
+                                    <small><strong>Total: {{ pointage.total_heures }}h</strong></small>
+                                </td>
+                                <td>
+                                    {{ pointage.sujet_traite|default:"-"|truncatewords:8 }}
+                                    {% if pointage.observations %}
+                                    <br><small class="text-muted">{{ pointage.observations|truncatewords:10 }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if pointage.taux_presence %}
+                                    <span class="badge 
+                                        {% if pointage.taux_presence >= 80 %}bg-success
+                                        {% elif pointage.taux_presence >= 60 %}bg-warning
+                                        {% else %}bg-danger{% endif %}">
+                                        {{ pointage.taux_presence }}%
+                                    </span>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ pointage.enregistre_par.get_full_name }}<br>
+                                    {{ pointage.date_enregistrement|date:"d/m/Y" }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Aucun pointage enregistré pour ce contrat.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Actions</h5>
+            </div>
+            <div class="card-body">
+                {% if can_start %}
+                <a href="{% url 'contrat_start' contrat.id %}" class="btn btn-success w-100 mb-2">
+                    <i class="bi bi-play-circle"></i> Démarrer le Cours
+                </a>
+                {% endif %}
+                
+                {% if can_add_pointage %}
+                <a href="{% url 'pointage_create' contrat.id %}" class="btn btn-primary w-100 mb-2">
+                    <i class="bi bi-plus-circle"></i> Ajouter Pointage
+                </a>
+                {% endif %}
+                
+                {% if can_upload_documents %}
+                <a href="{% url 'document_upload' contrat.id %}" class="btn btn-info w-100 mb-2">
+                    <i class="bi bi-cloud-upload"></i> Charger Documents
+                </a>
+                {% endif %}
+                
+                {% if can_complete %}
+                <a href="{% url 'contrat_complete' contrat.id %}" class="btn btn-warning w-100 mb-2">
+                    <i class="bi bi-check-circle"></i> Terminer le Cours
+                </a>
+                {% endif %}
+                
+                <a href="#" onclick="window.print()" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-printer"></i> Imprimer
+                </a>
+            </div>
+        </div>
+        
+        <!-- Documents -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-files"></i> Documents</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Support de Cours
+                        {% if contrat.support_cours_uploaded %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i></span>
+                        {% else %}
+                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i></span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Syllabus
+                        {% if contrat.syllabus_uploaded %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i></span>
+                        {% else %}
+                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i></span>
+                        {% endif %}
+                    </li>
+                </ul>
+                
+                {% if documents %}
+                <hr>
+                <h6 class="mt-3">Documents Chargés</h6>
+                <ul class="list-unstyled">
+                    {% for doc in documents %}
+                    <li class="mb-2">
+                        <a href="{{ doc.fichier.url }}" target="_blank">
+                            <i class="bi bi-file-earmark-pdf"></i> {{ doc.titre }}
+                        </a>
+                        <br>
+                        <small class="text-muted">{{ doc.type_document }} - {{ doc.date_upload|date:"d/m/Y" }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Informations Financières -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Finance</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td>Taux Cours:</td>
+                        <td class="text-end"><strong>{{ contrat.taux_horaire_cours|floatformat:0 }} FCFA</strong></td>
+                    </tr>
+                    {% if contrat.volume_heure_td > 0 %}
+                    <tr>
+                        <td>Taux TD:</td>
+                        <td class="text-end"><strong>{{ contrat.taux_horaire_td|floatformat:0 }} FCFA</strong></td>
+                    </tr>
+                    {% endif %}
+                    {% if contrat.volume_heure_tp > 0 %}
+                    <tr>
+                        <td>Taux TP:</td>
+                        <td class="text-end"><strong>{{ contrat.taux_horaire_tp|floatformat:0 }} FCFA</strong></td>
+                    </tr>
+                    {% endif %}
+                    <tr class="table-primary">
+                        <td><strong>Montant Contractuel:</strong></td>
+                        <td class="text-end"><strong>{{ contrat.montant_total_contractuel|floatformat:0 }} FCFA</strong></td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>Montant À Payer:</strong></td>
+                        <td class="text-end"><strong>{{ contrat.calculate_montant_a_payer|floatformat:0 }} FCFA</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Dates -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar"></i> Dates</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>Validation:</strong><br>
+                    <small>{{ contrat.date_validation|date:"d/m/Y à H:i" }}</small>
+                </p>
+                {% if contrat.date_debut_reelle %}
+                <p class="mb-2">
+                    <strong>Début:</strong><br>
+                    <small>{{ contrat.date_debut_reelle|date:"d/m/Y" }}</small>
+                </p>
+                {% endif %}
+                {% if contrat.date_fin_reelle %}
+                <p class="mb-2">
+                    <strong>Fin:</strong><br>
+                    <small>{{ contrat.date_fin_reelle|date:"d/m/Y" }}</small>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Graphique de progression
+var ctx = document.getElementById('progressChart').getContext('2d');
+var chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ progression_data.labels|safe }},
+        datasets: [{
+            label: 'Contractuel',
+            data: {{ progression_data.contractuel|safe }},
+            backgroundColor: 'rgba(74, 144, 226, 0.5)',
+            borderColor: 'rgba(74, 144, 226, 1)',
+            borderWidth: 2
+        }, {
+            label: 'Effectué',
+            data: {{ progression_data.effectue|safe }},
+            backgroundColor: 'rgba(92, 184, 92, 0.5)',
+            borderColor: 'rgba(92, 184, 92, 1)',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Heures'
+                }
+            }
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: 'Comparaison Volumes Contractuels vs Effectués'
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

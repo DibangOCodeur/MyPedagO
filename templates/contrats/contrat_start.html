@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block title %}Démarrer le Cours - Contrat #{{ contrat.id }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'contrat_list' %}">Contrats</a></li>
+<li class="breadcrumb-item"><a href="{% url 'contrat_detail' contrat.id %}">Contrat #{{ contrat.id }}</a></li>
+<li class="breadcrumb-item active">Démarrer</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="bi bi-play-circle"></i> Démarrer le Cours</h4>
+            </div>
+            <div class="card-body">
+                <!-- Récapitulatif du contrat -->
+                <div class="alert alert-light">
+                    <h5><i class="bi bi-info-circle"></i> Récapitulatif du Contrat</h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Professeur:</strong> {{ contrat.professeur.user.get_full_name }}</p>
+                            <p class="mb-1"><strong>Module:</strong> {{ contrat.maquette.filiere_sigle }} - {{ contrat.maquette.niveau_libelle }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Classe:</strong> {{ contrat.classe.nom }}</p>
+                            <p class="mb-1"><strong>Volume Total:</strong> {{ contrat.volume_total_contractuel }}h</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Type d'enseignement -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-layout-text-sidebar"></i> Type d'Enseignement</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="type_enseignement" 
+                                       id="normal" value="NORMAL" checked onchange="toggleTroncCommun()">
+                                <label class="form-check-label" for="normal">
+                                    <strong>Cours Normal</strong><br>
+                                    <small class="text-muted">Le cours sera dispensé uniquement à la classe principale</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="type_enseignement" 
+                                       id="tronc_commun" value="TRONC_COMMUN" onchange="toggleTroncCommun()">
+                                <label class="form-check-label" for="tronc_commun">
+                                    <strong>Tronc Commun</strong><br>
+                                    <small class="text-muted">Le cours sera dispensé à plusieurs classes en même temps</small>
+                                </label>
+                            </div>
+                            
+                            <!-- Classes pour tronc commun -->
+                            <div id="tronc-commun-section" style="display: none;" class="mt-4">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> Sélectionnez les classes qui participeront au tronc commun avec <strong>{{ contrat.classe.nom }}</strong>
+                                </div>
+                                
+                                <label class="form-label"><strong>Classes Participantes *</strong></label>
+                                
+                                {% for classe in form.classes_tronc_commun %}
+                                <div class="form-check">
+                                    {{ classe.tag }}
+                                    <label class="form-check-label" for="{{ classe.id_for_label }}">
+                                        {{ classe.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                                
+                                {% if form.classes_tronc_commun.errors %}
+                                    <div class="text-danger mt-2">{{ form.classes_tronc_commun.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dates -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-calendar"></i> Planning</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.date_debut_prevue.id_for_label }}" class="form-label">
+                                        Date de Début Prévue *
+                                    </label>
+                                    {{ form.date_debut_prevue }}
+                                    {% if form.date_debut_prevue.errors %}
+                                        <div class="text-danger">{{ form.date_debut_prevue.errors }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Date à laquelle le cours commencera</small>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.date_fin_prevue.id_for_label }}" class="form-label">
+                                        Date de Fin Prévue
+                                    </label>
+                                    {{ form.date_fin_prevue }}
+                                    {% if form.date_fin_prevue.errors %}
+                                        <div class="text-danger">{{ form.date_fin_prevue.errors }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Date prévue de fin du cours (optionnel)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-sticky"></i> Notes</h5>
+                        </div>
+                        <div class="card-body">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">
+                                Notes sur le Démarrage du Cours
+                            </label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="text-danger">{{ form.notes.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Remarques, observations ou informations complémentaires
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- Confirmation -->
+                    <div class="alert alert-success">
+                        <h5><i class="bi bi-check-circle"></i> Confirmation</h5>
+                        <p class="mb-0">
+                            En démarrant ce cours, vous confirmez que :
+                        </p>
+                        <ul class="mb-0 mt-2">
+                            <li>Le professeur est prêt à commencer l'enseignement</li>
+                            <li>Les horaires et la salle sont définis</li>
+                            <li>Les étudiants ont été informés</li>
+                        </ul>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Boutons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'contrat_detail' contrat.id %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-play-circle"></i> Démarrer le Cours
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar Info -->
+    <div class="col-md-4">
+        <!-- Rappel volumes -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-hourglass-split"></i> Volumes Horaires</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Cours (CM):</strong></td>
+                        <td class="text-end">{{ contrat.volume_heure_cours }}h</td>
+                    </tr>
+                    {% if contrat.volume_heure_td > 0 %}
+                    <tr>
+                        <td><strong>TD:</strong></td>
+                        <td class="text-end">{{ contrat.volume_heure_td }}h</td>
+                    </tr>
+                    {% endif %}
+                    {% if contrat.volume_heure_tp > 0 %}
+                    <tr>
+                        <td><strong>TP:</strong></td>
+                        <td class="text-end">{{ contrat.volume_heure_tp }}h</td>
+                    </tr>
+                    {% endif %}
+                    <tr class="table-primary">
+                        <td><strong>TOTAL:</strong></td>
+                        <td class="text-end"><strong>{{ contrat.volume_total_contractuel }}h</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Rappel obligations -->
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Rappel Important</h5>
+            </div>
+            <div class="card-body">
+                <h6>Documents Obligatoires</h6>
+                <p>À la fin du cours, vous devrez charger :</p>
+                <ul>
+                    <li><strong>Support de cours</strong> (PDF, PPT, etc.)</li>
+                    <li><strong>Syllabus du cours</strong></li>
+                </ul>
+                
+                <div class="alert alert-danger">
+                    <i class="bi bi-ban"></i> 
+                    <small>Sans ces documents, le paiement ne pourra pas être traité.</small>
+                </div>
+                
+                <hr>
+                
+                <h6>Pointages Réguliers</h6>
+                <p>
+                    <small>
+                        Après chaque séance, n'oubliez pas d'enregistrer les heures effectuées via le système de pointage.
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleTroncCommun() {
+    var troncCommunRadio = document.getElementById('tronc_commun');
+    var troncCommunSection = document.getElementById('tronc-commun-section');
+    
+    if (troncCommunRadio.checked) {
+        troncCommunSection.style.display = 'block';
+    } else {
+        troncCommunSection.style.display = 'none';
+        // Décocher toutes les classes si on passe en mode normal
+        document.querySelectorAll('#tronc-commun-section input[type="checkbox"]').forEach(function(checkbox) {
+            checkbox.checked = false;
+        });
+    }
+}
+
+// Initialiser l'état au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    toggleTroncCommun();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <h5 class="card-header">Informations</h5>
+                <div class="card-body">
+                    <p>Bonjour, vous êtes actuellement connecté en tant que {{ user.get_full_name }}.</p>
+                    <p>Votre rôle est {{ user.get_role_display }}.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="card">
+                <h5 class="card-header">Statistiques</h5>
+                <div class="card-body">
+                    <p>Nombre d'utilisateurs : {{ utilisateurs_count }}</p>
+                    <p>Nombre de sections : {{ sections_count }}</p>
+                    <p>Nombre de professeurs : {{ professeurs_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
