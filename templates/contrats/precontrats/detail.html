@@ -4,210 +4,172 @@
 {% block title %}{{ title }} - MyPedago{% endblock %}
 
 {% block extra_css %}
-<style>
-.status-badge {
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.info-card {
-    background: #f8f9fa;
-    border-left: 4px solid #0d6efd;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
-.module-row {
-    border-bottom: 1px solid #dee2e6;
-    padding: 15px 0;
-}
-
-.module-row:last-child {
-    border-bottom: none;
-}
-
-.stat-card {
-    text-align: center;
-    padding: 20px;
-    border-radius: 8px;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #0d6efd;
-}
-
-.stat-label {
-    color: #6c757d;
-    font-size: 0.9rem;
-}
-
-.timeline-item {
-    padding-left: 30px;
-    position: relative;
-    padding-bottom: 20px;
-}
-
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: 10px;
-    top: 5px;
-    bottom: -5px;
-    width: 2px;
-    background: #dee2e6;
-}
-
-.timeline-item:last-child::before {
-    display: none;
-}
-
-.timeline-dot {
-    position: absolute;
-    left: 5px;
-    top: 5px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #0d6efd;
-}
-</style>
+<link rel="stylesheet" href="{% static 'css/contrats/precontrats/detail.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
     
     <!-- En-tête -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3 mb-1">
-                        <i class="bi bi-file-earmark-text text-primary"></i>
-                        Précontrat {{ precontrat.reference }}
-                    </h1>
-                    <p class="text-muted mb-0">
-                        Créé le {{ precontrat.date_creation|date:"d/m/Y à H:i" }}
-                    </p>
+    <div class="main-header">
+        <div class="welcome-section">
+            <h1>
+                <i class="fas fa-file-contract text-primary me-2"></i>
+                Précontrat {{ precontrat.reference }}
+            </h1>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="status-badge status-{{ precontrat.status|lower }}">
+                {{ precontrat.get_status_display }}
+            </span>
+            <a href="{% url 'precontrat_list' %}" class="action-btn secondary">
+                <i class="fas fa-arrow-left me-2"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques -->
+    <div class="stats-grid mb-4">
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon users">
+                    <i class="fas fa-book"></i>
                 </div>
-                <div class="d-flex gap-2">
-                    <span class="status-badge bg-{{ precontrat.get_statut_display_classe }}">
-                        {{ precontrat.get_status_display }}
-                    </span>
-                    <a href="{% url 'gestion:precontrat_list' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left"></i> Retour
-                    </a>
+                <div class="stat-menu">
+                    <i class="fas fa-ellipsis-v"></i>
                 </div>
+            </div>
+            <div class="stat-number">{{ precontrat.nombre_modules }}</div>
+            <div class="stat-label">Module(s)</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 100%"></div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon security">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ volumes.total }}h</div>
+            <div class="stat-label">Volume Total</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 100%"></div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon storage">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ montant_total|floatformat:0 }}</div>
+            <div class="stat-label">Montant (FCFA)</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 100%"></div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon performance">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="stat-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ precontrat.annee_academique }}</div>
+            <div class="stat-label">Année Académique</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 100%"></div>
             </div>
         </div>
     </div>
 
-    <!-- Statistiques rapides -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-value">{{ precontrat.nombre_modules }}</div>
-                <div class="stat-label">Module(s)</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-value">{{ volumes.total }}h</div>
-                <div class="stat-label">Volume Total</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-value text-success">{{ montant_total|floatformat:0 }}</div>
-                <div class="stat-label">Montant (FCFA)</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-value">{{ precontrat.annee_academique }}</div>
-                <div class="stat-label">Année Académique</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
+    <div class="content-grid">
         <!-- Colonne principale -->
-        <div class="col-lg-8">
+        <div class="main-column">
             
             <!-- Informations générales -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-info-circle"></i>
-                        Informations générales
-                    </h5>
+            <div class="full-width-section mb-4">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-info-circle me-2"></i>Informations générales
+                    </h2>
                 </div>
-                <div class="card-body">
+                <div class="info-grid">
                     
                     <!-- Professeur -->
                     <div class="info-card">
-                        <h6 class="text-primary mb-3">
-                            <i class="bi bi-person-badge"></i> Professeur
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Nom complet:</strong><br>
-                                {{ precontrat.professeur.get_full_name }}
+                        <div class="info-header">
+                            <i class="fas fa-user-tie text-primary"></i>
+                            <h3>Professeur</h3>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-row">
+                                <div class="info-label">Nom complet</div>
+                                <div class="info-value">{{ precontrat.professeur.get_full_name }}</div>
                             </div>
-                            <div class="col-md-6">
-                                <strong>Email:</strong><br>
-                                <a href="mailto:{{ precontrat.professeur.email }}">
-                                    {{ precontrat.professeur.email }}
-                                </a>
+                            <div class="info-row">
+                                <div class="info-label">Email</div>
+                                <div class="info-value">
+                                    <a href="mailto:{{ precontrat.professeur.email }}" class="email-link">
+                                        {{ precontrat.professeur.email }}
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Classe -->
                     <div class="info-card">
-                        <h6 class="text-primary mb-3">
-                            <i class="bi bi-building"></i> Classe
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <strong>Classe:</strong><br>
-                                {{ precontrat.classe_nom }}
+                        <div class="info-header">
+                            <i class="fas fa-building text-primary"></i>
+                            <h3>Classe</h3>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-row">
+                                <div class="info-label">Classe</div>
+                                <div class="info-value">{{ precontrat.classe_nom }}</div>
                             </div>
-                            <div class="col-md-4">
-                                <strong>Niveau:</strong><br>
-                                <span class="badge bg-info">{{ precontrat.classe_niveau }}</span>
+                            <div class="info-row">
+                                <div class="info-label">Niveau</div>
+                                <div class="info-value">
+                                    <span class="info-badge info">{{ precontrat.classe_niveau }}</span>
+                                </div>
                             </div>
-                            <div class="col-md-4">
-                                <strong>Filière:</strong><br>
-                                <span class="badge bg-secondary">{{ precontrat.classe_filiere }}</span>
+                            <div class="info-row">
+                                <div class="info-label">Filière</div>
+                                <div class="info-value">
+                                    <span class="info-badge secondary">{{ precontrat.classe_filiere }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Volumes -->
-                    <div class="row g-3 mt-2">
-                        <div class="col-md-4">
-                            <div class="text-center p-3 bg-light rounded">
-                                <h4 class="text-primary mb-0">{{ volumes.cours }}h</h4>
-                                <small class="text-muted">Heures CM</small>
-                            </div>
+                    <!-- Volumes horaires -->
+                    <div class="info-card">
+                        <div class="info-header">
+                            <i class="fas fa-chart-bar text-primary"></i>
+                            <h3>Volumes horaires</h3>
                         </div>
-                        <div class="col-md-4">
-                            <div class="text-center p-3 bg-light rounded">
-                                <h4 class="text-danger mb-0">{{ volumes.td }}h</h4>
-                                <small class="text-muted">Heures TD</small>
+                        <div class="volume-grid">
+                            <div class="volume-item">
+                                <div class="volume-value text-primary">{{ volumes.cours }}h</div>
+                                <div class="volume-label">Heures CM</div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="text-center p-3 bg-light rounded">
-                                <h4 class="text-success mb-0">{{ volumes.tp }}h</h4>
-                                <small class="text-muted">Heures TP</small>
+                            <div class="volume-item">
+                                <div class="volume-value text-danger">{{ volumes.td }}h</div>
+                                <div class="volume-label">Heures TD</div>
                             </div>
                         </div>
                     </div>
@@ -215,211 +177,219 @@
             </div>
 
             <!-- Modules proposés -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-book"></i>
+            <div class="full-width-section mb-4">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-book me-2"></i>
                         Modules proposés ({{ modules.count }})
-                    </h5>
+                    </h2>
                 </div>
-                <div class="card-body">
+                <div class="modules-container">
                     {% if modules %}
                         {% for module in modules %}
-                        <div class="module-row">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-2">
+                        <div class="module-card">
+                            <div class="module-header">
+                                <div class="module-title">
+                                    <h4>
                                         <strong>{{ module.code_module }}</strong> - {{ module.nom_module }}
-                                        {% if module.est_valide %}
-                                        <span class="badge bg-success ms-2">
-                                            <i class="bi bi-check-circle"></i> Validé
-                                        </span>
-                                        {% else %}
-                                        <span class="badge bg-warning">
-                                            <i class="bi bi-clock"></i> En attente
-                                        </span>
-                                        {% endif %}
-                                    </h6>
-                                    <p class="text-muted mb-2">
-                                        <small><i class="bi bi-folder"></i> {{ module.ue_nom }}</small>
-                                    </p>
-                                    
-                                    <div class="row g-2">
-                                        {% if module.volume_heure_cours > 0 %}
-                                        <div class="col-auto">
-                                            <span class="badge bg-primary">
-                                                CM: {{ module.volume_heure_cours }}h × {{ module.taux_horaire_cours|floatformat:0 }} FCFA
-                                            </span>
-                                        </div>
-                                        {% endif %}
-                                        {% if module.volume_heure_td > 0 %}
-                                        <div class="col-auto">
-                                            <span class="badge bg-danger">
-                                                TD: {{ module.volume_heure_td }}h × {{ module.taux_horaire_td|floatformat:0 }} FCFA
-                                            </span>
-                                        </div>
-                                        {% endif %}
-                                        {% if module.volume_heure_tp > 0 %}
-                                        <div class="col-auto">
-                                            <span class="badge bg-success">
-                                                TP: {{ module.volume_heure_tp }}h × {{ module.taux_horaire_tp|floatformat:0 }} FCFA
-                                            </span>
-                                        </div>
-                                        {% endif %}
-                                    </div>
+                                    </h4>
+                                    {% if module.est_valide %}
+                                    <span class="status-badge status-validated">
+                                        <i class="fas fa-check-circle me-1"></i>Validé
+                                    </span>
+                                    {% else %}
+                                    <span class="status-badge status-under_review">
+                                        <i class="fas fa-clock me-1"></i>En attente
+                                    </span>
+                                    {% endif %}
                                 </div>
-                                <div class="text-end">
-                                    <h5 class="mb-0 text-success">
-                                        {{ module.get_montant_total|floatformat:0 }} FCFA
-                                    </h5>
-                                    <small class="text-muted">{{ module.volume_total }}h total</small>
+                                <div class="module-amount">
+                                    <div class="amount-value">{{ module.get_montant_total|floatformat:0 }} FCFA</div>
+                                    <div class="amount-label">{{ module.volume_total }}h total</div>
                                 </div>
                             </div>
                             
-                            {% if module.notes_validation %}
-                            <div class="alert alert-info mt-2 mb-0">
-                                <small>
-                                    <i class="bi bi-chat-left-text"></i>
-                                    <strong>Note RH:</strong> {{ module.notes_validation }}
-                                </small>
+                            <div class="module-body">
+                                <div class="module-meta">
+                                    <i class="fas fa-folder text-muted me-1"></i>
+                                    {{ module.ue_nom }}
+                                </div>
+                                
+                                <div class="module-volumes">
+                                    {% if module.volume_heure_cours > 0 %}
+                                    <span class="volume-badge primary">
+                                        CM: {{ module.volume_heure_cours }}h × {{ module.taux_horaire_cours|floatformat:0 }} FCFA
+                                    </span>
+                                    {% endif %}
+                                    {% if module.volume_heure_td > 0 %}
+                                    <span class="volume-badge danger">
+                                        TD: {{ module.volume_heure_td }}h × {{ module.taux_horaire_td|floatformat:0 }} FCFA
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if module.notes_validation %}
+                                <div class="module-notes">
+                                    <div class="notes-header">
+                                        <i class="fas fa-comment-alt text-info me-1"></i>
+                                        <strong>Note RH:</strong>
+                                    </div>
+                                    <div class="notes-content">{{ module.notes_validation }}</div>
+                                </div>
+                                {% endif %}
                             </div>
-                            {% endif %}
                         </div>
                         {% endfor %}
                         
                         <!-- Total -->
-                        <div class="mt-4 p-3 bg-light rounded">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">TOTAL</h5>
-                                <div class="text-end">
-                                    <h4 class="mb-0 text-success">{{ montant_total|floatformat:0 }} FCFA</h4>
-                                    <small class="text-muted">{{ volumes.total }}h au total</small>
+                        <div class="module-total">
+                            <div class="total-content">
+                                <h3>TOTAL GÉNÉRAL</h3>
+                                <div class="total-amount">
+                                    <div class="total-value">{{ montant_total|floatformat:0 }} FCFA</div>
+                                    <div class="total-label">{{ volumes.total }}h au total</div>
                                 </div>
                             </div>
                         </div>
                     {% else %}
-                        <p class="text-center text-muted py-4">
-                            <i class="bi bi-inbox" style="font-size: 3rem;"></i><br>
-                            Aucun module proposé
-                        </p>
+                        <div class="empty-state">
+                            <div class="empty-content">
+                                <i class="fas fa-inbox fa-4x"></i>
+                                <h3>Aucun module proposé</h3>
+                                <p>Commencez par ajouter des modules à ce précontrat.</p>
+                            </div>
+                        </div>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Notes -->
-            {% if precontrat.notes_proposition or precontrat.notes_validation or precontrat.raison_rejet %}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">
-                        <i class="bi bi-chat-left-text"></i>
+            <!-- Notes et commentaires -->
+            <div class="full-width-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-comments me-2"></i>
                         Notes et commentaires
-                    </h5>
+                    </h2>
                 </div>
-                <div class="card-body">
-                    {% if precontrat.notes_proposition %}
-                    <div class="mb-3">
-                        <h6 class="text-muted">Notes de proposition</h6>
-                        <p class="mb-0">{{ precontrat.notes_proposition }}</p>
-                    </div>
-                    {% endif %}
-                    
+                <div class="notes-container">
                     {% if precontrat.notes_validation %}
-                    <div class="mb-3">
-                        <h6 class="text-muted">Notes de validation</h6>
-                        <div class="alert alert-info mb-0">
+                    <div class="note-card info">
+                        <div class="note-header">
+                            <i class="fas fa-check-circle text-info"></i>
+                            <h4>Notes de validation</h4>
+                        </div>
+                        <div class="note-content">
                             {{ precontrat.notes_validation }}
                         </div>
                     </div>
                     {% endif %}
                     
                     {% if precontrat.raison_rejet %}
-                    <div>
-                        <h6 class="text-muted">Raison du rejet</h6>
-                        <div class="alert alert-danger mb-0">
-                            <i class="bi bi-exclamation-triangle"></i>
+                    <div class="note-card danger">
+                        <div class="note-header">
+                            <i class="fas fa-exclamation-triangle text-danger"></i>
+                            <h4>Raison du rejet</h4>
+                        </div>
+                        <div class="note-content">
                             {{ precontrat.raison_rejet }}
                         </div>
                     </div>
                     {% endif %}
                 </div>
             </div>
-            {% endif %}
         </div>
 
         <!-- Colonne latérale -->
-        <div class="col-lg-4">
+        <div class="sidebar-column">
             
             <!-- Actions -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0">
-                        <i class="bi bi-lightning"></i>
+            <div class="quick-actions mb-4">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-bolt me-2"></i>
                         Actions
-                    </h6>
+                    </h3>
                 </div>
-                <div class="card-body">
+                <div class="action-buttons vertical">
                     {% if can_submit %}
-                    <a href="{% url 'gestion:precontrat_recapitulatif' precontrat.pk %}" 
-                       class="btn btn-primary w-100 mb-2">
-                        <i class="bi bi-send"></i> Soumettre pour validation
+                    <a href="{% url 'precontrat_recapitulatif' precontrat.pk %}" 
+                       class="action-btn primary">
+                        <i class="fas fa-paper-plane me-2"></i>
+                        Soumettre pour validation
                     </a>
                     {% endif %}
                     
                     {% if can_edit %}
-                    <a href="{% url 'gestion:precontrat_edit' precontrat.pk %}" 
-                       class="btn btn-outline-primary w-100 mb-2">
-                        <i class="bi bi-pencil"></i> Modifier
+                    <a href="{% url 'precontrat_edit' precontrat.pk %}" 
+                       class="action-btn secondary">
+                        <i class="fas fa-edit me-2"></i>
+                        Modifier
                     </a>
                     {% endif %}
                     
                     {% if can_validate %}
-                    <button type="button" class="btn btn-success w-100 mb-2" 
-                            data-bs-toggle="modal" data-bs-target="#validateModal">
-                        <i class="bi bi-check-circle"></i> Valider
+                    <button type="button" class="action-btn success" 
+                            data-modal="validateModal">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Valider
                     </button>
-                    <button type="button" class="btn btn-danger w-100 mb-2"
-                            data-bs-toggle="modal" data-bs-target="#rejectModal">
-                        <i class="bi bi-x-circle"></i> Rejeter
+                    <button type="button" class="action-btn danger"
+                            data-modal="rejectModal">
+                        <i class="fas fa-times-circle me-2"></i>
+                        Rejeter
                     </button>
                     {% endif %}
                     
-                    <a href="{% url 'gestion:precontrat_export_pdf' precontrat.pk %}" 
-                       class="btn btn-outline-secondary w-100 mb-2">
-                        <i class="bi bi-file-pdf"></i> Exporter PDF
+                    <a href="{% url 'precontrat_export_pdf' precontrat.pk %}" 
+                       class="action-btn secondary">
+                        <i class="fas fa-file-pdf me-2"></i>
+                        Exporter PDF
                     </a>
                 </div>
             </div>
 
             <!-- Historique -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0">
-                        <i class="bi bi-clock-history"></i>
+            <div class="recent-activity">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-history me-2"></i>
                         Historique
-                    </h6>
+                    </h3>
                 </div>
-                <div class="card-body">
-                    <div class="timeline-item">
-                        <div class="timeline-dot"></div>
-                        <small class="text-muted">{{ precontrat.date_creation|date:"d/m/Y H:i" }}</small>
-                        <p class="mb-0"><strong>Création</strong></p>
-                        <small>Par {{ precontrat.cree_par.get_full_name }}</small>
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <div class="activity-icon update">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Création du précontrat</div>
+                            <div class="activity-desc">Par {{ precontrat.cree_par.get_full_name }}</div>
+                            <div class="activity-time">{{ precontrat.date_creation|date:"d/m/Y H:i" }}</div>
+                        </div>
                     </div>
                     
                     {% if precontrat.date_soumission %}
-                    <div class="timeline-item">
-                        <div class="timeline-dot bg-info"></div>
-                        <small class="text-muted">{{ precontrat.date_soumission|date:"d/m/Y H:i" }}</small>
-                        <p class="mb-0"><strong>Soumission</strong></p>
+                    <div class="activity-item">
+                        <div class="activity-icon security">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Soumission pour validation</div>
+                            <div class="activity-time">{{ precontrat.date_soumission|date:"d/m/Y H:i" }}</div>
+                        </div>
                     </div>
                     {% endif %}
                     
                     {% if precontrat.date_validation %}
-                    <div class="timeline-item">
-                        <div class="timeline-dot bg-success"></div>
-                        <small class="text-muted">{{ precontrat.date_validation|date:"d/m/Y H:i" }}</small>
-                        <p class="mb-0"><strong>Validation</strong></p>
-                        <small>Par {{ precontrat.valide_par.get_full_name }}</small>
+                    <div class="activity-item">
+                        <div class="activity-icon user">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Validation du précontrat</div>
+                            <div class="activity-desc">Par {{ precontrat.valide_par.get_full_name }}</div>
+                            <div class="activity-time">{{ precontrat.date_validation|date:"d/m/Y H:i" }}</div>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
@@ -429,57 +399,59 @@
 </div>
 
 <!-- Modal Validation -->
-<div class="modal fade" id="validateModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Valider le précontrat</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="post" action="{% url 'gestion:precontrat_valider' precontrat.pk %}">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <p>Êtes-vous sûr de vouloir valider ce précontrat ?</p>
-                    <div class="mb-3">
-                        <label for="notes_validation" class="form-label">Notes (optionnel)</label>
-                        <textarea class="form-control" id="notes_validation" name="notes" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-success">Valider</button>
-                </div>
-            </form>
+<div class="modal-overlay" id="validateModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Valider le précontrat</h3>
+            <button type="button" class="modal-close">&times;</button>
         </div>
+        <form method="post" action="{% url 'precontrat_valider' precontrat.pk %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir valider ce précontrat ?</p>
+                <div class="form-group">
+                    <label for="notes_validation" class="form-label">Notes (optionnel)</label>
+                    <textarea class="form-control" id="notes_validation" name="notes" rows="3" 
+                              placeholder="Ajoutez des notes ou commentaires..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn cancel" data-modal-close>Annuler</button>
+                <button type="submit" class="modal-btn confirm">Valider</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <!-- Modal Rejet -->
-<div class="modal fade" id="rejectModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Rejeter le précontrat</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="post" action="{% url 'gestion:precontrat_rejeter' precontrat.pk %}">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        Cette action marquera le précontrat comme rejeté.
-                    </div>
-                    <div class="mb-3">
-                        <label for="raison" class="form-label">Raison du rejet *</label>
-                        <textarea class="form-control" id="raison" name="raison" rows="4" required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-danger">Rejeter</button>
-                </div>
-            </form>
+<div class="modal-overlay" id="rejectModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Rejeter le précontrat</h3>
+            <button type="button" class="modal-close">&times;</button>
         </div>
+        <form method="post" action="{% url 'precontrat_rejeter' precontrat.pk %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="alert-message warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Cette action marquera le précontrat comme rejeté.
+                </div>
+                <div class="form-group">
+                    <label for="raison" class="form-label">Raison du rejet *</label>
+                    <textarea class="form-control" id="raison" name="raison" rows="4" 
+                              placeholder="Veuillez préciser la raison du rejet..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn cancel" data-modal-close>Annuler</button>
+                <button type="submit" class="modal-btn danger">Rejeter</button>
+            </div>
+        </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/precontrat/detail.js' %}"></script>
 {% endblock %}

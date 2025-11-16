@@ -6,6 +6,9 @@ from django.db.models import Sum, Q
 from django.utils import timezone
 from django.core.exceptions import ValidationError, PermissionDenied
 from decimal import Decimal
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage  # ⭐ AJOUTEZ CETTE LIGNE
+# Ajoutez cette ligne dans vos imports
+from .forms import PreContratCreateForm, ContratStartForm, PointageForm
 import json
 import logging
 from .forms import PreContratCreateForm
@@ -60,10 +63,10 @@ def find_module_in_maquettes(maquettes, module_id):
                         'code': matiere.get('code', ''),
                         'nom': matiere.get('nom', ''),
                         'ue_nom': ue.get('libelle', ''),
-                        'volume_cm': float(matiere.get('volume_horaire_cm', 0)),
-                        'volume_td': float(matiere.get('volume_horaire_td', 0)),
-                        'taux_cm': float(matiere.get('taux_horaire_cm', 0)),
-                        'taux_td': float(matiere.get('taux_horaire_td', 0)),
+                        'volume_cm': float(matiere.get('volume_horaire_cm', 5)),
+                        'volume_td': float(matiere.get('volume_horaire_td', 5)),
+                        'taux_cm': float(matiere.get('taux_horaire_cm', 5000)),
+                        'taux_td': float(matiere.get('taux_horaire_td', 5000)),
                     }
     
     return None
@@ -119,10 +122,10 @@ def api_get_classe_modules(request, classe_id):
                         'code': matiere.get('code', ''),
                         'nom': matiere.get('libelle', ''),
                         'ue_nom': ue.get('nom', ''),
-                        'volume_cm': float(matiere.get('volume_horaire_cm', 0)),
-                        'volume_td': float(matiere.get('volume_horaire_td', 0)),
-                        'taux_cm': float(matiere.get('taux_horaire_cm', 0)),
-                        'taux_td': float(matiere.get('taux_horaire_td', 0)),
+                        'volume_cm': float(matiere.get('volume_horaire_cm', 5)),
+                        'volume_td': float(matiere.get('volume_horaire_td', 5)),
+                        'taux_cm': float(matiere.get('taux_horaire_cm', 5000)),
+                        'taux_td': float(matiere.get('taux_horaire_td', 5000)),
                     }
                     modules.append(module)
         
@@ -177,8 +180,7 @@ def precontrat_create(request):
                 # Récupérer les données nettoyées
                 professeur = form.cleaned_data['professeur']
                 classe = form.cleaned_data['classe']
-                notes_proposition = form.cleaned_data.get('notes_proposition', '')
-                
+
                 # Log des instances récupérées
                 logger.info(f"📋 Professeur: {professeur} (ID: {professeur.id})")
                 logger.info(f"📋 Classe: {classe} (ID: {classe.id})")
@@ -208,7 +210,6 @@ def precontrat_create(request):
                         classe=classe,
                         cree_par=request.user,
                         status='DRAFT',
-                        notes_proposition=notes_proposition
                     )
                     
                     # Validation et sauvegarde
@@ -228,11 +229,18 @@ def precontrat_create(request):
                     modules_crees = 0
                     modules_errors = []
                     
+                    # Dans la boucle de création des modules
+                    # Dans la boucle de création des modules
                     for module_id in selected_modules_ids:
                         try:
                             module_data = find_module_in_maquettes(maquettes, module_id)
                             
                             if module_data:
+                                # ⭐ LOGS DÉTAILLÉS POUR LES VOLUMES ET TAUX
+                                logger.info(f"📊 Module {module_id}:")
+                                logger.info(f"   Volumes: CM={module_data.get('volume_horaire_cm')}, TD={module_data.get('volume_horaire_td')}")
+                                logger.info(f"   Taux: CM={module_data.get('taux_horaire_cm')}, TD={module_data.get('taux_horaire_td')}")
+                                
                                 # Conversion sécurisée des Decimal
                                 def safe_decimal(value, default=0):
                                     try:
@@ -240,15 +248,37 @@ def precontrat_create(request):
                                     except (TypeError, ValueError):
                                         return Decimal(default)
                                 
+                                # Récupérer les valeurs
+                                volume_cm = safe_decimal(module_data.get('volume_horaire_cm'))
+                                volume_td = safe_decimal(module_data.get('volume_horaire_td'))
+                                taux_cm = safe_decimal(module_data.get('taux_horaire_cm'))
+                                taux_td = safe_decimal(module_data.get('taux_horaire_td'))
+                                
+                                # ⭐ VÉRIFICATION FINALE DES TAUX
+                                if volume_td > 0 and taux_td <= 0:
+                                    logger.warning(f"⚠️ Module {module_id}: Volume TD > 0 mais taux TD = 0, correction automatique")
+                                    taux_td = Decimal('5000')
+                                
+                                if volume_cm > 0 and taux_cm <= 0:
+                                    logger.warning(f"⚠️ Module {module_id}: Volume CM > 0 mais taux CM = 0, correction automatique")
+                                    taux_cm = Decimal('5000')
+                                
+                                # Vérification finale des volumes
+                                if volume_cm <= 0 and volume_td <= 0:
+                                    logger.warning(f"⚠️ Module {module_id} a tous les volumes à 0, utilisation de valeurs par défaut")
+                                    volume_cm = Decimal('20')
+                                    volume_td = Decimal('20')
+                                
+                                # Création du module
                                 ModulePropose.objects.create(
                                     pre_contrat=precontrat,
                                     code_module=module_data.get('id', f'MOD_{module_id}'),
                                     nom_module=module_data.get('nom', 'Module sans nom'),
                                     ue_nom=module_data.get('ue_nom', 'UE non spécifiée'),
-                                    volume_heure_cours=safe_decimal(module_data.get('volume_horaire_cm')),
-                                    volume_heure_td=safe_decimal(module_data.get('volume_horaire_td')),
-                                    taux_horaire_cours=safe_decimal(module_data.get('taux_horaire_cm')),
-                                    taux_horaire_td=safe_decimal(module_data.get('taux_horaire_td')),
+                                    volume_heure_cours=volume_cm,
+                                    volume_heure_td=volume_td,
+                                    taux_horaire_cours=taux_cm,
+                                    taux_horaire_td=taux_td,
                                     est_valide=False,
                                 )
                                 modules_crees += 1
@@ -278,7 +308,8 @@ def precontrat_create(request):
                     logger.info(f"🎉 Précontrat {precontrat.id} finalisé avec {modules_crees} modules")
                     
                     # Redirection
-                    return redirect('gestion:precontrat_detail', pk=precontrat.pk)
+                    return redirect('precontrat_detail', pk=precontrat.pk)
+                    # return redirect('/admin/Gestion/precontrat/')
                     
             except Exception as e:
                 logger.error(f"❌ Erreur lors de la création: {str(e)}", exc_info=True)
@@ -347,10 +378,10 @@ def get_modules_par_classe(request, classe_id):
                         'code': matiere.get('code', ''),
                         'nom': matiere.get('nom', ''),
                         'ue_nom': ue.get('libelle', ''),
-                        'volume_cm': float(matiere.get('volume_horaire_cm', 0)),
-                        'volume_td': float(matiere.get('volume_horaire_td', 0)),
-                        'taux_cm': float(matiere.get('taux_horaire_cm', 0)),
-                        'taux_td': float(matiere.get('taux_horaire_td', 0)),
+                        'volume_cm': float(matiere.get('volume_horaire_cm', 5)),
+                        'volume_td': float(matiere.get('volume_horaire_td', 5)),
+                        'taux_cm': float(matiere.get('taux_horaire_cm', 5000)),
+                        'taux_td': float(matiere.get('taux_horaire_td', 5000)),
                     })
         
         return JsonResponse({
@@ -391,14 +422,36 @@ def find_module_in_maquettes(maquettes, module_id):
             
             for matiere in matieres:
                 if str(matiere.get('id')) == str(module_id):
+                    # ⭐ CORRECTION : Assurer que les volumes horaires ont des valeurs par défaut
+                    volume_cm = float(matiere.get('volume_horaire_cm', 0) or 20)  # Minimum 20h si vide
+                    volume_td = float(matiere.get('volume_horaire_td', 0) or 20)  # Minimum 20h si vide
+                    
+                    # ⭐ CORRECTION CRITIQUE : Assurer que les TAUX horaires ont des valeurs par défaut
+                    taux_cm = float(matiere.get('taux_horaire_cm', 0) or 5000)  # Minimum 5000 si vide ou 0
+                    taux_td = float(matiere.get('taux_horaire_td', 0) or 5000)  # Minimum 5000 si vide ou 0
+                    
+                    # ⭐ VÉRIFICATION CRITIQUE : S'assurer qu'au moins un volume > 0
+                    if volume_cm <= 0 and volume_td <= 0:
+                        # Si tous sont à 0, on met des valeurs par défaut
+                        volume_cm = 20
+                        volume_td = 20
+                    
+                    # ⭐ VÉRIFICATION : Si volume > 0, alors taux doit être > 0
+                    if volume_td > 0 and taux_td <= 0:
+                        taux_td = 5000  # Valeur par défaut
+                    
+                    if volume_cm > 0 and taux_cm <= 0:
+                        taux_cm = 5000  # Valeur par défaut
+                    
                     return {
+                        'id': matiere.get('id'),
                         'code': matiere.get('code', ''),
                         'nom': matiere.get('nom', ''),
                         'ue_nom': ue.get('libelle', ''),
-                        'volume_cm': float(matiere.get('volume_horaire_cm', 0)),
-                        'volume_td': float(matiere.get('volume_horaire_td', 0)),
-                        'taux_cm': float(matiere.get('taux_horaire_cm', 0)),
-                        'taux_td': float(matiere.get('taux_horaire_td', 0)),
+                        'volume_horaire_cm': volume_cm,
+                        'volume_horaire_td': volume_td,
+                        'taux_horaire_cm': taux_cm,
+                        'taux_horaire_td': taux_td,
                     }
     return None
 
@@ -457,12 +510,16 @@ def precontrat_detail(request, pk):
 # VUE DE RÉCAPITULATIF AVANT VALIDATION
 # ==========================================
 
+# ==========================================
+# VUE DE RÉCAPITULATIF AVANT VALIDATION (MODIFIÉE)
+# ==========================================
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def precontrat_recapitulatif(request, pk):
     """
     Vue pour afficher un récapitulatif complet avant la soumission du précontrat.
-    Permet à l'utilisateur de vérifier toutes les informations avant validation.
+    Permet de valider individuellement chaque module et créer automatiquement des contrats.
     """
     precontrat = get_object_or_404(
         PreContrat.objects.select_related('professeur', 'classe'),
@@ -472,30 +529,59 @@ def precontrat_recapitulatif(request, pk):
     # Vérifier que l'utilisateur a le droit de soumettre
     if request.user != precontrat.cree_par and request.user.role not in ['RESP_RH', 'ADMIN']:
         messages.error(request, "❌ Vous n'avez pas la permission de soumettre ce précontrat.")
-        return redirect('gestion:precontrat_detail', pk=pk)
+        return redirect('precontrat_detail', pk=pk)
     
     # Vérifier que le précontrat peut être soumis
     if not precontrat.peut_etre_soumis:
         messages.error(request, "❌ Ce précontrat ne peut pas être soumis dans son état actuel.")
-        return redirect('gestion:precontrat_detail', pk=pk)
+        return redirect('precontrat_detail', pk=pk)
     
     if request.method == 'POST':
-        # Soumettre le précontrat
         action = request.POST.get('action')
         
-        if action == 'submit':
+        if action == 'validate_module':
+            # Validation individuelle d'un module
+            module_id = request.POST.get('module_id')
+            try:
+                module = ModulePropose.objects.get(pk=module_id, pre_contrat=precontrat)
+                
+                # Valider le module
+                module.est_valide = True
+                module.valide_par = request.user
+                module.date_validation = timezone.now()
+                module.save()
+                
+                # Créer automatiquement le contrat pour ce module
+                contrat = create_contrat_from_module(module, request.user)
+                
+                messages.success(
+                    request, 
+                    f"✅ Module {module.nom_module} validé et contrat #{contrat.id} créé avec succès !"
+                )
+                
+            except ModulePropose.DoesNotExist:
+                messages.error(request, "❌ Module non trouvé.")
+            except Exception as e:
+                logger.error(f"Erreur validation module: {str(e)}")
+                messages.error(request, f"❌ Erreur lors de la validation du module: {str(e)}")
+        
+        elif action == 'submit_all':
+            # Soumettre le précontrat complet
             try:
                 precontrat.soumettre(user=request.user)
                 messages.success(
                     request,
                     f"✅ Le précontrat {precontrat.reference} a été soumis avec succès pour validation !"
                 )
-                return redirect('gestion:precontrat_detail', pk=pk)
+                return redirect('precontrat_detail', pk=pk)
             except ValidationError as e:
                 messages.error(request, f"❌ Erreur : {str(e)}")
         
         elif action == 'back':
-            return redirect('gestion:precontrat_detail', pk=pk)
+            return redirect('precontrat_detail', pk=pk)
+        
+        # Recharger la page pour afficher les changements
+        return redirect('precontrat_recapitulatif', pk=pk)
     
     # Récupérer les modules
     modules = precontrat.modules_proposes.all()
@@ -504,12 +590,15 @@ def precontrat_recapitulatif(request, pk):
     volumes = precontrat.get_volume_total()
     montant_total = precontrat.get_montant_total()
     
-    # Détails par module
+    # Détails par module avec statut des contrats
     modules_details = []
     for module in modules:
+        contrat_existe = hasattr(module, 'contrat')
         modules_details.append({
-                'module': module,
-            'details': module.get_details_volumes()
+            'module': module,
+            'details': module.get_details_volumes(),
+            'contrat_existe': contrat_existe,
+            'contrat': module.contrat if contrat_existe else None
         })
     
     context = {
@@ -519,10 +608,63 @@ def precontrat_recapitulatif(request, pk):
         'volumes': volumes,
         'montant_total': montant_total,
         'title': f'Récapitulatif - {precontrat.reference}',
+        'can_validate_modules': request.user.role in ['RESP_RH', 'ADMIN'],
     }
     
     return render(request, 'contrats/precontrats/recapitulatif.html', context)
 
+
+# ==========================================
+# FONCTION POUR CRÉER UN CONTRAT À PARTIR D'UN MODULE
+# ==========================================
+
+def create_contrat_from_module(module, user):
+    """
+    Crée automatiquement un contrat à partir d'un module validé
+    """
+    with transaction.atomic():
+        # Vérifier si un contrat existe déjà pour ce module
+        if hasattr(module, 'contrat'):
+            return module.contrat
+        
+        # Récupérer la maquette associée
+        try:
+            maquette = Maquette.objects.filter(
+                classe=module.pre_contrat.classe,
+                is_active=True
+            ).first()
+            
+            if not maquette:
+                raise ValidationError("Aucune maquette active trouvée pour cette classe")
+            
+            # Créer le contrat
+            contrat = Contrat.objects.create(
+                module_propose=module,
+                professeur=module.pre_contrat.professeur.professeur,  # Relation OneToOne
+                classe=module.pre_contrat.classe,
+                maquette=maquette,
+                volume_heure_cours=module.volume_heure_cours,
+                volume_heure_td=module.volume_heure_td,
+                taux_horaire_cours=module.taux_horaire_cours,
+                taux_horaire_td=module.taux_horaire_td,
+                valide_par=user,
+                date_validation=timezone.now(),
+                status='VALIDATED'
+            )
+            
+            # Log de l'action
+            ActionLog.objects.create(
+                contrat=contrat,
+                action='CREATED',
+                user=user,
+                details=f"Contrat créé automatiquement depuis le module {module.code_module}"
+            )
+            
+            return contrat
+            
+        except Exception as e:
+            logger.error(f"Erreur création contrat: {str(e)}")
+            raise ValidationError(f"Erreur lors de la création du contrat: {str(e)}")
 
 # ==========================================
 # ACTIONS SUR LES PRÉCONTRATS
@@ -619,6 +761,323 @@ def precontrat_rejeter(request, pk):
         }, status=400)
 
 
+# ==========================================
+# VUE POUR LA LISTE DES PRÉCONTRATS
+# ==========================================
+@login_required
+def precontrat_list(request):
+    """
+    Vue pour afficher la liste des précontrats avec filtres et pagination
+    """
+    # Récupérer les paramètres de filtrage
+    search_query = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '')
+    annee_filter = request.GET.get('annee', '')
+    
+    # Base queryset avec prefetch_related pour optimiser les requêtes
+    precontrats = PreContrat.objects.select_related(
+        'professeur', 'classe', 'cree_par'
+    ).prefetch_related(
+        'modules_proposes'
+    ).order_by('-date_creation')
+    
+    # Appliquer les filtres
+    if search_query:
+        precontrats = precontrats.filter(
+            Q(reference__icontains=search_query) |
+            Q(professeur__first_name__icontains=search_query) |
+            Q(professeur__last_name__icontains=search_query) |
+            Q(professeur__email__icontains=search_query) |
+            Q(classe__nom__icontains=search_query) |
+            Q(classe_nom__icontains=search_query)
+        )
+    
+    if status_filter:
+        precontrats = precontrats.filter(status=status_filter)
+    
+    if annee_filter:
+        precontrats = precontrats.filter(annee_academique=annee_filter)
+    
+    # Pagination directement sur le queryset
+    page = request.GET.get('page', 1)
+    paginator = Paginator(precontrats, 20)
+    
+    try:
+        precontrats_page = paginator.page(page)
+    except PageNotAnInteger:
+        precontrats_page = paginator.page(1)
+    except EmptyPage:
+        precontrats_page = paginator.page(paginator.num_pages)
+    
+    # Calculer les statistiques
+    stats = {
+        'total': PreContrat.objects.count(),
+        'draft': PreContrat.objects.filter(status='DRAFT').count(),
+        'submitted': PreContrat.objects.filter(status='SUBMITTED').count(),
+        'under_review': PreContrat.objects.filter(status='UNDER_REVIEW').count(),
+        'validated': PreContrat.objects.filter(status='VALIDATED').count(),
+        'rejected': PreContrat.objects.filter(status='REJECTED').count(),
+    }
+    
+    # Récupérer les années académiques distinctes pour le filtre
+    years = PreContrat.objects.values_list('annee_academique', flat=True).distinct().order_by('-annee_academique')
+    
+    context = {
+        'title': 'Liste des Précontrats',
+        'active_page': 'precontrats',
+        'precontrats': precontrats_page,
+        'stats': stats,
+        'years': years,
+        'search_query': search_query,
+        'status_filter': status_filter,
+        'annee_filter': annee_filter,
+        'filters_applied': any([search_query, status_filter, annee_filter]),
+    }
+    
+    return render(request, 'contrats/precontrats/liste.html', context)
+# ==========================================
+# VUE POUR L'ÉDITION D'UN PRÉCONTRAT
+# ==========================================
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def precontrat_edit(request, pk):
+    """
+    Vue pour modifier un précontrat existant
+    """
+    precontrat = get_object_or_404(
+        PreContrat.objects.select_related('professeur', 'classe'),
+        pk=pk
+    )
+    
+    # Vérifier les permissions
+    if not (request.user == precontrat.cree_par or request.user.role in ['RESP_RH', 'ADMIN']):
+        messages.error(request, "❌ Vous n'avez pas la permission de modifier ce précontrat.")
+        return redirect('precontrat_detail', pk=pk)
+    
+    # Vérifier que le précontrat peut être modifié
+    if precontrat.status != 'DRAFT':
+        messages.error(request, "❌ Seuls les précontrats en brouillon peuvent être modifiés.")
+        return redirect('precontrat_detail', pk=pk)
+    
+    if request.method == 'POST':
+        form = PreContratCreateForm(request.POST, instance=precontrat)
+        
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Sauvegarder les modifications de base
+                    precontrat = form.save(commit=False)
+                    precontrat.save()
+                    
+                    # Gérer les modules (logique similaire à la création)
+                    selected_modules_json = request.POST.get('selected_modules', '[]')
+                    try:
+                        selected_modules_ids = json.loads(selected_modules_json)
+                    except json.JSONDecodeError:
+                        messages.error(request, "❌ Erreur dans la sélection des modules")
+                        context = {'form': form, 'precontrat': precontrat}
+                        return render(request, 'contrats/precontrats/edit.html', context)
+                    
+                    # Supprimer les modules existants et recréer
+                    precontrat.modules_proposes.all().delete()
+                    
+                    # Recréer les modules sélectionnés
+                    maquettes = Maquette.objects.filter(
+                        classe=precontrat.classe,
+                        is_active=True
+                    )
+                    
+                    modules_crees = 0
+                    for module_id in selected_modules_ids:
+                        module_data = find_module_in_maquettes(maquettes, module_id)
+                        if module_data:
+                            ModulePropose.objects.create(
+                                pre_contrat=precontrat,
+                                code_module=module_data.get('id', f'MOD_{module_id}'),
+                                nom_module=module_data.get('nom', 'Module sans nom'),
+                                ue_nom=module_data.get('ue_nom', 'UE non spécifiée'),
+                                volume_heure_cours=Decimal(str(module_data.get('volume_horaire_cm', 0))),
+                                volume_heure_td=Decimal(str(module_data.get('volume_horaire_td', 0))),
+                                taux_horaire_cours=Decimal(str(module_data.get('taux_horaire_cm', 5000))),
+                                taux_horaire_td=Decimal(str(module_data.get('taux_horaire_td', 5000))),
+                                est_valide=False,
+                            )
+                            modules_crees += 1
+                    
+                    messages.success(request, f"✅ Précontrat modifié avec succès ! {modules_crees} module(s) mis à jour.")
+                    return redirect('precontrat_detail', pk=precontrat.pk)
+                    
+            except Exception as e:
+                logger.error(f"❌ Erreur lors de la modification: {str(e)}", exc_info=True)
+                messages.error(request, f"❌ Erreur lors de la modification : {str(e)}")
+        
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"❌ {field}: {error}")
+    
+    else:
+        form = PreContratCreateForm(instance=precontrat)
+    
+    # Préparer les données des modules existants pour le template
+    modules_existants = precontrat.modules_proposes.all()
+    modules_data = []
+    
+    for module in modules_existants:
+        modules_data.append({
+            'id': module.code_module,  # Utiliser code_module comme ID
+            'code': module.code_module,
+            'nom': module.nom_module,
+            'ue_nom': module.ue_nom,
+            'volume_cm': float(module.volume_heure_cours),
+            'volume_td': float(module.volume_heure_td),
+            'taux_cm': float(module.taux_horaire_cours),
+            'taux_td': float(module.taux_horaire_td),
+        })
+    
+    context = {
+        'title': f'Modifier le précontrat {precontrat.reference}',
+        'form': form,
+        'precontrat': precontrat,
+        'modules_existants': modules_data,
+        'classe_id': precontrat.classe.id,
+    }
+    
+    return render(request, 'contrats/precontrats/edit.html', context)
+
+
+# ==========================================
+# VUE POUR L'EXPORT PDF D'UN PRÉCONTRAT
+# ==========================================
+
+@login_required
+def precontrat_export_pdf(request, pk):
+    """
+    Vue pour exporter un précontrat en PDF
+    """
+    precontrat = get_object_or_404(
+        PreContrat.objects.select_related('professeur', 'classe', 'cree_par'),
+        pk=pk
+    )
+    
+    modules = precontrat.modules_proposes.all()
+    volumes = precontrat.get_volume_total()
+    montant_total = precontrat.get_montant_total()
+    
+    # Créer le PDF (vous devrez implémenter cette fonction)
+    try:
+        pdf = generate_precontrat_pdf(precontrat, modules, volumes, montant_total)
+        
+        response = HttpResponse(pdf, content_type='application/pdf')
+        filename = f"PRECONTRAT_{precontrat.reference}_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf".upper()
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur génération PDF: {str(e)}", exc_info=True)
+        messages.error(request, "❌ Erreur lors de la génération du PDF")
+        return redirect('precontrat_detail', pk=pk)
+
+
+# ==========================================
+# FONCTION UTILITAIRE POUR GÉNÉRER LE PDF
+# ==========================================
+
+def generate_precontrat_pdf(precontrat, modules, volumes, montant_total):
+    """
+    Génère un PDF pour un précontrat
+    À implémenter avec ReportLab ou WeasyPrint
+    """
+    # TODO: Implémenter la génération PDF
+    # Pour l'instant, retourner un PDF vide
+    from django.http import HttpResponse
+    from reportlab.pdfgen import canvas
+    from io import BytesIO
+    
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer)
+    
+    # En-tête
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, 800, f"PRÉCONTRAT {precontrat.reference}")
+    
+    # Informations générales
+    p.setFont("Helvetica", 12)
+    p.drawString(100, 770, f"Professeur: {precontrat.professeur.get_full_name()}")
+    p.drawString(100, 750, f"Classe: {precontrat.classe_nom}")
+    p.drawString(100, 730, f"Année académique: {precontrat.annee_academique}")
+    p.drawString(100, 710, f"Statut: {precontrat.get_status_display()}")
+    
+    # Modules
+    y_position = 680
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(100, y_position, "Modules proposés:")
+    
+    y_position -= 30
+    for module in modules:
+        if y_position < 100:  # Nouvelle page si nécessaire
+            p.showPage()
+            y_position = 750
+        
+        p.setFont("Helvetica", 10)
+        p.drawString(120, y_position, f"- {module.code_module}: {module.nom_module}")
+        y_position -= 20
+        p.drawString(140, y_position, f"UE: {module.ue_nom} | CM: {module.volume_heure_cours}h | TD: {module.volume_heure_td}h")
+        y_position -= 20
+    
+    # Totaux
+    y_position -= 30
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(100, y_position, f"Volume total: {volumes['total']}h")
+    y_position -= 20
+    p.drawString(100, y_position, f"Montant total: {montant_total:,.0f} FCFA")
+    
+    p.showPage()
+    p.save()
+    
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
+
+
+# ==========================================
+# VUE POUR LA SUPPRESSION D'UN PRÉCONTRAT
+# ==========================================
+
+@login_required
+@require_http_methods(["POST"])
+def precontrat_delete(request, pk):
+    """
+    Vue pour supprimer un précontrat
+    """
+    precontrat = get_object_or_404(PreContrat, pk=pk)
+    
+    # Vérifier les permissions
+    if not (request.user == precontrat.cree_par or request.user.role in ['RESP_RH', 'ADMIN']):
+        messages.error(request, "❌ Vous n'avez pas la permission de supprimer ce précontrat.")
+        return redirect('precontrat_list')
+    
+    # Vérifier que le précontrat peut être supprimé
+    if precontrat.status != 'DRAFT':
+        messages.error(request, "❌ Seuls les précontrats en brouillon peuvent être supprimés.")
+        return redirect('precontrat_list')
+    
+    try:
+        reference = precontrat.reference
+        precontrat.delete()
+        messages.success(request, f"✅ Précontrat {reference} supprimé avec succès.")
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur suppression précontrat: {str(e)}", exc_info=True)
+        messages.error(request, "❌ Erreur lors de la suppression du précontrat.")
+    
+    return redirect('precontrat_list')
+
+
+
+
 # ============================================================================
 # VUE DE VALIDATION D'UN MODULE
 # ============================================================================
@@ -658,7 +1117,7 @@ def module_validate(request, pk):
             )
             
             messages.success(request, "✅ Module mis à jour avec succès")
-            return redirect('contrats:precontrat_detail', pk=module.pre_contrat.pk)
+            return redirect('precontrat_detail', pk=module.pre_contrat.pk)
     else:
         form = ModuleValidationForm(instance=module)
     
@@ -689,9 +1148,9 @@ def precontrat_submit(request, pk):
         except Exception as e:
             messages.error(request, f"❌ Erreur : {str(e)}")
         
-        return redirect('contrats:precontrat_detail', pk=pk)
+        return redirect('precontrat_detail', pk=pk)
     
-    return redirect('contrats:precontrat_detail', pk=pk)
+    return redirect('precontrat_detail', pk=pk)
 
 
 # ============================================================================
@@ -708,12 +1167,12 @@ def precontrat_delete(request, pk):
     
     if precontrat.status != 'DRAFT':
         messages.error(request, "❌ Seuls les précontrats en brouillon peuvent être supprimés")
-        return redirect('contrats:precontrat_detail', pk=pk)
+        return redirect('precontrat_detail', pk=pk)
     
     if request.method == 'POST':
         precontrat.delete()
         messages.success(request, "🗑️ Précontrat supprimé")
-        return redirect('contrats:precontrat_list')
+        return redirect('precontrat_list')
     
     return render(request, 'contrats/precontrat_confirm_delete.html', {
         'precontrat': precontrat
@@ -723,7 +1182,62 @@ def precontrat_delete(request, pk):
 
 # ==========================================
 # VUES POUR LES CONTRATS
+# ==========================================*
+
 # ==========================================
+# VUE POUR LA LISTE DES CONTRATS
+# ==========================================
+
+@login_required
+def contrat_list(request):
+    """
+    Vue pour afficher la liste des contrats créés
+    """
+    # Récupérer les paramètres de filtrage
+    search_query = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '')
+    
+    # Base queryset avec prefetch_related pour optimiser les requêtes
+    contrats = Contrat.objects.select_related(
+        'professeur', 'classe', 'maquette', 'valide_par'
+    ).order_by('-date_validation')
+    
+    # Appliquer les filtres
+    if search_query:
+        contrats = contrats.filter(
+            Q(professeur__user__first_name__icontains=search_query) |
+            Q(professeur__user__last_name__icontains=search_query) |
+            Q(classe__nom__icontains=search_query) |
+            Q(maquette__filiere_nom__icontains=search_query)
+        )
+    
+    if status_filter:
+        contrats = contrats.filter(status=status_filter)
+    
+    # Pagination
+    page = request.GET.get('page', 1)
+    paginator = Paginator(contrats, 20)
+    
+    try:
+        contrats_page = paginator.page(page)
+    except PageNotAnInteger:
+        contrats_page = paginator.page(1)
+    except EmptyPage:
+        contrats_page = paginator.page(paginator.num_pages)
+    
+    context = {
+        'title': 'Liste des Contrats',
+        'active_page': 'contrats',
+        'contrats': contrats_page,
+        'search_query': search_query,
+        'status_filter': status_filter,
+    }
+    
+    return render(request, 'contrats/liste.html', context)
+
+
+
+
 
 @login_required
 @role_required(['RESP_PEDA', 'ADMIN'])
@@ -733,34 +1247,49 @@ def contrat_start(request, pk):
     """
     contrat = get_object_or_404(Contrat, pk=pk)
     
+    # Vérifier si le contrat peut être démarré
+    if not contrat.can_start():
+        messages.error(request, "Ce contrat ne peut pas être démarré dans son état actuel.")
+        return redirect('contrat_detail', pk=contrat.pk)
+    
     if request.method == 'POST':
-        form = ContratStartForm(request.POST)
+        form = ContratStartForm(request.POST, classe_principale=contrat.classe)
         
         if form.is_valid():
             try:
                 type_enseignement = form.cleaned_data['type_enseignement']
                 classes_tronc_commun = form.cleaned_data.get('classes_tronc_commun', [])
+                date_debut_prevue = form.cleaned_data.get('date_debut_prevue')
                 
+                # Démarrer le contrat
                 contrat.demarrer_cours(
                     user=request.user,
                     type_enseignement=type_enseignement,
                     classes_tronc_commun=classes_tronc_commun if type_enseignement == 'TRONC_COMMUN' else None
                 )
                 
-                messages.success(request, f"Cours démarré en mode {type_enseignement}")
+                # Mettre à jour la date de début prévue si fournie
+                if date_debut_prevue:
+                    contrat.date_debut_prevue = date_debut_prevue
+                    contrat.save(update_fields=['date_debut_prevue'])
+                
+                messages.success(request, f"✅ Cours démarré avec succès en mode {contrat.get_type_enseignement_display()}")
                 return redirect('contrat_detail', pk=contrat.pk)
                 
             except ValidationError as e:
-                messages.error(request, str(e))
+                messages.error(request, f"❌ Erreur: {str(e)}")
+            except Exception as e:
+                logger.error(f"Erreur démarrage contrat {pk}: {str(e)}")
+                messages.error(request, f"❌ Erreur lors du démarrage du cours: {str(e)}")
     else:
         form = ContratStartForm(initial={
             'date_debut_prevue': timezone.now().date(),
-            'classe_principale': contrat.classe,
-        })
+        }, classe_principale=contrat.classe)
     
     context = {
         'contrat': contrat,
         'form': form,
+        'title': f'Démarrer le contrat #{contrat.id}'
     }
     return render(request, 'contrats/contrat_start.html', context)
 
@@ -781,16 +1310,14 @@ def contrat_detail(request, pk):
     
     # Graphique de progression (données pour Chart.js)
     progression_data = {
-        'labels': ['Cours', 'TD', 'TP'],
+        'labels': ['Cours', 'TD'],
         'contractuel': [
             float(contrat.volume_heure_cours),
             float(contrat.volume_heure_td),
-            float(contrat.volume_heure_tp),
         ],
         'effectue': [
             float(heures_effectuees['cours']),
             float(heures_effectuees['td']),
-            float(heures_effectuees['tp']),
         ],
     }
     
@@ -817,8 +1344,9 @@ def pointage_create(request, contrat_id):
     """
     contrat = get_object_or_404(Contrat, pk=contrat_id)
     
+    # Vérifier que le contrat peut recevoir des pointages
     if contrat.status != 'IN_PROGRESS':
-        messages.error(request, "Ce contrat n'est pas en cours")
+        messages.error(request, "❌ Ce contrat n'est pas en cours. Impossible d'ajouter un pointage.")
         return redirect('contrat_detail', pk=contrat.pk)
     
     if request.method == 'POST':
@@ -826,37 +1354,62 @@ def pointage_create(request, contrat_id):
         
         if form.is_valid():
             try:
-                pointage = form.save(commit=False)
-                pointage.contrat = contrat
-                pointage.enregistre_par = request.user
-                pointage.save()
+                with transaction.atomic():
+                    pointage = form.save(commit=False)
+                    # ⭐ CORRECTION CRITIQUE : Assigner le contrat AVANT toute opération
+                    pointage.contrat = contrat
+                    pointage.enregistre_par = request.user
+                    pointage.est_valide = True
+                    
+                    # Valider et sauvegarder
+                    pointage.full_clean()
+                    pointage.save()
+                
+                # ⭐ CORRECTION : Utiliser les méthodes du modèle pour calculer les heures
+                heures_effectuees = contrat.get_heures_effectuees()
                 
                 messages.success(
                     request,
-                    f"Pointage enregistré: {pointage.total_heures}h le {pointage.date_seance}"
+                    f"✅ Pointage enregistré: {pointage.total_heures}h le {pointage.date_seance.strftime('%d/%m/%Y')}"
                 )
+                
+                # Vérifier si le contrat est terminé
+                if (heures_effectuees['cours'] >= contrat.volume_heure_cours and 
+                    heures_effectuees['td'] >= contrat.volume_heure_td):
+                    messages.info(
+                        request,
+                        "ℹ️ Toutes les heures contractuelles ont été effectuées. Vous pouvez terminer le contrat."
+                    )
+                
                 return redirect('contrat_detail', pk=contrat.pk)
                 
             except ValidationError as e:
-                messages.error(request, str(e))
+                messages.error(request, f"❌ Erreur de validation: {str(e)}")
+            except Exception as e:
+                logger.error(f"Erreur création pointage: {str(e)}", exc_info=True)
+                messages.error(request, f"❌ Erreur lors de l'enregistrement du pointage: {str(e)}")
+        else:
+            messages.error(request, "❌ Veuillez corriger les erreurs ci-dessous.")
     else:
-        # Pré-remplir avec la date du jour
+        # GET request - initialiser avec la date du jour
         form = PointageForm(initial={
             'date_seance': timezone.now().date(),
+            'taux_presence': 100,
         })
     
-    # Calculer les heures restantes
+    # Calculer les heures pour affichage (utiliser directement les méthodes du modèle)
     heures_effectuees = contrat.get_heures_effectuees()
     heures_restantes = {
-        'cours': contrat.volume_heure_cours - heures_effectuees['cours'],
-        'td': contrat.volume_heure_td - heures_effectuees['td'],
-        'tp': contrat.volume_heure_tp - heures_effectuees['tp'],
+        'cours': max(contrat.volume_heure_cours - heures_effectuees['cours'], Decimal('0.00')),
+        'td': max(contrat.volume_heure_td - heures_effectuees['td'], Decimal('0.00')),
     }
     
     context = {
         'contrat': contrat,
         'form': form,
         'heures_restantes': heures_restantes,
+        'heures_effectuees': heures_effectuees,
+        'title': f'Ajouter un pointage - Contrat #{contrat.id}'
     }
     return render(request, 'contrats/pointage_form.html', context)
 
@@ -1152,19 +1705,16 @@ def api_contrat_progression(request, contrat_id):
             'contractuel': {
                 'cours': float(contrat.volume_heure_cours),
                 'td': float(contrat.volume_heure_td),
-                'tp': float(contrat.volume_heure_tp),
                 'total': float(contrat.volume_total_contractuel),
             },
             'effectue': {
                 'cours': float(heures_effectuees['cours']),
                 'td': float(heures_effectuees['td']),
-                'tp': float(heures_effectuees['tp']),
                 'total': float(contrat.volume_total_effectue),
             },
             'restant': {
                 'cours': float(contrat.volume_heure_cours - heures_effectuees['cours']),
                 'td': float(contrat.volume_heure_td - heures_effectuees['td']),
-                'tp': float(contrat.volume_heure_tp - heures_effectuees['tp']),
             },
         },
         'montant': {
@@ -1200,7 +1750,6 @@ def get_taux_from_grille(professeur, classe):
         return {
             'taux_cours': grille.taux_cours,
             'taux_td': grille.taux_td,
-            'taux_tp': grille.taux_tp,
         }
     except GrilleTauxHoraire.DoesNotExist:
         return None

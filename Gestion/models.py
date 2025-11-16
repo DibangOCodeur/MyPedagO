@@ -347,17 +347,6 @@ class PreContrat(models.Model):
     )
     
     # Notes et commentaires
-    notes_proposition = models.TextField(
-        blank=True,
-        verbose_name="Notes de proposition",
-        help_text="Notes ou commentaires lors de la création du précontrat"
-    )
-    
-    notes_validation = models.TextField(
-        blank=True,
-        verbose_name="Notes de validation",
-        help_text="Notes du responsable RH lors de la validation"
-    )
     
     raison_rejet = models.TextField(
         blank=True,
@@ -481,12 +470,20 @@ class PreContrat(models.Model):
     
     def get_absolute_url(self):
         """URL de détail du précontrat"""
-        return reverse('gestion:precontrat_detail', kwargs={'pk': self.pk})
+        return reverse('precontrat_detail', kwargs={'pk': self.pk})
     
     # ==========================================
     # PROPRIÉTÉS CALCULÉES
     # ==========================================
     
+    @property
+    def progression_pourcentage(self):
+        """Calcule le pourcentage de progression de la validation"""
+        total = self.nombre_modules
+        if total == 0:
+            return 0
+        return (self.modules_valides_count / total) * 100
+
     @property
     def nombre_modules(self):
         """Retourne le nombre de modules proposés"""
@@ -517,18 +514,15 @@ class PreContrat(models.Model):
         total = self.modules_proposes.aggregate(
             total_cm=models.Sum('volume_heure_cours'),
             total_td=models.Sum('volume_heure_td'),
-            total_tp=models.Sum('volume_heure_tp')
         )
         
         cm = total.get('total_cm') or Decimal('0')
         td = total.get('total_td') or Decimal('0')
-        tp = total.get('total_tp') or Decimal('0')
         
         return {
             'cours': cm,
             'td': td,
-            'tp': tp,
-            'total': cm + td + tp
+            'total': cm + td
         }
     
     def get_montant_total(self):
@@ -585,9 +579,7 @@ class PreContrat(models.Model):
         self.status = 'VALIDATED'
         self.date_validation = timezone.now()
         self.valide_par = user
-        if notes:
-            self.notes_validation = notes
-        self.save(update_fields=['status', 'date_validation', 'valide_par', 'notes_validation'])
+        self.save(update_fields=['status', 'date_validation', 'valide_par'])
         
         # Log l'action
         self.log_action(user, 'VALIDATION', "Précontrat validé")
@@ -610,9 +602,7 @@ class PreContrat(models.Model):
     def annuler(self, user=None, raison=""):
         """Annule le précontrat"""
         self.status = 'CANCELLED'
-        if raison:
-            self.notes_validation = f"Annulation: {raison}"
-        self.save(update_fields=['status', 'notes_validation'])
+        self.save(update_fields=['status'])
         
         # Log l'action
         self.log_action(user, 'ANNULATION', f"Précontrat annulé: {raison}")
@@ -668,7 +658,7 @@ class ModulePropose(models.Model):
         help_text="Nom de l'UE à laquelle appartient ce module"
     )
     
-    # Volumes horaires (CM, TD, TP)
+    # Volumes horaires (CM, TD)
     volume_heure_cours = models.DecimalField(
         max_digits=6,
         decimal_places=2,
@@ -683,14 +673,6 @@ class ModulePropose(models.Model):
         default=Decimal('0'),
         validators=[MinValueValidator(Decimal('0'))],
         verbose_name="Volume Heures TD"
-    )
-    
-    volume_heure_tp = models.DecimalField(
-        max_digits=6,
-        decimal_places=2,
-        default=Decimal('0'),
-        validators=[MinValueValidator(Decimal('0'))],
-        verbose_name="Volume Heures TP"
     )
     
     # Taux horaires (en FCFA)
@@ -710,25 +692,11 @@ class ModulePropose(models.Model):
         verbose_name="Taux Horaire TD (FCFA)"
     )
     
-    taux_horaire_tp = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal('0'),
-        validators=[MinValueValidator(Decimal('0'))],
-        verbose_name="Taux Horaire TP (FCFA)"
-    )
-    
     # Validation RH
     est_valide = models.BooleanField(
         default=False,
         verbose_name="Validé par RH",
         help_text="Indique si le module a été validé par le responsable RH"
-    )
-    
-    notes_validation = models.TextField(
-        blank=True,
-        verbose_name="Notes de validation",
-        help_text="Notes du responsable RH sur ce module"
     )
     
     # Dates
@@ -761,8 +729,7 @@ class ModulePropose(models.Model):
         
         # Au moins un volume doit être > 0
         if (self.volume_heure_cours == 0 and 
-            self.volume_heure_td == 0 and 
-            self.volume_heure_tp == 0):
+            self.volume_heure_td == 0):
             raise ValidationError(
                 "Au moins un type de volume horaire doit être supérieur à 0."
             )
@@ -777,11 +744,6 @@ class ModulePropose(models.Model):
             raise ValidationError({
                 'taux_horaire_td': 'Le taux horaire TD doit être supérieur à 0 si le volume TD est défini.'
             })
-        
-        if self.volume_heure_tp > 0 and self.taux_horaire_tp == 0:
-            raise ValidationError({
-                'taux_horaire_tp': 'Le taux horaire TP doit être supérieur à 0 si le volume TP est défini.'
-            })
     
     def save(self, *args, **kwargs):
         """Sauvegarde avec validation"""
@@ -792,7 +754,7 @@ class ModulePropose(models.Model):
     @property
     def volume_total(self):
         """Retourne le volume horaire total du module"""
-        return self.volume_heure_cours + self.volume_heure_td + self.volume_heure_tp
+        return self.volume_heure_cours + self.volume_heure_td
     
     def get_montant_cours(self):
         """Calcule le montant pour les heures CM"""
@@ -802,13 +764,9 @@ class ModulePropose(models.Model):
         """Calcule le montant pour les heures TD"""
         return self.volume_heure_td * self.taux_horaire_td
     
-    def get_montant_tp(self):
-        """Calcule le montant pour les heures TP"""
-        return self.volume_heure_tp * self.taux_horaire_tp
-    
     def get_montant_total(self):
         """Calcule le montant total du module"""
-        return self.get_montant_cours() + self.get_montant_td() + self.get_montant_tp()
+        return self.get_montant_cours() + self.get_montant_td()
     
     def get_details_volumes(self):
         """Retourne un dictionnaire avec les détails des volumes"""
@@ -823,11 +781,6 @@ class ModulePropose(models.Model):
                 'taux': float(self.taux_horaire_td),
                 'montant': float(self.get_montant_td())
             },
-            'tp': {
-                'volume': float(self.volume_heure_tp),
-                'taux': float(self.taux_horaire_tp),
-                'montant': float(self.get_montant_tp())
-            },
             'total': {
                 'volume': float(self.volume_total),
                 'montant': float(self.get_montant_total())
@@ -839,9 +792,7 @@ class ModulePropose(models.Model):
         """Valide le module"""
         self.est_valide = True
         self.date_validation = timezone.now()
-        if notes:
-            self.notes_validation = notes
-        self.save(update_fields=['est_valide', 'date_validation', 'notes_validation'])
+        self.save(update_fields=['est_valide', 'date_validation'])
     
     def invalider(self):
         """Invalide le module"""
@@ -919,13 +870,6 @@ class Contrat(models.Model):
         default=Decimal('0.00'),
         verbose_name="Volume heures TD contractuel"
     )
-    volume_heure_tp = models.DecimalField(
-        max_digits=6,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.00'))],
-        default=Decimal('0.00'),
-        verbose_name="Volume heures TP contractuel"
-    )
     
     # Taux horaires
     taux_horaire_cours = models.DecimalField(
@@ -940,13 +884,6 @@ class Contrat(models.Model):
         validators=[MinValueValidator(Decimal('0.00'))],
         default=Decimal('0.00'),
         verbose_name="Taux horaire TD (FCFA)"
-    )
-    taux_horaire_tp = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.00'))],
-        default=Decimal('0.00'),
-        verbose_name="Taux horaire TP (FCFA)"
     )
     
     # Type d'enseignement
@@ -1059,7 +996,7 @@ class Contrat(models.Model):
     @property
     def volume_total_contractuel(self):
         """Volume horaire total contractuel"""
-        return self.volume_heure_cours + self.volume_heure_td + self.volume_heure_tp
+        return self.volume_heure_cours + self.volume_heure_td
     
     @property
     def montant_total_contractuel(self):
@@ -1067,7 +1004,6 @@ class Contrat(models.Model):
         montant = Decimal('0.00')
         montant += self.volume_heure_cours * self.taux_horaire_cours
         montant += self.volume_heure_td * self.taux_horaire_td
-        montant += self.volume_heure_tp * self.taux_horaire_tp
         return montant
     
     def get_heures_effectuees(self):
@@ -1075,19 +1011,17 @@ class Contrat(models.Model):
         pointages = self.pointages.aggregate(
             cours=models.Sum('heures_cours'),
             td=models.Sum('heures_td'),
-            tp=models.Sum('heures_tp')
         )
         return {
             'cours': pointages['cours'] or Decimal('0.00'),
             'td': pointages['td'] or Decimal('0.00'),
-            'tp': pointages['tp'] or Decimal('0.00'),
         }
     
     @property
     def volume_total_effectue(self):
         """Volume horaire total effectué"""
         effectues = self.get_heures_effectuees()
-        return effectues['cours'] + effectues['td'] + effectues['tp']
+        return effectues['cours'] + effectues['td']
     
     @property
     def taux_realisation(self):
@@ -1103,7 +1037,6 @@ class Contrat(models.Model):
         
         montant += effectues['cours'] * self.taux_horaire_cours
         montant += effectues['td'] * self.taux_horaire_td
-        montant += effectues['tp'] * self.taux_horaire_tp
         
         return montant
     
@@ -1231,35 +1164,7 @@ class Pointage(models.Model):
         validators=[MinValueValidator(Decimal('0.00'))],
         default=Decimal('0.00'),
         verbose_name="Heures de TD"
-    )
-    heures_tp = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.00'))],
-        default=Decimal('0.00'),
-        verbose_name="Heures de TP"
-    )
-    
-    # Informations complémentaires
-    sujet_traite = models.CharField(
-        max_length=500,
-        blank=True,
-        verbose_name="Sujet traité"
-    )
-    observations = models.TextField(
-        blank=True,
-        verbose_name="Observations"
-    )
-    
-    # Présence et qualité
-    taux_presence = models.IntegerField(
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        null=True,
-        blank=True,
-        verbose_name="Taux de présence (%)",
-        help_text="Pourcentage d'étudiants présents"
-    )
-    
+    )   
     # Validation
     est_valide = models.BooleanField(
         default=True,
@@ -1298,8 +1203,9 @@ class Pointage(models.Model):
     @property
     def total_heures(self):
         """Total des heures de la séance"""
-        return self.heures_cours + self.heures_td + self.heures_tp
+        return self.heures_cours + self.heures_td
     
+# Dans votre modèle Pointage
     def clean(self):
         """Validation personnalisée"""
         super().clean()
@@ -1308,6 +1214,10 @@ class Pointage(models.Model):
         if self.total_heures == 0:
             raise ValidationError("Au moins un type d'heure doit être renseigné")
         
+        # ⭐ CORRECTION : Vérifier que le contrat est défini avant d'accéder à ses propriétés
+        if not self.contrat:
+            raise ValidationError("Le pointage doit être associé à un contrat")
+        
         # Vérifier que les heures ne dépassent pas les volumes contractuels
         effectues = self.contrat.get_heures_effectuees()
         
@@ -1315,7 +1225,6 @@ class Pointage(models.Model):
         if self.pk:
             effectues['cours'] -= self.heures_cours
             effectues['td'] -= self.heures_td
-            effectues['tp'] -= self.heures_tp
         
         if effectues['cours'] + self.heures_cours > self.contrat.volume_heure_cours:
             raise ValidationError(
@@ -1329,15 +1238,6 @@ class Pointage(models.Model):
                 f"({effectues['td'] + self.heures_td} > {self.contrat.volume_heure_td})"
             )
         
-        if effectues['tp'] + self.heures_tp > self.contrat.volume_heure_tp:
-            raise ValidationError(
-                f"Les heures de TP dépassent le volume contractuel "
-                f"({effectues['tp'] + self.heures_tp} > {self.contrat.volume_heure_tp})"
-            )
-    
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
 
 
 class DocumentContrat(models.Model):

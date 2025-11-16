@@ -111,24 +111,25 @@ class ModuleProposeInline(admin.TabularInline):
     extra = 0
     fields = [
         'code_module', 'nom_module', 'ue_nom',
-        'volume_heure_cours', 'volume_heure_td', 'volume_heure_tp',
-        'taux_horaire_cours', 'taux_horaire_td', 'taux_horaire_tp',
+        'volume_heure_cours', 'volume_heure_td',
+        'taux_horaire_cours', 'taux_horaire_td',
         'est_valide', 'notes_validation'
     ]
     readonly_fields = ['date_creation', 'date_validation']
     
     def has_delete_permission(self, request, obj=None):
-        if obj and obj.est_valide:
-            return False
-        return super().has_delete_permission(request, obj)
 
+        if obj is None:
+            return True
+        
+        return obj.status == 'DRAFT'
 
 class PointageInline(admin.TabularInline):
     model = Pointage
     extra = 0
     fields = [
-        'date_seance', 'heures_cours', 'heures_td', 'heures_tp',
-        'sujet_traite', 'est_valide'
+        'date_seance', 'heures_cours', 'heures_td',
+        'est_valide'
     ]
     readonly_fields = ['enregistre_par', 'date_enregistrement']
 
@@ -206,7 +207,7 @@ class PreContratAdmin(admin.ModelAdmin):
             )
         }),
         ('Notes', {
-            'fields': ('notes_proposition', 'notes_validation', 'raison_rejet')
+            'fields': ('notes_validation', 'raison_rejet')
         }),
         ('Traçabilité', {
             'fields': (
@@ -288,11 +289,10 @@ class PreContratAdmin(admin.ModelAdmin):
         volumes = obj.get_volume_total()
         return format_html(
             '<strong>Total: {}h</strong><br>'
-            '<small>CM: {}h | TD: {}h | TP: {}h</small>',
+            '<small>CM: {}h | TD: {}h</small>',
             volumes['total'],
             volumes['cours'],
             volumes['td'],
-            volumes['tp']
         )
     volume_total_display.short_description = 'Volumes'
     
@@ -377,7 +377,6 @@ class ModuleProposeAdmin(admin.ModelAdmin):
             'fields': (
                 ('volume_heure_cours', 'taux_horaire_cours'),
                 ('volume_heure_td', 'taux_horaire_td'),
-                ('volume_heure_tp', 'taux_horaire_tp'),
                 'volume_total_display'
             )
         }),
@@ -406,11 +405,10 @@ class ModuleProposeAdmin(admin.ModelAdmin):
     def volume_total_display(self, obj):
         """Volume total"""
         return format_html(
-            '<strong>{}h</strong><br><small>CM:{}h | TD:{}h | TP:{}h</small>',
+            '<strong>{}h</strong><br><small>CM:{}h | TD:{}h</small>',
             obj.volume_total,
             obj.volume_heure_cours,
             obj.volume_heure_td,
-            obj.volume_heure_tp
         )
     volume_total_display.short_description = "Volumes"
     
@@ -486,7 +484,6 @@ class ContratAdmin(admin.ModelAdmin):
             'fields': (
                 ('volume_heure_cours', 'taux_horaire_cours'),
                 ('volume_heure_td', 'taux_horaire_td'),
-                ('volume_heure_tp', 'taux_horaire_tp'),
                 'volumes_display',
                 'montant_contractuel_display'
             )
@@ -584,7 +581,6 @@ class PointageAdmin(admin.ModelAdmin):
     search_fields = [
         'contrat__professeur__user__first_name',
         'contrat__professeur__user__last_name',
-        'sujet_traite'
     ]
     readonly_fields = [
         'enregistre_par', 'date_enregistrement',
@@ -598,7 +594,6 @@ class PointageAdmin(admin.ModelAdmin):
         ('Séance', {
             'fields': (
                 'date_seance', 'heure_debut', 'heure_fin',
-                'sujet_traite', 'taux_presence'
             )
         }),
         ('Heures effectuées', {
@@ -611,9 +606,6 @@ class PointageAdmin(admin.ModelAdmin):
         }),
         ('Validation', {
             'fields': ('est_valide',)
-        }),
-        ('Observations', {
-            'fields': ('observations',)
         }),
         ('Métadonnées', {
             'fields': ('created_at', 'updated_at'),

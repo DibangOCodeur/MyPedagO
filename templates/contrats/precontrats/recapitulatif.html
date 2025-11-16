@@ -1,0 +1,426 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/contrats/precontrats/recap.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 precontrat-container">
+    <!-- En-tête Récapitulatif -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="recap-header-card">
+                <div class="recap-header-content">
+                    <div class="recap-title-section">
+                        <div class="recap-icon">
+                            <i class="fas fa-file-contract"></i>
+                        </div>
+                        <div class="recap-text">
+                            <h1>Récapitulatif du Précontrat</h1>
+                            <p class="recap-subtitle">Synthèse détaillée de la proposition de contrat</p>
+                        </div>
+                    </div>
+                    <div class="recap-status-section">
+                        <span class="status-badge status-{{ precontrat.get_statut_display_classe }}">
+                            {{ precontrat.get_status_display }}
+                        </span>
+                        <div class="recap-reference">
+                            <span class="reference-label">Référence</span>
+                            <span class="reference-value">{{ precontrat.reference }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="recap-details-grid">
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="detail-content">
+                            <span class="detail-label">Professeur</span>
+                            <span class="detail-value">{{ precontrat.professeur.get_full_name }}</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="detail-content">
+                            <span class="detail-label">Classe</span>
+                            <span class="detail-value">{{ precontrat.classe.nom }}</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-user-edit"></i>
+                        </div>
+                        <div class="detail-content">
+                            <span class="detail-label">Créé par</span>
+                            <span class="detail-value">{{ precontrat.cree_par.get_full_name }}</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="detail-content">
+                            <span class="detail-label">Date de création</span>
+                            <span class="detail-value">{{ precontrat.date_creation|date:"d/m/Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="detail-content">
+                            <span class="detail-label">Modules validés</span>
+                            <span class="detail-value progress-value">
+                                {{ precontrat.modules_valides_count }}/{{ precontrat.nombre_modules }}
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {{ precontrat.modules_valides_count|default:0|floatformat:0|add:0|stringformat:'d' }}{{ precontrat.nombre_modules|default:1|floatformat:0|add:0|stringformat:'d' }}%"></div>
+                                </div>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Résumé Financier Vertical -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="financial-summary-vertical">
+                <div class="financial-header">
+                    <div class="financial-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h2>Résumé Financier</h2>
+                </div>
+                
+                <div class="financial-cards-vertical">
+                    <div class="financial-card vertical-card">
+                        <div class="financial-card-icon cm-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div class="financial-card-content">
+                            <h3>Volume Total CM</h3>
+                            <div class="financial-value">{{ volumes.cours }}h</div>
+                            <div class="financial-subtext">Heures de Cours Magistraux</div>
+                        </div>
+                    </div>
+                    
+                    <div class="financial-card vertical-card">
+                        <div class="financial-card-icon td-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="financial-card-content">
+                            <h3>Volume Total TD</h3>
+                            <div class="financial-value">{{ volumes.td }}h</div>
+                            <div class="financial-subtext">Heures de Travaux Dirigés</div>
+                        </div>
+                    </div>
+                    
+                    <div class="financial-card vertical-card">
+                        <div class="financial-card-icon total-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="financial-card-content">
+                            <h3>Volume Total</h3>
+                            <div class="financial-value">{{ volumes.total }}h</div>
+                            <div class="financial-subtext">Volume horaire global</div>
+                        </div>
+                    </div>
+                    
+                    <div class="financial-card vertical-card highlight">
+                        <div class="financial-card-icon amount-icon">
+                            <i class="fas fa-euro-sign"></i>
+                        </div>
+                        <div class="financial-card-content">
+                            <h3>Montant Total</h3>
+                            <div class="financial-value">{{ montant_total|floatformat:2 }} F CFA</div>
+                            <div class="financial-subtext">Coût total du précontrat</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des Modules -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="modules-table-container">
+                <div class="table-header">
+                    <div class="table-title-section">
+                        <div class="table-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="table-text">
+                            <h2>Détails des Modules - Validation Individuelle</h2>
+                            <p>Gestion et validation des modules du précontrat</p>
+                        </div>
+                    </div>
+                    {% if can_validate_modules %}
+                    <div class="table-badge">
+                        <span class="validation-badge">
+                            <i class="fas fa-user-shield me-2"></i>
+                            Mode Validation RH
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="table-responsive">
+                    <table class="modules-table">
+                        <thead>
+                            <tr>
+                                <th class="module-code">Code</th>
+                                <th class="module-ue">UE</th>
+                                <th class="module-name">Module</th>
+                                <th class="module-volumes">Volumes CM</th>
+                                <th class="module-volumes">Volumes TD</th>
+                                <th class="module-volumes">Volumes Total</th>
+                                <th class="module-cost">Coût CM</th>
+                                <th class="module-cost">Coût TD</th>
+                                <th class="module-cost">Coût Total</th>
+                                <th class="module-status">Statut</th>
+                                <th class="module-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for module_detail in modules_details %}
+                            <tr class="module-row {% if module_detail.contrat_existe %}validated{% else %}pending{% endif %}">
+                                <td class="module-code">
+                                    <code>{{ module_detail.module.code_module }}</code>
+                                </td>
+                                <td class="module-ue">
+                                    {{ module_detail.module.ue_nom }}
+                                </td>
+                                <td class="module-name">
+                                    <div class="module-name-content">
+                                        <strong>{{ module_detail.module.nom_module }}</strong>
+                                        {% if module_detail.module.notes_validation %}
+                                        <div class="module-notes">
+                                            <i class="fas fa-sticky-note"></i>
+                                            {{ module_detail.module.notes_validation }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                
+                                <td class="module-volumes">
+                                    <div class="volume-details">
+                                        <div class="volume-item">
+                                            <span class="volume-value">{{ module_detail.details.cm.volume }}h</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="module-volumes">
+                                    <div class="volume-details">
+                                        <div class="volume-item">
+                                            <span class="volume-value">{{ module_detail.details.td.volume }}h</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="module-volumes">
+                                    <div class="volume-details">
+                                        <div class="volume-item total">
+                                            <span class="volume-value">{{ module_detail.details.total.volume }}h</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="module-cost">
+                                    {{ module_detail.details.cm.montant|floatformat:2 }} F CFA
+                                </td>
+                                <td class="module-cost">
+                                    {{ module_detail.details.td.montant|floatformat:2 }} F CFA
+                                </td>
+                                <td class="module-cost">
+                                    <div class="cost-main">{{ module_detail.module.get_montant_total|floatformat:2 }} F CFA</div>
+                                </td>
+                                <td class="module-status">
+                                    {% if module_detail.contrat_existe %}
+                                    <span class="status-badge validated">
+                                        <i class="fas fa-check-circle"></i>
+                                        Contrat créé
+                                    </span>
+                                    {% else %}
+                                    <span class="status-badge pending">
+                                        <i class="fas fa-clock"></i>
+                                        En attente
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="module-actions">
+                                    {% if module_detail.contrat_existe %}
+                                    <a href="{% url 'contrat_detail' pk=module_detail.contrat.pk %}" 
+                                       class="btn-action view-contract">
+                                        <i class="fas fa-eye"></i>
+                                        Voir contrat
+                                    </a>
+                                    {% else %}
+                                        {% if can_validate_modules %}
+                                        <form method="post" class="action-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="module_id" value="{{ module_detail.module.id }}">
+                                            <input type="hidden" name="action" value="validate_module">
+                                            <button type="submit" class="btn-action validate-module" 
+                                                    onclick="return confirm('Valider ce module et créer automatiquement le contrat ?')">
+                                                <i class="fas fa-check"></i>
+                                                Valider
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <span class="no-action">En attente RH</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="no-modules">
+                                    <div class="empty-state">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <p>Aucun module n'a été ajouté à ce précontrat.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations complémentaires et Actions (gardés identiques) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm info-card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Informations Importantes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if can_validate_modules %}
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-user-shield me-2"></i>
+                            Mode Validation RH Activé
+                        </h6>
+                        <p class="mb-2">En tant que responsable RH, vous pouvez :</p>
+                        <ul class="mb-2">
+                            <li>Valider individuellement chaque module</li>
+                            <li>Un contrat sera automatiquement créé pour chaque module validé</li>
+                            <li>Les contrats créés apparaîtront dans la liste des contrats</li>
+                        </ul>
+                        <p class="mb-0">Vous pouvez également soumettre l'ensemble du précontrat en une seule fois.</p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Vérification avant soumission
+                        </h6>
+                        <p class="mb-2">Veuillez vérifier attentivement les informations ci-dessus avant de soumettre ce précontrat pour validation.</p>
+                        <p class="mb-0">Une fois soumis, le précontrat sera envoyé aux responsables RH et ne pourra plus être modifié sans leur autorisation.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm actions-card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="actions-form">
+                            <!-- Bouton de gauche -->
+                            <div class="actions-left">
+                                <a href="{% url 'precontrat_detail' pk=precontrat.pk %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Retour aux détails
+                                </a>
+                            </div>
+                            
+                            <!-- Boutons de droite -->
+                            <div class="actions-right">
+                                {% if can_validate_modules %}
+                                    <button type="submit" name="action" value="submit_all" class="btn btn-success">
+                                        <i class="fas fa-paper-plane me-2"></i>
+                                        Soumettre tout le précontrat
+                                    </button>
+                                {% else %}
+                                    <button type="submit" name="action" value="back" class="btn btn-warning">
+                                        <i class="fas fa-edit me-2"></i>
+                                        Modifier
+                                    </button>
+                                    <button type="submit" name="action" value="submit_all" class="btn btn-success">
+                                        <i class="fas fa-paper-plane me-2"></i>
+                                        Soumettre pour validation
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Confirmation avant soumission
+    $('button[value="submit_all"]').on('click', function(e) {
+        if (!confirm('Êtes-vous sûr de vouloir soumettre ce précontrat pour validation ?')) {
+            e.preventDefault();
+        }
+    });
+
+    // Animation au survol des lignes du tableau
+    $('.module-row').hover(
+        function() {
+            $(this).addClass('hover-effect');
+        },
+        function() {
+            $(this).removeClass('hover-effect');
+        }
+    );
+
+    // Message d'information
+    {% if messages %}
+        {% for message in messages %}
+            showToast('{{ message.tags }}', '{{ message|safe }}');
+        {% endfor %}
+    {% endif %}
+});
+
+function showToast(type, message) {
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0`;
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    document.querySelector('.toast-container').appendChild(toast);
+    new bootstrap.Toast(toast).show();
+}
+</script>
+{% endblock %}

@@ -97,7 +97,7 @@
                         <i class="fas fa-chevron-down submenu-icon"></i>
                     </div>
                     <div class="submenu">
-                        <a href="#" class="submenu-item">Liste des Précontrats</a>
+                        <a href="{% url 'precontrat_list' %}" class="submenu-item">Liste des Précontrats</a>
                         <a href="{% url 'precontrat_create' %}" class="submenu-item">Nouveau Précontrat</a>
                     </div>
                 </div>
@@ -108,7 +108,7 @@
                         <i class="fas fa-chevron-down submenu-icon"></i>
                     </div>
                     <div class="submenu">
-                        <a href="#" class="submenu-item">Liste des contrats</a>
+                        <a href="{% url 'contrat_list' %}" class="submenu-item">Liste des contrats</a>
                         <a href="#" class="submenu-item">Nouveau contrat</a>
                     </div>
                 </div>
@@ -241,6 +241,63 @@
                 </div>
             </div>
 
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon users">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">143</div>
+                    <div class="stat-label">Utilisateurs Actifs</div>
+                    <div class="stat-progress">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>12% ce mois</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon security">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Alertes Sécurité</div>
+                    <div class="stat-progress negative">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>1 nouvelle</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon storage">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">78%</div>
+                    <div class="stat-label">Espace Stockage</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 78%"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon performance">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <i class="fas fa-ellipsis-v stat-menu"></i>
+                    </div>
+                    <div class="stat-number">96%</div>
+                    <div class="stat-label">Performance</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 96%"></div>
+                    </div>
+                </div>
+            </div>
             <!-- Content Grid -->
             <div class="content-grid">
                 <!-- Quick Actions -->
@@ -263,6 +320,18 @@
                             <i class="fas fa-key"></i>
                             Réinitialiser MDP
                         </a>
+
+
+
+{% if user.role == 'ADMIN' or user.role == 'INFORMATICIEN' %}
+            <button type="button" class="btn btn-primary btn-sync-all" onclick="syncAllData()">
+                <i class="fas fa-sync-alt"></i> Synchroniser tout
+            </button>
+            {% endif %}
+
+                        
+
+
                         <a href="#" class="action-btn">
                             <i class="fas fa-download"></i>
                             Sauvegarde
@@ -404,9 +473,47 @@ function updateFullDateTime() {
     document.getElementById('currentTime').textContent = `${dateString} à ${timeString}`;
 }
 
+
+// Synchroniser toutes les données
+function syncAllData() {
+    if (!confirm('Synchroniser toutes les classes et maquettes ? Cela peut prendre quelques minutes.')) {
+        return;
+    }
+    
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Synchronisation...';
+    
+    fetch('{% url "sync_all_api_data" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Synchronisation complète réussie !');
+            location.reload();
+        } else {
+            alert('❌ Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Erreur: ' + error);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    });
+}
+
 // Initialiser et mettre à jour toutes les secondes
 updateFullDateTime(); // Appel initial
 setInterval(updateFullDateTime, 1000); // Mise à jour toutes les secondes
+
 </script>
 </body>
 </html>

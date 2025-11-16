@@ -1,0 +1,449 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/contrats.css' %}">
+<style>
+    .module-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .module-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .module-card.selected {
+        border-color: #28a745;
+        background-color: #f8fff9;
+    }
+    
+    .volume-badge {
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+    }
+    
+    #selectedModulesList {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .module-item {
+        padding: 0.5rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .module-item:last-child {
+        border-bottom: none;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">{{ title }}</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'precontrat_list' %}">Précontrats</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'precontrat_detail' pk=precontrat.pk %}">{{ precontrat.reference }}</a></li>
+                            <li class="breadcrumb-item active">Modifier</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{% url 'precontrat_detail' pk=precontrat.pk %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="row mb-4">
+        <div class="col">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Formulaire principal -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-edit text-primary"></i>
+                        Informations du précontrat
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="precontratForm">
+                        {% csrf_token %}
+                        
+                        <!-- Champs cachés pour les modules sélectionnés -->
+                        <input type="hidden" name="selected_modules" id="selectedModulesInput" value="[]">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.professeur.id_for_label }}">{{ form.professeur.label }} *</label>
+                                    {{ form.professeur }}
+                                    {% if form.professeur.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.professeur.errors.0 }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.classe.id_for_label }}">{{ form.classe.label }} *</label>
+                                    {{ form.classe }}
+                                    {% if form.classe.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.classe.errors.0 }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informations sur les modules sélectionnés -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h6 class="text-muted mb-3">Modules sélectionnés</h6>
+                                <div id="selectedModulesList" class="bg-light rounded p-3">
+                                    <!-- Les modules sélectionnés apparaîtront ici -->
+                                </div>
+                                <small class="form-text text-muted">
+                                    Sélectionnez les modules dans la liste ci-dessous
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'precontrat_detail' pk=precontrat.pk %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times"></i> Annuler
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Enregistrer les modifications
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panneau latéral - Sélection des modules -->
+        <div class="col-lg-4">
+            <!-- Statistiques -->
+            <div class="card stats-card mb-4">
+                <div class="card-body text-center">
+                    <h4 class="text-white" id="modulesCount">0 module(s)</h4>
+                    <p class="text-white mb-0">sélectionné(s)</p>
+                </div>
+            </div>
+
+            <!-- Liste des modules disponibles -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cubes text-success"></i>
+                        Modules disponibles
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Filtres -->
+                    <div class="mb-3">
+                        <input type="text" id="moduleSearch" class="form-control" placeholder="Rechercher un module...">
+                    </div>
+                    
+                    <!-- Liste des modules -->
+                    <div id="modulesList" style="max-height: 500px; overflow-y: auto;">
+                        <!-- Les modules seront chargés ici via JavaScript -->
+                    </div>
+                    
+                    <!-- État vide -->
+                    <div id="emptyState" class="empty-state">
+                        <i class="fas fa-cube fa-3x mb-3 text-muted"></i>
+                        <p class="mb-0">Aucun module disponible</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/contrats.js' %}"></script>
+<script>
+    // Données initiales
+    const classeId = {{ classe_id }};
+    const modulesExistants = {{ modules_existants|safe }};
+    
+    // Configuration
+    const config = {
+        urls: {
+            getModules: '{% url 'api_get_classe_modules' classe_id=precontrat.classe.id %}',
+            edit: '{% url "precontrat_edit" pk=precontrat.pk %}',
+            detail: '{% url "precontrat_detail" pk=precontrat.pk %}'
+        },
+        messages: {
+            noModules: 'Aucun module disponible pour cette classe.',
+            errorLoading: 'Erreur lors du chargement des modules.'
+        }
+    };
+</script>
+
+<script>
+    class ModuleManager {
+        constructor() {
+            this.selectedModules = new Map();
+            this.availableModules = new Map();
+            this.init();
+        }
+        
+        init() {
+            // Initialiser avec les modules existants
+            this.loadExistingModules();
+            
+            // Charger les modules disponibles
+            this.loadAvailableModules();
+            
+            // Événements
+            this.bindEvents();
+        }
+        
+        loadExistingModules() {
+            modulesExistants.forEach(module => {
+                this.selectedModules.set(module.id, module);
+            });
+            this.updateSelectedModulesDisplay();
+        }
+        
+        async loadAvailableModules() {
+            try {
+                const response = await fetch(`${config.urls.getModules}?classe_id=${classeId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.displayAvailableModules(data.modules);
+                } else {
+                    this.showError(config.messages.errorLoading);
+                }
+            } catch (error) {
+                console.error('Error loading modules:', error);
+                this.showError(config.messages.errorLoading);
+            }
+        }
+        
+        displayAvailableModules(modules) {
+            const container = document.getElementById('modulesList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (modules.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            container.style.display = 'block';
+            emptyState.style.display = 'none';
+            
+            container.innerHTML = modules.map(module => this.createModuleCard(module)).join('');
+        }
+        
+        createModuleCard(module) {
+            const isSelected = this.selectedModules.has(module.id);
+            const selectedClass = isSelected ? 'selected' : '';
+            
+            return `
+                <div class="module-card ${selectedClass}" data-module-id="${module.id}">
+                    <div class="card-body p-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input module-checkbox" type="checkbox" 
+                                   data-module-id="${module.id}" ${isSelected ? 'checked' : ''}>
+                            <label class="form-check-label font-weight-bold">
+                                ${module.code} - ${module.nom}
+                            </label>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <small class="text-muted">UE: ${module.ue_nom}</small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <span class="badge badge-primary volume-badge">
+                                CM: ${module.volume_horaire_cm}h
+                            </span>
+                            <span class="badge badge-info volume-badge">
+                                TD: ${module.volume_horaire_td}h
+                            </span>
+                            <span class="badge badge-success volume-badge">
+                                Total: ${module.volume_horaire_total}h
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        bindEvents() {
+            // Recherche de modules
+            document.getElementById('moduleSearch').addEventListener('input', (e) => {
+                this.filterModules(e.target.value);
+            });
+            
+            // Sélection/désélection des modules
+            document.addEventListener('change', (e) => {
+                if (e.target.classList.contains('module-checkbox')) {
+                    this.toggleModuleSelection(
+                        e.target.dataset.moduleId,
+                        e.target.checked
+                    );
+                }
+            });
+            
+            // Clic sur la carte du module
+            document.addEventListener('click', (e) => {
+                const moduleCard = e.target.closest('.module-card');
+                if (moduleCard && !e.target.classList.contains('module-checkbox')) {
+                    const checkbox = moduleCard.querySelector('.module-checkbox');
+                    checkbox.checked = !checkbox.checked;
+                    this.toggleModuleSelection(
+                        checkbox.dataset.moduleId,
+                        checkbox.checked
+                    );
+                }
+            });
+        }
+        
+        toggleModuleSelection(moduleId, isSelected) {
+            const module = this.availableModules.get(moduleId);
+            
+            if (isSelected) {
+                this.selectedModules.set(moduleId, module);
+            } else {
+                this.selectedModules.delete(moduleId);
+            }
+            
+            // Mettre à jour l'affichage
+            this.updateModuleCard(moduleId, isSelected);
+            this.updateSelectedModulesDisplay();
+            this.updateHiddenInput();
+        }
+        
+        updateModuleCard(moduleId, isSelected) {
+            const moduleCard = document.querySelector(`[data-module-id="${moduleId}"]`);
+            if (moduleCard) {
+                moduleCard.classList.toggle('selected', isSelected);
+            }
+        }
+        
+        updateSelectedModulesDisplay() {
+            const container = document.getElementById('selectedModulesList');
+            const countElement = document.getElementById('modulesCount');
+            
+            countElement.textContent = `${this.selectedModules.size} module(s)`;
+            
+            if (this.selectedModules.size === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Aucun module sélectionné
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = Array.from(this.selectedModules.values())
+                .map(module => this.createSelectedModuleItem(module))
+                .join('');
+        }
+        
+        createSelectedModuleItem(module) {
+            return `
+                <div class="module-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${module.code} - ${module.nom}</h6>
+                            <small class="text-muted d-block">UE: ${module.ue_nom}</small>
+                            <div class="mt-1">
+                                <small class="badge badge-primary">CM: ${module.volume_horaire_cm}h</small>
+                                <small class="badge badge-info">TD: ${module.volume_horaire_td}h</small>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-module" 
+                                data-module-id="${module.id}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        updateHiddenInput() {
+            const selectedIds = Array.from(this.selectedModules.keys());
+            document.getElementById('selectedModulesInput').value = JSON.stringify(selectedIds);
+        }
+        
+        filterModules(searchTerm) {
+            const modules = document.querySelectorAll('.module-card');
+            const term = searchTerm.toLowerCase();
+            
+            modules.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(term) ? 'block' : 'none';
+            });
+        }
+        
+        showError(message) {
+            // Implémenter l'affichage des erreurs
+            console.error(message);
+        }
+    }
+    
+    // Initialiser le gestionnaire de modules lorsque la page est chargée
+    document.addEventListener('DOMContentLoaded', function() {
+        new ModuleManager();
+    });
+</script>
+{% endblock %}

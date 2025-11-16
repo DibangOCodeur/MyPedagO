@@ -1,0 +1,313 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}Liste des Contrats{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/contrats/contrat_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 contrat-container">
+    <!-- En-tête -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-title">
+                <i class="fas fa-file-contract text-primary me-2"></i>
+                <h1>Liste des Contrats</h1>
+            </div>
+            <p class="header-subtitle">Gestion des contrats validés et en cours</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'precontrat_list' %}" class="btn btn-back">
+                <i class="fas fa-arrow-left me-2"></i>
+                Retour aux Précontrats
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres et recherche -->
+    <div class="filters-section">
+        <div class="filters-card">
+            <h5 class="filters-title">
+                <i class="fas fa-filter me-2"></i>
+                Filtres et Recherche
+            </h5>
+            <form method="get" class="filters-form">
+                <div class="form-row">
+                    <div class="form-group search-group">
+                        <label for="search" class="form-label">
+                            <i class="fas fa-search me-1"></i>
+                            Recherche
+                        </label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                               value="{{ search_query }}" placeholder="Professeur, classe, module...">
+                    </div>
+                    <div class="form-group status-group">
+                        <label for="status" class="form-label">
+                            <i class="fas fa-tag me-1"></i>
+                            Statut
+                        </label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Tous les statuts</option>
+                            <option value="VALIDATED" {% if status_filter == 'VALIDATED' %}selected{% endif %}>Validé</option>
+                            <option value="READY_TO_START" {% if status_filter == 'READY_TO_START' %}selected{% endif %}>Prêt à démarrer</option>
+                            <option value="IN_PROGRESS" {% if status_filter == 'IN_PROGRESS' %}selected{% endif %}>En cours</option>
+                            <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>Terminé</option>
+                            <option value="PENDING_DOCUMENTS" {% if status_filter == 'PENDING_DOCUMENTS' %}selected{% endif %}>En attente documents</option>
+                            <option value="READY_FOR_PAYMENT" {% if status_filter == 'READY_FOR_PAYMENT' %}selected{% endif %}>Prêt pour paiement</option>
+                            <option value="PAID" {% if status_filter == 'PAID' %}selected{% endif %}>Payé</option>
+                            <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Annulé</option>
+                        </select>
+                    </div>
+                    <div class="form-group action-group">
+                        <button type="submit" class="btn btn-filter">
+                            <i class="fas fa-search me-2"></i>Appliquer
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-icon">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ contrats.paginator.count }}</h3>
+                    <p class="stat-label">Total Contrats</p>
+                </div>
+            </div>
+            <div class="stat-card in-progress">
+                <div class="stat-icon">
+                    <i class="fas fa-play-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ contrats.paginator.count|default:0 }}</h3>
+                    <p class="stat-label">En Cours</p>
+                </div>
+            </div>
+            <div class="stat-card ready">
+                <div class="stat-icon">
+                    <i class="fas fa-flag"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ contrats.paginator.count|default:0 }}</h3>
+                    <p class="stat-label">À Démarrer</p>
+                </div>
+            </div>
+            <div class="stat-card documents">
+                <div class="stat-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ contrats.paginator.count|default:0 }}</h3>
+                    <p class="stat-label">Documents</p>
+                </div>
+            </div>
+            <div class="stat-card payment">
+                <div class="stat-icon">
+                    <i class="fas fa-euro-sign"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ contrats.paginator.count|default:0 }}</h3>
+                    <p class="stat-label">Paiement</p>
+                </div>
+            </div>
+            <div class="stat-card paid">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ contrats.paginator.count|default:0 }}</h3>
+                    <p class="stat-label">Payés</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des contrats -->
+    <div class="contrats-section">
+        <div class="contrats-card">
+            <div class="card-header">
+                <div class="header-info">
+                    <i class="fas fa-list me-2"></i>
+                    <h5>Liste des Contrats</h5>
+                    <span class="badge count-badge">{{ contrats.paginator.count }}</span>
+                </div>
+                <div class="header-actions">
+                    <div class="pagination-info">
+                        Page {{ contrats.number }} sur {{ contrats.paginator.num_pages }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-content">
+                {% if contrats %}
+                <div class="table-container">
+                    <table class="contrats-table">
+                        <thead>
+                            <tr>
+                                <th class="reference">Référence</th>
+                                <th class="professor">Professeur</th>
+                                <th class="class">Classe</th>
+                                <th class="module">Module</th>
+                                <th class="volume">Volume Horaire</th>
+                                <th class="amount">Montant</th>
+                                <th class="status">Statut</th>
+                                <th class="date">Date Validation</th>
+                                <th class="actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contrat in contrats %}
+                            <tr class="contrat-row">
+                                <td class="reference">
+                                    <strong class="ref-number">#{{ contrat.id }}</strong>
+                                </td>
+                                <td class="professor">
+                                    <div class="professor-info">
+                                        <div class="avatar">
+                                            {{ contrat.professeur.user.first_name|first }}{{ contrat.professeur.user.last_name|first }}
+                                        </div>
+                                        <div class="professor-details">
+                                            <div class="name">{{ contrat.professeur.user.get_full_name }}</div>
+                                            <div class="email">{{ contrat.professeur.user.email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="class">
+                                    <div class="class-name">{{ contrat.classe.nom }}</div>
+                                    <div class="class-filiere">{{ contrat.classe.filiere }}</div>
+                                </td>
+                                <td class="module">
+                                    <div class="filiere-name">{{ contrat.maquette.filiere_nom }}</div>
+                                    <div class="module-name">{{ contrat.module_propose.nom_module }}</div>
+                                </td>
+                                <td class="volume">
+                                    <div class="volume-badges">
+                                        <span class="badge cm-badge">CM: {{ contrat.volume_heure_cours }}h</span>
+                                        <span class="badge td-badge">TD: {{ contrat.volume_heure_td }}h</span>
+                                    </div>
+                                    <div class="volume-total">Total: {{ contrat.volume_total_contractuel }}h</div>
+                                </td>
+                                <td class="amount">
+                                    <div class="amount-total">{{ contrat.montant_total_contractuel|floatformat:2 }} €</div>
+                                    <div class="amount-details">
+                                        <span>CM: {{ contrat.taux_horaire_cours }}€/h</span>
+                                        <span>TD: {{ contrat.taux_horaire_td }}€/h</span>
+                                    </div>
+                                </td>
+                                <td class="status">
+                                    <div class="status-content">
+                                        <span class="status-badge status-{{ contrat.status|lower }}">
+                                            {{ contrat.get_status_display }}
+                                        </span>
+                                        {% if contrat.taux_realisation > 0 %}
+                                        <div class="progress-container">
+                                            <div class="progress-bar" style="width: {{ contrat.taux_realisation }}%;"></div>
+                                        </div>
+                                        <div class="progress-text">{{ contrat.taux_realisation|floatformat:1 }}%</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="date">
+                                    <div class="validation-date">{{ contrat.date_validation|date:"d/m/Y" }}</div>
+                                    <div class="validator">par {{ contrat.valide_par.get_full_name }}</div>
+                                </td>
+                                <td class="actions">
+                                    <div class="action-buttons">
+                                        <a href="{% url 'contrat_detail' pk=contrat.pk %}" 
+                                           class="btn-action view" 
+                                           title="Voir le détail">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if contrat.can_start %}
+                                        <a href="#" class="btn-action start" title="Démarrer le cours">
+                                            <i class="fas fa-play"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if contrat.status == 'IN_PROGRESS' %}
+                                        <a href="#" class="btn-action time" title="Ajouter un pointage">
+                                            <i class="fas fa-clock"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if contrat.can_be_paid %}
+                                        <a href="#" class="btn-action payment" title="Préparer le paiement">
+                                            <i class="fas fa-euro-sign"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <h3>Aucun contrat trouvé</h3>
+                    <p>
+                        {% if search_query or status_filter %}
+                            Aucun contrat ne correspond à vos critères de recherche.
+                        {% else %}
+                            Aucun contrat n'a été créé pour le moment.
+                        {% endif %}
+                    </p>
+                    {% if search_query or status_filter %}
+                    <a href="{% url 'contrat_list' %}" class="btn btn-reset">
+                        Afficher tous les contrats
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Pagination -->
+            {% if contrats.paginator.num_pages > 1 %}
+            <div class="card-footer">
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        Affichage de {{ contrats.start_index }} à {{ contrats.end_index }} sur {{ contrats.paginator.count }} contrats
+                    </div>
+                    <nav class="pagination">
+                        {% if contrats.has_previous %}
+                        <a class="page-link first" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                        <a class="page-link prev" href="?page={{ contrats.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                        {% endif %}
+
+                        {% for num in contrats.paginator.page_range %}
+                            {% if contrats.number == num %}
+                            <span class="page-link active">{{ num }}</span>
+                            {% elif num > contrats.number|add:'-3' and num < contrats.number|add:'3' %}
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if contrats.has_next %}
+                        <a class="page-link next" href="?page={{ contrats.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                        <a class="page-link last" href="?page={{ contrats.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

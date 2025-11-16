@@ -1,0 +1,371 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/contrats/precontrats/listing.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête de page -->
+    <div class="main-header">
+        <div class="welcome-section">
+            <h1>{{ title }}</h1>
+        </div>
+        <div>
+            <a href="{% url 'precontrat_create' %}" class="action-btn">
+                <i class="fas fa-plus me-2"></i>Nouveau Précontrat
+            </a>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques -->
+    <div class="stats-grid mb-4">
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon users">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <div class="stat-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ stats.total }}</div>
+            <div class="stat-label">Total Précontrats</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 100%"></div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon security">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <div class="stat-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ stats.draft }}</div>
+            <div class="stat-label">Brouillons</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {% widthratio stats.draft stats.total 100 %}%"></div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon storage">
+                    <i class="fas fa-paper-plane"></i>
+                </div>
+                <div class="stat-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ stats.submitted }}</div>
+            <div class="stat-label">Soumis</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {% widthratio stats.submitted stats.total 100 %}%"></div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon users" style="background: linear-gradient(45deg, #4CAF50, #45a049);">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ stats.validated }}</div>
+            <div class="stat-label">Validés</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {% widthratio stats.validated stats.total 100 %}%"></div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon security" style="background: linear-gradient(45deg, #f44336, #d32f2f);">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ stats.rejected }}</div>
+            <div class="stat-label">Rejetés</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {% widthratio stats.rejected stats.total 100 %}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="full-width-section mb-4">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-filter me-2"></i>Filtres
+            </h2>
+        </div>
+        <form method="get" class="filter-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="search" class="form-label">Recherche</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="search" 
+                           name="search" 
+                           value="{{ search_query }}"
+                           placeholder="Référence, professeur, classe...">
+                </div>
+                <div class="form-group">
+                    <label for="status" class="form-label">Statut</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Tous les statuts</option>
+                        <option value="DRAFT" {% if status_filter == 'DRAFT' %}selected{% endif %}>Brouillon</option>
+                        <option value="SUBMITTED" {% if status_filter == 'SUBMITTED' %}selected{% endif %}>Soumis</option>
+                        <option value="VALIDATED" {% if status_filter == 'VALIDATED' %}selected{% endif %}>Validé</option>
+                        <option value="REJECTED" {% if status_filter == 'REJECTED' %}selected{% endif %}>Rejeté</option>
+                        <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Annulé</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="annee" class="form-label">Année académique</label>
+                    <select class="form-select" id="annee" name="annee">
+                        <option value="">Toutes les années</option>
+                        {% for year in years %}
+                            <option value="{{ year }}" {% if annee_filter == year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="filter-btn">
+                        <i class="fas fa-search me-1"></i>Appliquer les filtres
+                    </button>
+                </div>
+            </div>
+            
+            {% if filters_applied %}
+            <div class="filter-actions">
+                <a href="{% url 'precontrat_list' %}" class="clear-filters">
+                    <i class="fas fa-times me-1"></i>Effacer les filtres
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Tableau des précontrats -->
+    <div class="full-width-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-list me-2"></i>Liste des Précontrats
+            </h2>
+            <div class="results-count">
+                {{ precontrats.paginator.count }} résultat{{ precontrats.paginator.count|pluralize }}
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Référence</th>
+                        <th>Professeur</th>
+                        <th>Classe</th>
+                        <th>Modules</th>
+                        <th>Statut</th>
+                        <th>Volume Horaire</th>
+                        <th>Date Création</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for precontrat in precontrats %}
+                    <tr class="table-row" data-status="{{ precontrat.status }}">
+                        <td>
+                            <div class="reference-cell">
+                                <strong>{{ precontrat.reference|default:"PC-DRAFT" }}</strong>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar small">
+                                    {{ precontrat.professeur.first_name|first }}{{ precontrat.professeur.last_name|first }}
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">{{ precontrat.professeur.get_full_name }}</div>
+                                    <div class="user-email">{{ precontrat.professeur.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="class-info">
+                                <div class="class-name">{{ precontrat.classe_nom }}</div>
+                                <div class="class-details">
+                                    {{ precontrat.classe_niveau }} - {{ precontrat.classe_filiere }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="modules-info">
+                                <div class="modules-count">
+                                    <span class="badge">{{ precontrat.nombre_modules }}</span>
+                                    modules
+                                </div>
+                                {% if precontrat.nombre_modules > 0 %}
+                                <div class="progress-container">
+                                    <div class="progress-bar small">
+                                        <div class="progress-fill" style="width: {{ precontrat.progression_pourcentage }}%"></div>
+                                    </div>
+                                    <span class="progress-text">{{ precontrat.progression_pourcentage|floatformat:0 }}%</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ precontrat.status|lower }}">
+                                {{ precontrat.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="volume-info">
+                                {% with volume=precontrat.get_volume_total %}
+                                <div class="volume-total">{{ volume.total }}h</div>
+                                <div class="volume-details">
+                                    CM: {{ volume.cours }}h, TD: {{ volume.td }}h
+                                </div>
+                                {% endwith %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="date-cell">
+                                {{ precontrat.date_creation|date:"d/m/Y" }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{{ precontrat.get_absolute_url }}" 
+                                   class="action-btn small view" 
+                                   title="Voir les détails">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if precontrat.status == 'DRAFT' %}
+                                <a href="{% url 'precontrat_edit' precontrat.pk %}" 
+                                   class="action-btn small edit" 
+                                   title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                                {% if precontrat.peut_etre_soumis %}
+                                <button type="button" 
+                                        class="action-btn small submit" 
+                                        title="Soumettre"
+                                        data-precontrat-id="{{ precontrat.id }}"
+                                        data-precontrat-ref="{{ precontrat.reference }}">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <div class="empty-content">
+                                <i class="fas fa-inbox fa-4x"></i>
+                                <h3>Aucun précontrat trouvé</h3>
+                                <p>
+                                    {% if filters_applied %}
+                                    Aucun résultat ne correspond à vos critères de filtrage.
+                                    {% else %}
+                                    Commencez par créer votre premier précontrat.
+                                    {% endif %}
+                                </p>
+                                {% if not filters_applied %}
+                                <a href="{% url 'precontrat_create' %}" class="action-btn">
+                                    <i class="fas fa-plus me-2"></i>Créer un précontrat
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if precontrats.has_other_pages %}
+        <div class="pagination-container">
+            <nav class="pagination">
+                {% if precontrats.has_previous %}
+                <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if annee_filter %}&annee={{ annee_filter }}{% endif %}" 
+                   class="pagination-btn">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+                <a href="?page={{ precontrats.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if annee_filter %}&annee={{ annee_filter }}{% endif %}" 
+                   class="pagination-btn">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+                {% endif %}
+
+                {% for num in precontrats.paginator.page_range %}
+                    {% if precontrats.number == num %}
+                    <span class="pagination-btn active">{{ num }}</span>
+                    {% elif num > precontrats.number|add:'-3' and num < precontrats.number|add:'3' %}
+                    <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if annee_filter %}&annee={{ annee_filter }}{% endif %}" 
+                       class="pagination-btn">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if precontrats.has_next %}
+                <a href="?page={{ precontrats.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if annee_filter %}&annee={{ annee_filter }}{% endif %}" 
+                   class="pagination-btn">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+                <a href="?page={{ precontrats.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if annee_filter %}&annee={{ annee_filter }}{% endif %}" 
+                   class="pagination-btn">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+                {% endif %}
+            </nav>
+            <div class="pagination-info">
+                Page {{ precontrats.number }} sur {{ precontrats.paginator.num_pages }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de soumission -->
+<div class="modal-overlay" id="submitModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Soumettre le précontrat</h3>
+            <button type="button" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Êtes-vous sûr de vouloir soumettre le précontrat <strong id="modalPrecontratRef"></strong> pour validation ?</p>
+            <p class="text-muted">Une fois soumis, vous ne pourrez plus le modifier.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn cancel">Annuler</button>
+            <form method="post" action="" id="submitForm" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="modal-btn confirm">Confirmer la soumission</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/precontrat/listing.js' %}"></script>
+{% endblock %}
