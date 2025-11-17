@@ -80,6 +80,8 @@ urlpatterns = [
      path('contrat/demarage/<int:pk>/', views.contrat_start, name='contrat_start'),
      path('pointage/<int:contrat_id>/', views.pointage_create, name="pointage_create"),
      path('contrat/<int:pk>/complet/', views.contrat_complete, name='contrat_complete'),
+     path('api/groupes/by-classes/', views.api_groupes_by_classes, name='api_groupes_by_classes'),
+
 
 
     # ========================================================================

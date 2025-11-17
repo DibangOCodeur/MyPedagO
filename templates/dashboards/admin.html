@@ -323,11 +323,18 @@
 
 
 
-{% if user.role == 'ADMIN' or user.role == 'INFORMATICIEN' %}
-            <button type="button" class="btn btn-primary btn-sync-all" onclick="syncAllData()">
-                <i class="fas fa-sync-alt"></i> Synchroniser tout
-            </button>
-            {% endif %}
+                        {% if user.role == 'ADMIN' or user.role == 'INFORMATICIEN' %}
+                        <button type="button" class="btn btn-primary btn-sync-all" onclick="syncAllData()">
+                            <i class="fas fa-sync-alt"></i> Synchroniser tout
+                        </button>
+                        {% endif %}
+
+                        {% if user.role == 'ADMIN' or user.role == 'INFORMATICIEN' %}
+                        <button type="button" class="btn btn-primary btn-sync-all" onclick="sync_groupes()">
+                            <i class="fas fa-sync-alt"></i> Synchroniser Les Groupes
+                        </button>
+                        {% endif %}
+                        
 
                         
 
@@ -473,6 +480,215 @@ function updateFullDateTime() {
     document.getElementById('currentTime').textContent = `${dateString} à ${timeString}`;
 }
 
+
+// ########################Syncro des groupe ######################################################
+class GroupeSynchronizer {
+    constructor() {
+        this.syncUrl = '{% url "sync_groupes" %}';
+        this.statutUrl = '{% url "statut_groupes" %}';
+        this.csrfToken = '{{ csrf_token }}';
+    }
+    
+    // Synchroniser les groupes
+    async synchroniser() {
+        if (!confirm('Voulez-vous synchroniser tous les groupes ? Cela peut prendre plusieurs minutes.')) {
+            return;
+        }
+        
+        const btn = this._getBoutonSync();
+        const texteOriginal = btn.innerHTML;
+        
+        try {
+            this._afficherChargement(btn, 'Synchronisation en cours...');
+            
+            // Créer les données de formulaire
+            const formData = new FormData();
+            formData.append('force', 'true');
+            formData.append('csrfmiddlewaretoken', this.csrfToken);
+            
+            const response = await fetch(this.syncUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': this.csrfToken
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this._afficherResultats(data.stats);
+                this.verifierStatut(); // Mettre à jour le statut
+            } else {
+                this._afficherErreur(data.error || data.message);
+            }
+            
+        } catch (error) {
+            this._afficherErreur('Erreur de connexion: ' + error.message);
+        } finally {
+            this._restaurerBouton(btn, texteOriginal);
+        }
+    }
+    
+    // Vérifier le statut
+    async verifierStatut() {
+        try {
+            const response = await fetch(this.statutUrl);
+            const data = await response.json();
+            
+            if (data.success) {
+                this._afficherStatut(data.statut);
+            }
+        } catch (error) {
+            console.error('Erreur statut:', error);
+        }
+    }
+    
+    // Méthodes d'affichage
+    _afficherResultats(stats) {
+        let message = `✅ Synchronisation réussie!\n\n`;
+        message += `📊 Résultats:\n`;
+        message += `• Stratégie: ${stats.strategie_utilisee || 'API Directe'}\n`;
+        message += `• Groupes trouvés: ${stats.groupes_trouves || 0}\n`;
+        message += `• Groupes créés: ${stats.groupes_crees || 0}\n`;
+        message += `• Groupes mis à jour: ${stats.groupes_mis_a_jour || 0}\n`;
+        message += `• Durée: ${stats.duration || 0}s\n`;
+        
+        if (stats.errors && stats.errors.length > 0) {
+            message += `\n⚠️ ${stats.errors.length} erreur(s) rencontrée(s)\n`;
+            message += `Première erreur: ${stats.errors[0]}`;
+        }
+        
+        // Afficher dans une div au lieu d'alert
+        this._afficherNotification(message, 'success');
+        
+        // Recharger après 3 secondes pour voir les nouveaux groupes
+        setTimeout(() => {
+            if ((stats.groupes_crees || 0) > 0 && confirm('Recharger la page pour voir les nouveaux groupes ?')) {
+                location.reload();
+            }
+        }, 3000);
+    }
+    
+    _afficherStatut(statut) {
+        const lastSync = statut.derniere_sync ? 
+            new Date(statut.derniere_sync).toLocaleString('fr-FR') : 'Jamais';
+        
+        const details = statut.details || {};
+        
+        let message = `📊 Statut des groupes:\n\n`;
+        message += `• Total groupes: ${statut.total_groupes || 0}\n`;
+        message += `• Groupes actifs: ${statut.groupes_actifs || 0}\n`;
+        message += `• Classes avec groupes: ${details.classes_avec_groupes || 0}/${details.total_classes || 0}\n`;
+        message += `• Dernière sync: ${lastSync}\n`;
+        message += `• Sync nécessaire: ${statut.needs_sync ? '✅ Oui' : '❌ Non'}`;
+        
+        // Mettre à jour l'interface
+        const statutElement = document.getElementById('statut-groupes');
+        if (statutElement) {
+            statutElement.innerHTML = `
+                <div class="alert alert-info">
+                    <strong>📊 Statut Groupes</strong><br>
+                    <strong>${statut.total_groupes || 0}</strong> groupes (<strong>${statut.groupes_actifs || 0}</strong> actifs)<br>
+                    <strong>${details.classes_avec_groupes || 0}</strong> classes avec groupes sur <strong>${details.total_classes || 0}</strong><br>
+                    Dernière sync: <strong>${lastSync}</strong>
+                    ${statut.needs_sync ? '<br><span class="text-warning"><strong>🔄 Sync recommandée</strong></span>' : ''}
+                </div>
+            `;
+        }
+    }
+    
+    _afficherErreur(erreur) {
+        this._afficherNotification(`❌ Erreur lors de la synchronisation:\n\n${erreur}`, 'error');
+    }
+    
+    _afficherNotification(message, type = 'info') {
+        // Créer une notification stylée
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            <strong>${type === 'success' ? '✅' : '❌'} ${type === 'success' ? 'Succès' : 'Erreur'}</strong>
+            <div style="white-space: pre-line; margin-top: 10px;">${message}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-supprimer après 10 secondes
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 10000);
+    }
+    
+    _afficherChargement(btn, texte) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${texte}`;
+        
+        // Afficher un indicateur de progression
+        const progression = document.createElement('div');
+        progression.id = 'sync-progression';
+        progression.className = 'alert alert-warning mt-2';
+        progression.innerHTML = `
+            <i class="fas fa-sync fa-spin"></i> 
+            <strong>Synchronisation en cours...</strong><br>
+            <small>Veuillez patienter, cette opération peut prendre plusieurs minutes.</small>
+            <div class="progress mt-2">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+            </div>
+        `;
+        
+        const statutElement = document.getElementById('statut-groupes');
+        if (statutElement) {
+            statutElement.parentNode.insertBefore(progression, statutElement.nextSibling);
+        }
+    }
+    
+    _restaurerBouton(btn, texte) {
+        btn.disabled = false;
+        btn.innerHTML = texte;
+        
+        // Supprimer l'indicateur de progression
+        const progression = document.getElementById('sync-progression');
+        if (progression) {
+            progression.remove();
+        }
+    }
+    
+    _getBoutonSync() {
+        return document.getElementById('btn-sync-groupes');
+    }
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    const sync = new GroupeSynchronizer();
+    
+    // Bouton de synchronisation
+    const btnSync = document.getElementById('btn-sync-groupes');
+    if (btnSync) {
+        btnSync.addEventListener('click', () => sync.synchroniser());
+    }
+    
+    // Vérifier le statut au chargement
+    sync.verifierStatut();
+    
+    // Vérifier le statut toutes les 60 secondes
+    setInterval(() => sync.verifierStatut(), 60000);
+    
+    // Exposer globalement pour debug
+    window.syncGroupes = sync;
+});
+
+// Fonction globale pour appel depuis HTML
+function sync_groupes() {
+    const sync = new GroupeSynchronizer();
+    sync.synchroniser();
+}
+
+// ########################Syncro des groupe ######################################################
 
 // Synchroniser toutes les données
 function syncAllData() {

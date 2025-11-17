@@ -9,7 +9,7 @@ from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from .models import (
     Classe, Maquette, PreContrat, ModulePropose, Contrat,
-    Pointage, DocumentContrat, PaiementContrat, ActionLog
+    Pointage, DocumentContrat, PaiementContrat, ActionLog, Groupe
 )
 from Utilisateur.models import CustomUser
 
@@ -54,6 +54,66 @@ class ClasseAdmin(admin.ModelAdmin):
     )
 
 
+# ==========================================
+# GROUPE ADMIN
+# ==========================================
+# Dans Gestion/admin.py - VERSION SIMPLIFIÉE
+from django.contrib import admin
+from .models import Groupe
+
+@admin.register(Groupe)
+class GroupeAdmin(admin.ModelAdmin):
+    list_display = [
+        'nom', 
+        'classe', 
+        'code', 
+        'effectif', 
+        'capacite_max',
+        'is_active',
+        'last_synced'
+    ]
+    
+    list_filter = [
+        'is_active',
+        'classe',
+        'last_synced'
+    ]
+    
+    search_fields = [
+        'nom',
+        'code',
+        'classe__nom'
+    ]
+    
+    readonly_fields = [
+        'external_id',
+        'created_at',
+        'updated_at'
+    ]
+    
+    fieldsets = (
+        ('Informations principales', {
+            'fields': (
+                'external_id',
+                'classe',
+                'nom',
+                'code'
+            )
+        }),
+        ('Effectifs', {
+            'fields': (
+                'effectif',
+                'capacite_max',
+                'taux_remplissage'
+            )
+        }),
+        ('Statut', {
+            'fields': (
+                'is_active',
+                'last_synced'
+            )
+        })
+    )
 # ==========================================
 # ADMIN MAQUETTE
 # ==========================================
@@ -344,7 +404,6 @@ class PreContratAdmin(admin.ModelAdmin):
 # ==========================================
 # ADMIN MODULE PROPOSÉ
 # ==========================================
-
 @admin.register(ModulePropose)
 class ModuleProposeAdmin(admin.ModelAdmin):
     list_display = [
@@ -410,13 +469,27 @@ class ModuleProposeAdmin(admin.ModelAdmin):
     volume_total_display.short_description = "Volumes"
     
     def montant_display(self, obj):
-        """Montant"""
+        """Montant - CORRECTION ICI"""
         montant = obj.get_montant_total()
+        
+        # ⭐ CORRECTION : Formater le montant séparément avant de l'utiliser dans format_html
+        montant_formate = "{:,.0f}".format(montant)
+        
         return format_html(
-            '<strong style="color: #198754;">{:,.0f} FCFA</strong>',
-            montant
+            '<strong style="color: #198754;">{} FCFA</strong>',
+            montant_formate  # Utiliser la valeur déjà formatée
         )
     montant_display.short_description = "Montant"
+    
+    # ⭐ ALTERNATIVE : Version encore plus simple
+    # def montant_display(self, obj):
+    #     """Montant - Version alternative"""
+    #     montant = obj.get_montant_total()
+    #     return format_html(
+    #         '<strong style="color: #198754;">{} FCFA</strong>',
+    #         f"{montant:,.0f}"  # Formatage en dehors de format_html
+    #     )
+    # montant_display.short_description = "Montant"
     
     def est_valide_badge(self, obj):
         """Badge de validation"""

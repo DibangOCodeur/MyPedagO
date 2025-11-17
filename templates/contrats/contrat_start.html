@@ -12,7 +12,7 @@
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-md-10">
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">
@@ -42,7 +42,7 @@
                     </div>
 
                     <!-- Formulaire de démarrage -->
-                    <form method="post" class="mt-4">
+                    <form method="post" id="contratStartForm" class="mt-4">
                         {% csrf_token %}
                         
                         {% if form.non_field_errors %}
@@ -57,7 +57,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="{{ form.type_enseignement.id_for_label }}" class="form-label">
-                                        <strong>Type d'enseignement</strong>
+                                        <strong>Type d'enseignement *</strong>
                                     </label>
                                     {{ form.type_enseignement }}
                                     {% if form.type_enseignement.errors %}
@@ -72,7 +72,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="{{ form.date_debut_prevue.id_for_label }}" class="form-label">
-                                        <strong>Date de début prévue</strong>
+                                        <strong>Date de début prévue *</strong>
                                     </label>
                                     {{ form.date_debut_prevue }}
                                     {% if form.date_debut_prevue.errors %}
@@ -86,22 +86,76 @@
                             </div>
                         </div>
 
-                        <!-- Section tronc commun (conditionnelle) -->
-                        <div id="tronc-commun-section" class="mb-3" style="display: none;">
-                            <label for="{{ form.classes_tronc_commun.id_for_label }}" class="form-label">
-                                <strong>Classes en tronc commun</strong>
+                        <!-- Section Groupes de la classe principale -->
+                        <div class="mb-3" id="groupes-principale-section">
+                            <label for="{{ form.groupes_classe_principale.id_for_label }}" class="form-label">
+                                <strong>Groupes de la classe principale</strong>
                             </label>
-                            {{ form.classes_tronc_commun }}
-                            {% if form.classes_tronc_commun.help_text %}
-                            <div class="form-text">{{ form.classes_tronc_commun.help_text }}</div>
+                            {{ form.groupes_classe_principale }}
+                            {% if form.groupes_classe_principale.help_text %}
+                            <div class="form-text">{{ form.groupes_classe_principale.help_text }}</div>
                             {% endif %}
-                            {% if form.classes_tronc_commun.errors %}
+                            {% if form.groupes_classe_principale.errors %}
                             <div class="text-danger small">
-                                {% for error in form.classes_tronc_commun.errors %}
+                                {% for error in form.groupes_classe_principale.errors %}
                                     {{ error }}
                                 {% endfor %}
                             </div>
                             {% endif %}
+                        </div>
+
+                        <!-- Section Tronc commun (conditionnelle) -->
+                        <div id="tronc-commun-sections" style="display: none;">
+                            <div class="border rounded p-3 bg-light mb-3">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-users me-2"></i>Configuration du tronc commun
+                                </h6>
+                                
+                                <!-- Classes en tronc commun -->
+                                <div class="mb-3">
+                                    <label for="{{ form.classes_tronc_commun.id_for_label }}" class="form-label">
+                                        <strong>Classes en tronc commun *</strong>
+                                    </label>
+                                    {{ form.classes_tronc_commun }}
+                                    {% if form.classes_tronc_commun.help_text %}
+                                    <div class="form-text">{{ form.classes_tronc_commun.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.classes_tronc_commun.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.classes_tronc_commun.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Groupes des classes en tronc commun -->
+                                <div class="mb-3">
+                                    <label for="{{ form.groupes_tronc_commun.id_for_label }}" class="form-label">
+                                        <strong>Groupes des classes en tronc commun *</strong>
+                                    </label>
+                                    {{ form.groupes_tronc_commun }}
+                                    {% if form.groupes_tronc_commun.help_text %}
+                                    <div class="form-text">{{ form.groupes_tronc_commun.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.groupes_tronc_commun.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.groupes_tronc_commun.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Résumé des sélections -->
+                        <div class="alert alert-warning" id="selection-summary" style="display: none;">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Résumé de votre sélection
+                            </h6>
+                            <div id="summary-content"></div>
                         </div>
 
                         <!-- Actions -->
@@ -127,21 +181,182 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const typeEnseignementSelect = document.getElementById('{{ form.type_enseignement.id_for_label }}');
-    const troncCommunSection = document.getElementById('tronc-commun-section');
+    const troncCommunSections = document.getElementById('tronc-commun-sections');
+    const classesTroncCommunSelect = document.getElementById('{{ form.classes_tronc_commun.id_for_label }}');
+    const groupesTroncCommunSelect = document.getElementById('{{ form.groupes_tronc_commun.id_for_label }}');
+    const selectionSummary = document.getElementById('selection-summary');
+    const summaryContent = document.getElementById('summary-content');
     
-    function toggleTroncCommunSection() {
+    function toggleTroncCommunSections() {
         if (typeEnseignementSelect.value === 'TRONC_COMMUN') {
-            troncCommunSection.style.display = 'block';
+            troncCommunSections.style.display = 'block';
+            // Rendre obligatoire les champs tronc commun
+            classesTroncCommunSelect.required = true;
+            groupesTroncCommunSelect.required = true;
         } else {
-            troncCommunSection.style.display = 'none';
+            troncCommunSections.style.display = 'none';
+            // Rendre non obligatoire les champs tronc commun
+            classesTroncCommunSelect.required = false;
+            groupesTroncCommunSelect.required = false;
         }
+        updateSelectionSummary();
     }
     
-    // Initial state
-    toggleTroncCommunSection();
+    function updateSelectionSummary() {
+        const typeEnseignement = typeEnseignementSelect.options[typeEnseignementSelect.selectedIndex].text;
+        const groupesPrincipale = Array.from(document.getElementById('{{ form.groupes_classe_principale.id_for_label }}').selectedOptions)
+            .map(opt => opt.text).join(', ');
+        
+        let summaryHTML = `<strong>Type:</strong> ${typeEnseignement}<br>`;
+        summaryHTML += `<strong>Groupes principaux:</strong> ${groupesPrincipale || 'Aucun'}`;
+        
+        if (typeEnseignementSelect.value === 'TRONC_COMMUN') {
+            const classesTroncCommun = Array.from(classesTroncCommunSelect.selectedOptions)
+                .map(opt => opt.text).join(', ');
+            const groupesTroncCommun = Array.from(groupesTroncCommunSelect.selectedOptions)
+                .map(opt => opt.text).join(', ');
+            
+            summaryHTML += `<br><strong>Classes tronc commun:</strong> ${classesTroncCommun || 'Aucune'}`;
+            summaryHTML += `<br><strong>Groupes tronc commun:</strong> ${groupesTroncCommun || 'Aucun'}`;
+            
+            const totalGroupes = 
+                document.getElementById('{{ form.groupes_classe_principale.id_for_label }}').selectedOptions.length +
+                groupesTroncCommunSelect.selectedOptions.length;
+            summaryHTML += `<br><strong>Total groupes:</strong> ${totalGroupes}`;
+        }
+        
+        summaryContent.innerHTML = summaryHTML;
+        selectionSummary.style.display = 'block';
+    }
     
-    // Listen for changes
-    typeEnseignementSelect.addEventListener('change', toggleTroncCommunSection);
+    function setupTroncCommunGroups() {
+        classesTroncCommunSelect.addEventListener('change', function() {
+            const selectedClasses = Array.from(this.selectedOptions).map(opt => opt.value);
+            
+            if (selectedClasses.length === 0) {
+                // Vider les groupes si aucune classe sélectionnée
+                groupesTroncCommunSelect.innerHTML = '';
+                updateSelectionSummary();
+                return;
+            }
+            
+            // Appel AJAX pour récupérer les groupes des classes sélectionnées
+            fetch(`/api/groupes/by-classes/?classes=${selectedClasses.join(',')}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur réseau');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    groupesTroncCommunSelect.innerHTML = '';
+                    
+                    if (data.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'Aucun groupe disponible pour les classes sélectionnées';
+                        option.disabled = true;
+                        option.selected = true;
+                        groupesTroncCommunSelect.appendChild(option);
+                    } else {
+                        // Option vide
+                        const emptyOption = document.createElement('option');
+                        emptyOption.value = '';
+                        emptyOption.textContent = 'Sélectionnez les groupes';
+                        emptyOption.disabled = true;
+                        emptyOption.selected = true;
+                        groupesTroncCommunSelect.appendChild(emptyOption);
+                        
+                        // Options des groupes
+                        data.forEach(groupe => {
+                            const option = document.createElement('option');
+                            option.value = groupe.id;
+                            option.textContent = `${groupe.classe_nom} - ${groupe.nom} (${groupe.effectif} étudiants)`;
+                            option.setAttribute('data-classe', groupe.classe_nom);
+                            groupesTroncCommunSelect.appendChild(option);
+                        });
+                    }
+                    
+                    updateSelectionSummary();
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    groupesTroncCommunSelect.innerHTML = '';
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Erreur de chargement des groupes';
+                    option.disabled = true;
+                    option.selected = true;
+                    groupesTroncCommunSelect.appendChild(option);
+                });
+        });
+    }
+    
+    // Initialisation
+    toggleTroncCommunSections();
+    setupTroncCommunGroups();
+    
+    // Écouteurs d'événements
+    typeEnseignementSelect.addEventListener('change', toggleTroncCommunSections);
+    classesTroncCommunSelect.addEventListener('change', updateSelectionSummary);
+    groupesTroncCommunSelect.addEventListener('change', updateSelectionSummary);
+    
+    // Écouter les changements sur les groupes principaux
+    document.getElementById('{{ form.groupes_classe_principale.id_for_label }}')
+        .addEventListener('change', updateSelectionSummary);
+    
+    // Validation du formulaire avant soumission
+    document.getElementById('contratStartForm').addEventListener('submit', function(e) {
+        const typeEnseignement = typeEnseignementSelect.value;
+        
+        if (typeEnseignement === 'TRONC_COMMUN') {
+            const classesSelected = classesTroncCommunSelect.selectedOptions.length > 0;
+            const groupesSelected = groupesTroncCommunSelect.selectedOptions.length > 0;
+            
+            if (!classesSelected || !groupesSelected) {
+                e.preventDefault();
+                alert('Pour le tronc commun, vous devez sélectionner au moins une classe et un groupe supplémentaire.');
+                return false;
+            }
+        }
+        
+        const groupesPrincipaleSelected = document.getElementById('{{ form.groupes_classe_principale.id_for_label }}')
+            .selectedOptions.length > 0;
+            
+        if (!groupesPrincipaleSelected) {
+            e.preventDefault();
+            alert('Veuillez sélectionner au moins un groupe de la classe principale.');
+            return false;
+        }
+        
+        return true;
+    });
 });
 </script>
+
+<style>
+/* Styles pour améliorer l'interface */
+select[multiple] {
+    min-height: 120px;
+}
+
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.alert h6 {
+    margin-bottom: 0.5rem;
+}
+
+/* Style pour les options des groupes */
+option {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+</style>
 {% endblock %}

@@ -2008,6 +2008,144 @@ def classe_sync(request, pk):
         }, status=500)
 
 
+
+# ================================================
+# SYNCHRO DES GROUPES
+# ================================================
+
+# Dans views.py - VERSION CORRIGÉE
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST, require_GET
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from .services import GroupeSynchronizationService
+from Gestion.models import Groupe, Classe
+from django.db.models import Count, Sum
+import logging
+
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
+@require_POST
+@login_required
+def sync_groupes(request):
+    """Vue pour synchroniser les groupes"""
+    try:
+        force = request.POST.get('force', 'false') == 'true'
+        
+        service = GroupeSynchronizationService()
+        stats = service.sync_tous_les_groupes(force=force)
+        
+        return JsonResponse({
+            'success': True,
+            'stats': stats,
+            'message': f"Synchronisation terminée: {stats.get('groupes_crees', 0)} créés, {stats.get('groupes_mis_a_jour', 0)} mis à jour"
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur sync groupes: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'message': "Erreur lors de la synchronisation"
+        }, status=500)
+
+@require_GET
+@login_required
+def get_statut_groupes(request):
+    """Vue pour obtenir le statut des groupes"""
+    try:
+        service = GroupeSynchronizationService()
+        statut = service.get_statut_synchronisation()
+        
+        # Ajouter des statistiques détaillées
+        total_classes = Classe.objects.filter(is_active=True).count()
+        classes_avec_groupes = Classe.objects.annotate(
+            nb_groupes=Count('groupes')
+        ).filter(nb_groupes__gt=0)
+        
+        statut['details'] = {
+            'total_classes': total_classes,
+            'classes_avec_groupes': classes_avec_groupes.count(),
+            'groupes_par_classe': list(
+                Groupe.objects.values('classe__nom', 'classe__filiere')
+                .annotate(total=Count('id'), effectif=Sum('effectif'))
+                .order_by('classe__nom')
+            )
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'statut': statut
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur statut groupes: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+def liste_groupes(request):
+    """Vue pour lister tous les groupes"""
+    groupes = Groupe.objects.select_related('classe').all()
+    
+    # Statistiques détaillées
+    stats = {
+        'total': groupes.count(),
+        'actifs': groupes.filter(is_active=True).count(),
+        'effectif_total': groupes.filter(is_active=True).aggregate(Sum('effectif'))['effectif__sum'] or 0,
+        'par_classe': groupes.values('classe__nom', 'classe__filiere')
+                      .annotate(total=Count('id'), effectif=Sum('effectif'))
+                      .order_by('classe__nom')
+    }
+    
+    context = {
+        'groupes': groupes,
+        'stats': stats,
+        'title': 'Liste des Groupes'
+    }
+    
+    return render(request, 'groupes/liste_groupes.html', context)
+
+
+# @login_required
+# def sync_groupes_only(request):
+#     """Synchroniser uniquement les groupes (AJAX)"""
+#     if request.user.role not in ['ADMIN', 'INFORMATICIEN']:
+#         return JsonResponse({'error': 'Permission refusée'}, status=403)
+    
+#     try:
+#         from .services import SyncService
+#         sync_service = SyncService()
+        
+#         force = request.GET.get('force', 'false').lower() == 'true'
+        
+#         logger.info(f"🔄 Synchronisation groupes demandée: force={force}")
+        
+#         success, result = sync_service.sync_groupes(force=force)
+        
+#         if success:
+#             return JsonResponse({
+#                 'success': True,
+#                 'message': f'Synchronisation des groupes effectuée: {result.get("created", 0)} créés, {result.get("updated", 0)} mis à jour',
+#                 'result': result
+#             })
+#         else:
+#             return JsonResponse({
+#                 'success': False,
+#                 'error': result.get('error', 'Erreur inconnue')
+#             }, status=400)
+            
+#     except Exception as e:
+#         logger.error(f"Erreur sync groupes: {e}", exc_info=True)
+#         return JsonResponse({
+#             'success': False,
+#             'error': f"Erreur lors de la synchronisation des groupes: {str(e)}"
+#         }, status=500)
+
 @login_required
 def sync_all_api_data(request):
     """Synchroniser toutes les données API (AJAX)"""
@@ -2100,90 +2238,6 @@ class MaquetteListView(LoginRequiredMixin, ListView):
         return context
 
 
-# ==========================================
-# DÉTAIL D'UNE MAQUETTE
-# ==========================================
-
-# class MaquetteDetailView(LoginRequiredMixin, DetailView):
-#     """
-#     Vue de détail d'une maquette - affiche uniquement les informations générales
-#     """
-#     model = Maquette
-#     template_name = 'maquettes/detail.html'
-#     context_object_name = 'maquette'
-    
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         maquette = self.object
-        
-#         try:
-#             # Informations de la classe associée
-#             context['classe'] = maquette.classe
-            
-#             # Autres maquettes de la même filière
-#             context['autres_maquettes'] = Maquette.objects.filter(
-#                 filiere_nom=maquette.filiere_nom,
-#                 is_active=True
-#             ).exclude(pk=maquette.pk).order_by('niveau_libelle')[:5]
-            
-#             # Récupérer les UEs depuis le champ JSON
-#             unites_enseignement = maquette.unites_enseignement or []
-#             context['total_ues'] = len(unites_enseignement)
-            
-#             # Calculer les statistiques générales
-#             total_matieres = 0
-#             total_coefficient = 0
-#             total_volume_horaire = 0
-#             semestres_set = set()
-            
-#             for ue in unites_enseignement:
-#                 matieres = ue.get('matieres', [])
-#                 total_matieres += len(matieres)
-                
-#                 for matiere in matieres:
-#                     # Coefficient
-#                     coef = matiere.get('coefficient', 0)
-#                     if isinstance(coef, (int, float)):
-#                         total_coefficient += coef
-                    
-#                     # Volumes horaires
-#                     volume_cm = matiere.get('volume_horaire_cm', 0) or 0
-#                     volume_td = matiere.get('volume_horaire_td', 0) or 0
-                    
-#                     if isinstance(volume_cm, (int, float)) and isinstance(volume_td, (int, float)):
-#                         total_volume_horaire += volume_cm + volume_td
-                    
-#                     # Semestre
-#                     semestre = matiere.get('semestre') or ue.get('semestre')
-#                     if semestre:
-#                         semestres_set.add(semestre)
-            
-#             context['total_matieres'] = total_matieres
-#             context['total_coefficient'] = total_coefficient
-#             context['total_volume_horaire'] = total_volume_horaire
-#             context['semestres'] = sorted(list(semestres_set))
-#             context['has_matieres'] = total_matieres > 0
-            
-#             logger.info(
-#                 f"Détail maquette {maquette.pk} chargé: "
-#                 f"{total_matieres} matières, {context['total_ues']} UEs"
-#             )
-            
-#         except Exception as e:
-#             logger.error(f"Erreur chargement détail maquette {maquette.pk}: {str(e)}")
-#             import traceback
-#             logger.error(traceback.format_exc())
-            
-#             messages.error(self.request, f"Erreur lors du chargement: {str(e)}")
-#             context['error'] = str(e)
-#             context['total_matieres'] = 0
-#             context['total_ues'] = 0
-        
-#         return context
-"""
-Vue MaquetteDetailView modifiée pour afficher la liste complète des modules
-À remplacer dans votre fichier views.py
-"""
 class MaquetteDetailView(LoginRequiredMixin, DetailView):
     """
     Vue de détail d'une maquette - VERSION CORRIGÉE pour format API réel

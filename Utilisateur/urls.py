@@ -127,6 +127,11 @@ urlpatterns = [
     path('sync/dashboard/', views.SyncDashboardView.as_view(), name='sync_dashboard'),
     path('sync/all/', views.sync_all_api_data, name='sync_all_api_data'),
 
+
+    path('groupes/', views.liste_groupes, name='liste_groupes'),
+    path('api/sync/groupes/', views.sync_groupes, name='sync_groupes'),
+    path('api/groupes/statut/', views.get_statut_groupes, name='statut_groupes'),
+
 ]
 
 

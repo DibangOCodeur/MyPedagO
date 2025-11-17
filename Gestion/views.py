@@ -1243,53 +1243,58 @@ def contrat_list(request):
 @role_required(['RESP_PEDA', 'ADMIN'])
 def contrat_start(request, pk):
     """
-    Démarrage d'un cours
+    Démarrer un contrat avec sélection des groupes
     """
     contrat = get_object_or_404(Contrat, pk=pk)
     
-    # Vérifier si le contrat peut être démarré
     if not contrat.can_start():
-        messages.error(request, "Ce contrat ne peut pas être démarré dans son état actuel.")
+        messages.error(request, "Ce contrat ne peut pas être démarré.")
         return redirect('contrat_detail', pk=contrat.pk)
     
     if request.method == 'POST':
-        form = ContratStartForm(request.POST, classe_principale=contrat.classe)
+        form = ContratStartForm(request.POST, contrat=contrat)
         
         if form.is_valid():
             try:
-                type_enseignement = form.cleaned_data['type_enseignement']
-                classes_tronc_commun = form.cleaned_data.get('classes_tronc_commun', [])
-                date_debut_prevue = form.cleaned_data.get('date_debut_prevue')
+                with transaction.atomic():
+                    # Récupérer les données du formulaire
+                    type_enseignement = form.cleaned_data['type_enseignement']
+                    date_debut_prevue = form.cleaned_data['date_debut_prevue']
+                    groupes_principale = form.cleaned_data['groupes_classe_principale']
+                    classes_tronc_commun = form.cleaned_data['classes_tronc_commun']
+                    groupes_tronc_commun = form.cleaned_data['groupes_tronc_commun']
+                    
+                    # Démarrer le contrat
+                    contrat.demarrer_cours(
+                        user=request.user,
+                        type_enseignement=type_enseignement,
+                        classes_tronc_commun=classes_tronc_commun,
+                        date_debut_prevue=date_debut_prevue
+                    )
+                    
+                    # Associer les groupes sélectionnés
+                    tous_les_groupes = list(groupes_principale) + list(groupes_tronc_commun)
+                    contrat.groupes_selectionnes.set(tous_les_groupes)
+                    
+                    messages.success(
+                        request,
+                        f"✅ Cours démarré avec succès! {len(tous_les_groupes)} groupe(s) sélectionné(s)."
+                    )
                 
-                # Démarrer le contrat
-                contrat.demarrer_cours(
-                    user=request.user,
-                    type_enseignement=type_enseignement,
-                    classes_tronc_commun=classes_tronc_commun if type_enseignement == 'TRONC_COMMUN' else None
-                )
-                
-                # Mettre à jour la date de début prévue si fournie
-                if date_debut_prevue:
-                    contrat.date_debut_prevue = date_debut_prevue
-                    contrat.save(update_fields=['date_debut_prevue'])
-                
-                messages.success(request, f"✅ Cours démarré avec succès en mode {contrat.get_type_enseignement_display()}")
                 return redirect('contrat_detail', pk=contrat.pk)
                 
-            except ValidationError as e:
-                messages.error(request, f"❌ Erreur: {str(e)}")
             except Exception as e:
-                logger.error(f"Erreur démarrage contrat {pk}: {str(e)}")
-                messages.error(request, f"❌ Erreur lors du démarrage du cours: {str(e)}")
+                logger.error(f"Erreur démarrage contrat: {str(e)}", exc_info=True)
+                messages.error(request, f"❌ Erreur lors du démarrage: {str(e)}")
+        else:
+            messages.error(request, "❌ Veuillez corriger les erreurs du formulaire.")
     else:
-        form = ContratStartForm(initial={
-            'date_debut_prevue': timezone.now().date(),
-        }, classe_principale=contrat.classe)
+        form = ContratStartForm(contrat=contrat)
     
     context = {
         'contrat': contrat,
         'form': form,
-        'title': f'Démarrer le contrat #{contrat.id}'
+        'title': f'Démarrer le cours - {contrat.maquette}'
     }
     return render(request, 'contrats/contrat_start.html', context)
 
@@ -1756,3 +1761,34 @@ def get_taux_from_grille(professeur, classe):
         }
     except GrilleTauxHoraire.DoesNotExist:
         return None
+
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
+
+@require_GET
+def api_groupes_by_classes(request):
+    """API pour récupérer les groupes par classes"""
+    classes_ids = request.GET.get('classes', '').split(',')
+    classes_ids = [cid for cid in classes_ids if cid]
+    
+    groupes = Groupe.objects.filter(
+        classe_id__in=classes_ids,
+        is_active=True
+    ).select_related('classe').order_by('classe__nom', 'nom')
+    
+    data = [
+        {
+            'id': groupe.id,
+            'nom': groupe.nom,
+            'classe_nom': groupe.classe.nom,
+            'code': groupe.code,
+            'effectif': groupe.effectif
+        }
+        for groupe in groupes
+    ]
+    
+    return JsonResponse(data, safe=False)

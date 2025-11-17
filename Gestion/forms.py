@@ -510,17 +510,21 @@ class PaiementExecuteForm(forms.Form):
 
 from django import forms
 from django.utils import timezone
-from .models import Contrat, Classe
+from .models import Contrat, Classe, Groupe
 
 class ContratStartForm(forms.Form):
     """
-    Formulaire pour démarrer un contrat
+    Formulaire pour démarrer un contrat avec sélection des groupes
     """
     type_enseignement = forms.ChoiceField(
         choices=Contrat.TYPE_ENSEIGNEMENT_CHOICES,
         initial='NORMAL',
         label="Type d'enseignement",
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'id_type_enseignement',
+            'onchange': 'toggleGroupSelection()'  # JavaScript pour basculer l'affichage
+        })
     )
     
     date_debut_prevue = forms.DateField(
@@ -529,24 +533,62 @@ class ContratStartForm(forms.Form):
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
     
+    # Groupes de la classe principale
+    groupes_classe_principale = forms.ModelMultipleChoiceField(
+        queryset=Groupe.objects.none(),
+        required=False,
+        label="Groupes de la classe principale",
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-select',
+            'id': 'id_groupes_principale'
+        }),
+        help_text="Sélectionnez les groupes pour ce cours"
+    )
+    
+    # Classes en tronc commun (EXISTANT)
     classes_tronc_commun = forms.ModelMultipleChoiceField(
-        queryset=Classe.objects.filter(is_active=True),
+        queryset=Classe.objects.none(),
         required=False,
         label="Classes en tronc commun",
-        widget=forms.SelectMultiple(attrs={'class': 'form-select'}),
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-select',
+            'id': 'id_classes_tronc_commun'
+        }),
         help_text="Sélectionnez les classes supplémentaires pour le tronc commun"
     )
     
+    # Groupes des classes en tronc commun
+    groupes_tronc_commun = forms.ModelMultipleChoiceField(
+        queryset=Groupe.objects.none(),
+        required=False,
+        label="Groupes des classes en tronc commun",
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-select',
+            'id': 'id_groupes_tronc_commun'
+        }),
+        help_text="Sélectionnez les groupes des classes en tronc commun"
+    )
+    
     def __init__(self, *args, **kwargs):
-        classe_principale = kwargs.pop('classe_principale', None)
+        self.contrat = kwargs.pop('contrat', None)
         super().__init__(*args, **kwargs)
         
-        # Exclure la classe principale de la liste des classes en tronc commun
-        if classe_principale:
+        if self.contrat:
+            # Groupes de la classe principale
+            self.fields['groupes_classe_principale'].queryset = Groupe.objects.filter(
+                classe=self.contrat.classe,
+                is_active=True
+            ).order_by('nom')
+            
+            # Classes en tronc commun (exclure la classe principale)
             self.fields['classes_tronc_commun'].queryset = Classe.objects.filter(
                 is_active=True
-            ).exclude(id=classe_principale.id)
-
+            ).exclude(id=self.contrat.classe.id)
+            
+            # Initialiser les groupes des classes en tronc commun
+            self.fields['groupes_tronc_commun'].queryset = Groupe.objects.filter(
+                is_active=True
+            )
 
 
 

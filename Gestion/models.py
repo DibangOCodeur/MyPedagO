@@ -133,6 +133,72 @@ class Classe(models.Model):
         """Retourne le nombre de maquettes associées"""
         return self.maquettes.filter(is_active=True).count()
 
+# Dans Gestion/models.py
+class Groupe(models.Model):
+    # ID de l'API externe
+    external_id = models.CharField(
+        max_length=100,
+        unique=True, 
+        db_index=True,
+        verbose_name="ID API"
+    )
+    
+    # Relations
+    classe = models.ForeignKey(
+        'Gestion.Classe',
+        on_delete=models.CASCADE,
+        related_name='groupes',
+        verbose_name="Classe"
+    )
+    
+    # Informations du groupe
+    nom = models.CharField(max_length=100, verbose_name="Nom du groupe")
+    code = models.CharField(max_length=50, verbose_name="Code du groupe")
+    effectif = models.IntegerField(default=0, verbose_name="Effectif")
+    
+    # ⭐ NOUVEAUX CHAMPS
+    capacite_max = models.IntegerField(default=0, verbose_name="Capacité maximale")
+    taux_remplissage = models.FloatField(default=0.0, verbose_name="Taux de remplissage (%)")
+    
+    # Données brutes de l'API
+    raw_data = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Données brutes API"
+    )
+    
+    # Métadonnées
+    last_synced = models.DateTimeField(
+        default=timezone.now,
+        verbose_name="Dernière synchronisation"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Groupe actif")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Groupe"
+        verbose_name_plural = "Groupes"
+        ordering = ['classe', 'nom']
+        indexes = [
+            models.Index(fields=['external_id']),
+            models.Index(fields=['classe', 'is_active']),
+            models.Index(fields=['-last_synced']),
+        ]
+    
+    def __str__(self):
+        return f"{self.classe.nom} - {self.nom}"
+    
+    @property
+    def needs_sync(self):
+        """Vérifie si le groupe doit être resynchronisé"""
+        delta = timezone.now() - self.last_synced
+        return delta.total_seconds() > 3600  # 1 heure
+    
+    def get_absolute_url(self):
+        """URL de détail du groupe"""
+        return reverse('groupe_detail', kwargs={'pk': self.pk})
+
 
 class Maquette(models.Model):
     """Modèle pour les maquettes pédagogiques"""
@@ -893,6 +959,12 @@ class Contrat(models.Model):
         default='NORMAL',
         verbose_name="Type d'enseignement"
     )
+    groupes_selectionnes = models.ManyToManyField(
+        'Groupe',
+        blank=True,
+        related_name='contrats',
+        verbose_name="Groupes sélectionnés"
+    )
     
     # Classes supplémentaires (pour tronc commun)
     classes_tronc_commun = models.ManyToManyField(
@@ -1040,9 +1112,9 @@ class Contrat(models.Model):
         
         return montant
     
-    def demarrer_cours(self, user, type_enseignement='NORMAL', classes_tronc_commun=None):
+    def demarrer_cours(self, user, type_enseignement='NORMAL', classes_tronc_commun=None, date_debut_prevue=None):
         """
-        Démarre le cours
+        Démarre le cours avec la date de début
         """
         if self.status not in ['VALIDATED', 'READY_TO_START']:
             raise ValidationError("Le contrat ne peut pas être démarré")
@@ -1050,6 +1122,7 @@ class Contrat(models.Model):
         self.type_enseignement = type_enseignement
         self.demarre_par = user
         self.date_demarrage = timezone.now()
+        self.date_debut_prevue = date_debut_prevue or timezone.now().date()
         self.date_debut_reelle = timezone.now().date()
         self.status = 'IN_PROGRESS'
         self.save()
