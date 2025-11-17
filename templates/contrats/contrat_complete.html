@@ -1,0 +1,99 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'contrat_list' %}">Contrats</a></li>
+<li class="breadcrumb-item"><a href="{% url 'contrat_detail' pk=contrat.pk %}">Contrat #{{ contrat.id }}</a></li>
+<li class="breadcrumb-item active">Terminer le contrat</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Terminer le Contrat #{{ contrat.id }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Informations du contrat -->
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Informations du contrat
+                        </h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-12">
+                                <strong>Professeur:</strong> {{ contrat.professeur.user.get_full_name }}<br>
+                                <strong>Classe:</strong> {{ contrat.classe.nom }}<br>
+                                <strong>Module:</strong> {{ contrat.maquette.filiere_nom }}<br>
+                                <strong>Heures effectuées:</strong> {{ contrat.volume_total_effectue }}h / {{ contrat.volume_total_contractuel }}h
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documents obligatoires -->
+                    <div class="alert {% if contrat.support_cours_uploaded and contrat.syllabus_uploaded %}alert-success{% else %}alert-warning{% endif %}">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-file-alt me-2"></i>
+                            Documents obligatoires
+                        </h6>
+                        <hr>
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Support de cours:</strong>
+                                {% if contrat.support_cours_uploaded %}
+                                <span class="badge bg-success">✓ Chargé</span>
+                                {% else %}
+                                <span class="badge bg-danger">✗ Manquant</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-6">
+                                <strong>Syllabus:</strong>
+                                {% if contrat.syllabus_uploaded %}
+                                <span class="badge bg-success">✓ Chargé</span>
+                                {% else %}
+                                <span class="badge bg-danger">✗ Manquant</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulaire de confirmation -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Confirmation
+                            </h6>
+                            <p class="mb-0">
+                                Êtes-vous sûr de vouloir terminer ce cours ? Cette action est irréversible.
+                            </p>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'contrat_detail' pk=contrat.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Annuler
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Confirmer la fin du cours
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

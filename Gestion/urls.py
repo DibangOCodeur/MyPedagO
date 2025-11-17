@@ -79,7 +79,8 @@ urlpatterns = [
      path('contrat/<int:pk>/', views.contrat_detail, name='contrat_detail'),
      path('contrat/demarage/<int:pk>/', views.contrat_start, name='contrat_start'),
      path('pointage/<int:contrat_id>/', views.pointage_create, name="pointage_create"),
-     path('pointage/complet/<int:contrat_id>/', views.contrat_complete, name="contrat_complete"),
+     path('contrat/<int:pk>/complet/', views.contrat_complete, name='contrat_complete'),
+
 
     # ========================================================================
     # PAIEMENTS

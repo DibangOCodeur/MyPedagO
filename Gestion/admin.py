@@ -113,7 +113,7 @@ class ModuleProposeInline(admin.TabularInline):
         'code_module', 'nom_module', 'ue_nom',
         'volume_heure_cours', 'volume_heure_td',
         'taux_horaire_cours', 'taux_horaire_td',
-        'est_valide', 'notes_validation'
+        'est_valide'
     ]
     readonly_fields = ['date_creation', 'date_validation']
     
@@ -205,9 +205,6 @@ class PreContratAdmin(admin.ModelAdmin):
                 'volume_total_display',
                 'montant_total_display'
             )
-        }),
-        ('Notes', {
-            'fields': ('notes_validation', 'raison_rejet')
         }),
         ('Traçabilité', {
             'fields': (
@@ -385,7 +382,7 @@ class ModuleProposeAdmin(admin.ModelAdmin):
         }),
         ('Validation', {
             'fields': (
-                'est_valide', 'notes_validation',
+                'est_valide',
                 'date_validation'
             )
         }),
@@ -534,22 +531,20 @@ class ContratAdmin(admin.ModelAdmin):
     
     def volumes_display(self, obj):
         """Affiche les volumes"""
-        total = obj.volume_heure_cours + obj.volume_heure_td + obj.volume_heure_tp
+        total = obj.volume_heure_cours + obj.volume_heure_td
         return format_html(
             '<strong>Total: {}h</strong><br>'
-            '<small>CM: {}h | TD: {}h | TP: {}h</small>',
+            '<small>CM: {}h | TD: {}h</small>',
             total,
             obj.volume_heure_cours,
             obj.volume_heure_td,
-            obj.volume_heure_tp
         )
     volumes_display.short_description = 'Volumes'
     
     def montant_contractuel_display(self, obj):
         """Affiche le montant contractuel"""
         montant = (obj.volume_heure_cours * obj.taux_horaire_cours +
-                  obj.volume_heure_td * obj.taux_horaire_td +
-                  obj.volume_heure_tp * obj.taux_horaire_tp)
+                  obj.volume_heure_td * obj.taux_horaire_td)
         return format_html(
             '<strong style="color: #198754; font-size: 14px;">{:,.0f} FCFA</strong>',
             montant
@@ -598,7 +593,7 @@ class PointageAdmin(admin.ModelAdmin):
         }),
         ('Heures effectuées', {
             'fields': (
-                'heures_cours', 'heures_td', 'heures_tp'
+                'heures_cours', 'heures_td'
             )
         }),
         ('Enregistrement', {
@@ -615,13 +610,12 @@ class PointageAdmin(admin.ModelAdmin):
     
     def heures_display(self, obj):
         """Affiche les heures"""
-        total = (obj.heures_cours or 0) + (obj.heures_td or 0) + (obj.heures_tp or 0)
+        total = (obj.heures_cours or 0) + (obj.heures_td or 0)
         return format_html(
-            '<strong>{}h</strong><br><small>CM:{}h TD:{}h TP:{}h</small>',
+            '<strong>{}h</strong><br><small>CM:{}h TD:{}h</small>',
             total,
             obj.heures_cours or 0,
-            obj.heures_td or 0,
-            obj.heures_tp or 0
+            obj.heures_td or 0
         )
     heures_display.short_description = 'Heures'
     

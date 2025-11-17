@@ -144,23 +144,6 @@
                         </div>
                         {% endif %}
                         
-                        <!-- TP -->
-                        {% if contrat.volume_heure_tp > 0 %}
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span><strong>Travaux Pratiques (TP)</strong></span>
-                                <span>{{ heures_effectuees.tp }} / {{ contrat.volume_heure_tp }}h</span>
-                            </div>
-                            <div class="progress" style="height: 25px;">
-                                <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" 
-                                     role="progressbar" 
-                                     style="width: {% widthratio heures_effectuees.tp contrat.volume_heure_tp 100 %}%">
-                                    {% widthratio heures_effectuees.tp contrat.volume_heure_tp 100 %}%
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
                         <!-- Progression globale -->
                         <div class="mt-4">
                             <div class="d-flex justify-content-between mb-2">
@@ -280,10 +263,11 @@
                     {% endif %}
                     
                     {% if can_complete %}
-                    <a href="{% url 'contrat_complete' contrat.id %}" class="btn btn-warning w-100 mb-2">
+                    <a href="{% url 'contrat_complete' pk=contrat.pk %}" class="btn btn-warning w-100 mb-2">
                         <i class="fas fa-check-circle me-2"></i> Terminer le Cours
                     </a>
                     {% endif %}
+
                     
                     <a href="#" onclick="window.print()" class="btn btn-outline-secondary w-100">
                         <i class="fas fa-print me-2"></i> Imprimer
@@ -349,12 +333,6 @@
                         <tr>
                             <td>Taux TD:</td>
                             <td class="text-end"><strong>{{ contrat.taux_horaire_td|floatformat:0 }} FCFA</strong></td>
-                        </tr>
-                        {% endif %}
-                        {% if contrat.volume_heure_tp > 0 %}
-                        <tr>
-                            <td>Taux TP:</td>
-                            <td class="text-end"><strong>{{ contrat.taux_horaire_tp|floatformat:0 }} FCFA</strong></td>
                         </tr>
                         {% endif %}
                         <tr class="table-primary">

@@ -1344,60 +1344,63 @@ def pointage_create(request, contrat_id):
     """
     contrat = get_object_or_404(Contrat, pk=contrat_id)
     
-    # Vérifier que le contrat peut recevoir des pointages
     if contrat.status != 'IN_PROGRESS':
         messages.error(request, "❌ Ce contrat n'est pas en cours. Impossible d'ajouter un pointage.")
         return redirect('contrat_detail', pk=contrat.pk)
     
     if request.method == 'POST':
+        print("📨 POST request reçu")  # Debug
         form = PointageForm(request.POST)
         
+        print(f"✅ Formulaire valide: {form.is_valid()}")  # Debug
+        
+        if not form.is_valid():
+            # ⭐ AFFICHEZ LES ERREURS DÉTAILLÉES
+            print(f"❌ ERREURS DU FORMULAIRE:")
+            for field, errors in form.errors.items():
+                print(f"   - {field}: {errors}")
+            for field in form:
+                if field.errors:
+                    print(f"   - Champ '{field.name}': {field.errors}")
+        
         if form.is_valid():
+            print("🎯 Formulaire valide, traitement...")  # Debug
             try:
                 with transaction.atomic():
                     pointage = form.save(commit=False)
-                    # ⭐ CORRECTION CRITIQUE : Assigner le contrat AVANT toute opération
                     pointage.contrat = contrat
                     pointage.enregistre_par = request.user
                     pointage.est_valide = True
                     
-                    # Valider et sauvegarder
-                    pointage.full_clean()
+                    # Sauvegarder directement
                     pointage.save()
-                
-                # ⭐ CORRECTION : Utiliser les méthodes du modèle pour calculer les heures
-                heures_effectuees = contrat.get_heures_effectuees()
+                    print(f"✅ Pointage sauvegardé avec ID: {pointage.id}")  # Debug
                 
                 messages.success(
                     request,
                     f"✅ Pointage enregistré: {pointage.total_heures}h le {pointage.date_seance.strftime('%d/%m/%Y')}"
                 )
                 
-                # Vérifier si le contrat est terminé
-                if (heures_effectuees['cours'] >= contrat.volume_heure_cours and 
-                    heures_effectuees['td'] >= contrat.volume_heure_td):
-                    messages.info(
-                        request,
-                        "ℹ️ Toutes les heures contractuelles ont été effectuées. Vous pouvez terminer le contrat."
-                    )
-                
                 return redirect('contrat_detail', pk=contrat.pk)
                 
-            except ValidationError as e:
-                messages.error(request, f"❌ Erreur de validation: {str(e)}")
             except Exception as e:
+                print(f"❌ Erreur lors de la sauvegarde: {e}")  # Debug
                 logger.error(f"Erreur création pointage: {str(e)}", exc_info=True)
                 messages.error(request, f"❌ Erreur lors de l'enregistrement du pointage: {str(e)}")
         else:
-            messages.error(request, "❌ Veuillez corriger les erreurs ci-dessous.")
+            # ⭐ AFFICHEZ LES ERREURS DANS LES MESSAGES
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, f"❌ {error}")
+                    else:
+                        field_name = form.fields[field].label or field
+                        messages.error(request, f"❌ {field_name}: {error}")
     else:
-        # GET request - initialiser avec la date du jour
         form = PointageForm(initial={
             'date_seance': timezone.now().date(),
-            'taux_presence': 100,
         })
     
-    # Calculer les heures pour affichage (utiliser directement les méthodes du modèle)
     heures_effectuees = contrat.get_heures_effectuees()
     heures_restantes = {
         'cours': max(contrat.volume_heure_cours - heures_effectuees['cours'], Decimal('0.00')),

@@ -1205,7 +1205,6 @@ class Pointage(models.Model):
         """Total des heures de la séance"""
         return self.heures_cours + self.heures_td
     
-# Dans votre modèle Pointage
     def clean(self):
         """Validation personnalisée"""
         super().clean()
@@ -1214,9 +1213,10 @@ class Pointage(models.Model):
         if self.total_heures == 0:
             raise ValidationError("Au moins un type d'heure doit être renseigné")
         
-        # ⭐ CORRECTION : Vérifier que le contrat est défini avant d'accéder à ses propriétés
-        if not self.contrat:
-            raise ValidationError("Le pointage doit être associé à un contrat")
+        # ⭐ CORRECTION : Vérifier si le contrat existe sans déclencher d'erreur RelatedObjectDoesNotExist
+        if not hasattr(self, 'contrat') or not self.contrat:
+            # Si le contrat n'est pas défini, on ne peut pas faire les vérifications de volume
+            return
         
         # Vérifier que les heures ne dépassent pas les volumes contractuels
         effectues = self.contrat.get_heures_effectuees()
@@ -1237,7 +1237,6 @@ class Pointage(models.Model):
                 f"Les heures de TD dépassent le volume contractuel "
                 f"({effectues['td'] + self.heures_td} > {self.contrat.volume_heure_td})"
             )
-        
 
 
 class DocumentContrat(models.Model):
