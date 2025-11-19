@@ -277,7 +277,7 @@
                             {% endif %}
                         </div>
                         {% if professeur.cni_document %}
-                            <a href="{% url 'download_professeur_document' professeur.id 'cni' %}" 
+                            <a href="{% url 'professeur_document_download' professeur.id 'cni' %}" 
                                class="btn btn-sm btn-success">
                                 <i class="fas fa-download"></i> Télécharger
                             </a>
@@ -296,7 +296,7 @@
                             {% endif %}
                         </div>
                         {% if professeur.rib_document %}
-                            <a href="{% url 'download_professeur_document' professeur.id 'rib' %}" 
+                            <a href="{% url 'professeur_document_download' professeur.id 'rib' %}" 
                                class="btn btn-sm btn-success">
                                 <i class="fas fa-download"></i> Télécharger
                             </a>
@@ -315,7 +315,7 @@
                             {% endif %}
                         </div>
                         {% if professeur.cv_document %}
-                            <a href="{% url 'download_professeur_document' professeur.id 'cv' %}" 
+                            <a href="{% url 'professeur_document_download' professeur.id 'cv' %}" 
                                class="btn btn-sm btn-success">
                                 <i class="fas fa-download"></i> Télécharger
                             </a>
@@ -334,7 +334,7 @@
                             {% endif %}
                         </div>
                         {% if professeur.diplome_document %}
-                            <a href="{% url 'download_professeur_document' professeur.id 'diplome' %}" 
+                            <a href="{% url 'professeur_document_download' professeur.id 'diplome' %}" 
                                class="btn btn-sm btn-success">
                                 <i class="fas fa-download"></i> Télécharger
                             </a>

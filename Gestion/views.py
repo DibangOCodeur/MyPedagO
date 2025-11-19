@@ -1341,11 +1341,12 @@ def contrat_detail(request, pk):
     return render(request, 'contrats/contrat_detail.html', context)
 
 
+
 @login_required
 @role_required(['RESP_PEDA', 'ADMIN'])
 def pointage_create(request, contrat_id):
     """
-    Création d'un pointage pour un contrat
+    Création d'un pointage pour un contrat avec gestion des groupes
     """
     contrat = get_object_or_404(Contrat, pk=contrat_id)
     
@@ -1353,20 +1354,21 @@ def pointage_create(request, contrat_id):
         messages.error(request, "❌ Ce contrat n'est pas en cours. Impossible d'ajouter un pointage.")
         return redirect('contrat_detail', pk=contrat.pk)
     
+    # Vérifier qu'il y a des groupes sélectionnés
+    if not contrat.groupes_selectionnes.exists():
+        messages.error(request, "❌ Aucun groupe sélectionné pour ce contrat. Veuillez d'abord sélectionner des groupes.")
+        return redirect('contrat_detail', pk=contrat.pk)
+    
     if request.method == 'POST':
         print("📨 POST request reçu")  # Debug
-        form = PointageForm(request.POST)
+        form = PointageForm(request.POST, contrat=contrat)
         
         print(f"✅ Formulaire valide: {form.is_valid()}")  # Debug
         
         if not form.is_valid():
-            # ⭐ AFFICHEZ LES ERREURS DÉTAILLÉES
             print(f"❌ ERREURS DU FORMULAIRE:")
             for field, errors in form.errors.items():
                 print(f"   - {field}: {errors}")
-            for field in form:
-                if field.errors:
-                    print(f"   - Champ '{field.name}': {field.errors}")
         
         if form.is_valid():
             print("🎯 Formulaire valide, traitement...")  # Debug
@@ -1377,13 +1379,18 @@ def pointage_create(request, contrat_id):
                     pointage.enregistre_par = request.user
                     pointage.est_valide = True
                     
-                    # Sauvegarder directement
+                    # Sauvegarder d'abord le pointage
                     pointage.save()
-                    print(f"✅ Pointage sauvegardé avec ID: {pointage.id}")  # Debug
+                    
+                    # ⭐ CORRECTION : Lier les groupes sélectionnés via la relation ManyToMany
+                    groupes_selectionnes = form.cleaned_data['groupes_selection']
+                    pointage.groupes.set(groupes_selectionnes)
+                    
+                    print(f"✅ Pointage sauvegardé avec ID: {pointage.id} pour {len(groupes_selectionnes)} groupes")  # Debug
                 
                 messages.success(
                     request,
-                    f"✅ Pointage enregistré: {pointage.total_heures}h le {pointage.date_seance.strftime('%d/%m/%Y')}"
+                    f"✅ Pointage enregistré: {pointage.total_heures}h le {pointage.date_seance.strftime('%d/%m/%Y')} pour {len(groupes_selectionnes)} groupe(s)"
                 )
                 
                 return redirect('contrat_detail', pk=contrat.pk)
@@ -1393,7 +1400,7 @@ def pointage_create(request, contrat_id):
                 logger.error(f"Erreur création pointage: {str(e)}", exc_info=True)
                 messages.error(request, f"❌ Erreur lors de l'enregistrement du pointage: {str(e)}")
         else:
-            # ⭐ AFFICHEZ LES ERREURS DANS LES MESSAGES
+            # Afficher les erreurs dans les messages
             for field, errors in form.errors.items():
                 for error in errors:
                     if field == '__all__':
@@ -1402,7 +1409,7 @@ def pointage_create(request, contrat_id):
                         field_name = form.fields[field].label or field
                         messages.error(request, f"❌ {field_name}: {error}")
     else:
-        form = PointageForm(initial={
+        form = PointageForm(contrat=contrat, initial={
             'date_seance': timezone.now().date(),
         })
     
@@ -1412,15 +1419,23 @@ def pointage_create(request, contrat_id):
         'td': max(contrat.volume_heure_td - heures_effectuees['td'], Decimal('0.00')),
     }
     
+    # Récupérer les groupes disponibles
+    groupes_disponibles = contrat.get_all_groupes()
+    
     context = {
         'contrat': contrat,
         'form': form,
         'heures_restantes': heures_restantes,
         'heures_effectuees': heures_effectuees,
+        'groupes_disponibles': groupes_disponibles,
         'title': f'Ajouter un pointage - Contrat #{contrat.id}'
     }
     return render(request, 'contrats/pointage_form.html', context)
 
+
+# ==========================================
+# VUES POUR LES CONTRATS
+# ==========================================
 
 @login_required
 @role_required(['RESP_PEDA', 'ADMIN'])

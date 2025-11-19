@@ -1,7 +1,3 @@
-"""
-Administration Django pour l'application Gestion
-FICHIER CORRIGÉ - Correspondant aux modèles réels
-"""
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
@@ -12,6 +8,9 @@ from .models import (
     Pointage, DocumentContrat, PaiementContrat, ActionLog, Groupe
 )
 from Utilisateur.models import CustomUser
+
+from decimal import Decimal
+from django.urls import reverse
 
 # ==========================================
 # ADMIN CLASSE
@@ -398,7 +397,8 @@ class PreContratAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('professeur', 'classe', 'cree_par', 'valide_par')
+        return qs.select_related('professeur', 'classe', 'cree_par', 'valide_par')\
+                .prefetch_related('modules_proposes')  # ⭐ AJOUT pour optimiser les requêtes
 
 
 # ==========================================
@@ -409,7 +409,7 @@ class ModuleProposeAdmin(admin.ModelAdmin):
     list_display = [
         'code_module', 'nom_module', 'pre_contrat_ref',
         'ue_nom', 'volume_total_display', 'montant_display',
-        'est_valide_badge'
+        'est_valide_badge','date_creation'
     ]
     list_filter = [
         'est_valide', 'date_creation'
@@ -469,27 +469,21 @@ class ModuleProposeAdmin(admin.ModelAdmin):
     volume_total_display.short_description = "Volumes"
     
     def montant_display(self, obj):
-        """Montant - CORRECTION ICI"""
-        montant = obj.get_montant_total()
-        
-        # ⭐ CORRECTION : Formater le montant séparément avant de l'utiliser dans format_html
-        montant_formate = "{:,.0f}".format(montant)
-        
-        return format_html(
-            '<strong style="color: #198754;">{} FCFA</strong>',
-            montant_formate  # Utiliser la valeur déjà formatée
-        )
+        """Montant - VERSION CORRIGÉE ET SÉCURISÉE"""
+        try:
+            montant = obj.get_montant_total()
+            if montant is None:
+                montant = Decimal('0')
+            
+            montant_formate = "{:,.0f}".format(float(montant))
+            
+            return format_html(
+                '<strong style="color: #198754;">{} FCFA</strong>',
+                montant_formate
+            )
+        except (AttributeError, ValueError, TypeError):
+            return format_html('<span style="color: #dc3545;">N/A</span>')
     montant_display.short_description = "Montant"
-    
-    # ⭐ ALTERNATIVE : Version encore plus simple
-    # def montant_display(self, obj):
-    #     """Montant - Version alternative"""
-    #     montant = obj.get_montant_total()
-    #     return format_html(
-    #         '<strong style="color: #198754;">{} FCFA</strong>',
-    #         f"{montant:,.0f}"  # Formatage en dehors de format_html
-    #     )
-    # montant_display.short_description = "Montant"
     
     def est_valide_badge(self, obj):
         """Badge de validation"""
@@ -616,13 +610,17 @@ class ContratAdmin(admin.ModelAdmin):
     
     def montant_contractuel_display(self, obj):
         """Affiche le montant contractuel"""
-        montant = (obj.volume_heure_cours * obj.taux_horaire_cours +
-                  obj.volume_heure_td * obj.taux_horaire_td)
-        return format_html(
-            '<strong style="color: #198754; font-size: 14px;">{:,.0f} FCFA</strong>',
-            montant
-        )
-    montant_contractuel_display.short_description = 'Montant contractuel'
+        try:
+            montant_cours = (obj.volume_heure_cours or Decimal('0')) * (obj.taux_horaire_cours or Decimal('0'))
+            montant_td = (obj.volume_heure_td or Decimal('0')) * (obj.taux_horaire_td or Decimal('0'))
+            montant_total = montant_cours + montant_td
+            
+            return format_html(
+                '<strong style="color: #198754; font-size: 14px;">{:,.0f} FCFA</strong>',
+                float(montant_total)
+            )
+        except (TypeError, ValueError):
+            return format_html('<span style="color: #dc3545;">Erreur de calcul</span>')
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -630,6 +628,22 @@ class ContratAdmin(admin.ModelAdmin):
             'professeur', 'professeur__user', 'classe', 
             'maquette', 'valide_par', 'demarre_par'
         )
+
+    def groupes_count(self, obj):
+        """Affiche le nombre de groupes sélectionnés"""
+        count = obj.groupes_selectionnes.count()
+        return format_html(
+            '<span class="badge bg-primary">{}</span>',
+            count
+        )
+    groupes_count.short_description = 'Groupes'
+    
+    # Ajouter le filtre par groupes
+    list_filter = [
+        'status', 'type_enseignement', 
+        'date_debut_prevue', 'date_fin_prevue',
+        'groupes_selectionnes'  # ⭐ NOUVEAU
+    ]
 
 
 # ==========================================
@@ -645,6 +659,7 @@ class PointageAdmin(admin.ModelAdmin):
     ]
     list_filter = [
         'est_valide', 'date_seance', 'date_enregistrement'
+       
     ]
     search_fields = [
         'contrat__professeur__user__first_name',
@@ -654,6 +669,16 @@ class PointageAdmin(admin.ModelAdmin):
         'enregistre_par', 'date_enregistrement',
         'created_at', 'updated_at'
     ]
+    
+    def groupes_count(self, obj):
+        """Affiche le nombre de groupes pour ce pointage"""
+        count = obj.groupes.count()
+        return format_html(
+            '<span class="badge bg-info">{}</span>',
+            count
+        )
+    groupes_count.short_description = 'Groupes'
+
     
     fieldsets = (
         ('Contrat', {
@@ -668,6 +693,9 @@ class PointageAdmin(admin.ModelAdmin):
             'fields': (
                 'heures_cours', 'heures_td'
             )
+        }),
+        ('Groupes', {
+            'fields': ('groupes',)
         }),
         ('Enregistrement', {
             'fields': ('enregistre_par', 'date_enregistrement')

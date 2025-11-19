@@ -428,25 +428,6 @@
                     </div>
                 </div>
             </div>
-
-            {% comment %} <!-- Actions rapides admin -->
-            {% if request.user.role == 'ADMIN' %}
-            <div class="info-card">
-                <div class="section-header">
-                    <h3 class="section-title">
-                        <i class="fas fa-cog"></i> Administration
-                    </h3>
-                </div>
-                <div class="admin-actions">
-                    <a href="{% url 'user_change_password' professeur.user.pk %}" class="admin-action-btn">
-                        <i class="fas fa-key"></i> Changer le mot de passe
-                    </a>
-                    <button class="admin-action-btn" onclick="resetPassword()">
-                        <i class="fas fa-redo"></i> Réinitialiser le mot de passe
-                    </button>
-                </div>
-            </div>
-            {% endif %} {% endcomment %}
         </div>
     </div>
 

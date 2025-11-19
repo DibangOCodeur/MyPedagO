@@ -9,104 +9,187 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/contrats/contrat_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/contrat.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4 contrat-detail-container">
-    <!-- En-tête amélioré -->
-    <div class="contrat-header-card">
-        <div class="contrat-header-content">
-            <div class="contrat-title-section">
-                <div class="contrat-icon">
-                    <i class="fas fa-file-contract"></i>
+    <!-- Première ligne: En-tête et Groupes Concernés -->
+    <div class="contrat-header-and-groupes">
+        <!-- En-tête amélioré -->
+        <div class="contrat-header-card">
+            <div class="contrat-header-card">
+                <div class="contrat-header-content">
+                    <div class="contrat-title-section">
+                        <div class="contrat-icon">
+                            <i class="fas fa-file-contract"></i>
+                        </div>
+                        <div class="contrat-text">
+                            <h1>Contrat #{{ contrat.id }}</h1>
+                            <p class="contrat-subtitle">Détails et suivi du contrat d'enseignement</p>
+                        </div>
+                    </div>
+                    <div class="contrat-status-section">
+                        <span class="status-badge 
+                            {% if contrat.status == 'VALIDATED' %}bg-info
+                            {% elif contrat.status == 'IN_PROGRESS' %}bg-primary
+                            {% elif contrat.status == 'COMPLETED' %}bg-success
+                            {% elif contrat.status == 'PENDING_DOCUMENTS' %}bg-warning
+                            {% elif contrat.status == 'READY_FOR_PAYMENT' %}bg-success
+                            {% elif contrat.status == 'PAID' %}bg-dark
+                            {% endif %}">
+                            {{ contrat.get_status_display }}
+                        </span>
+                    </div>
                 </div>
-                <div class="contrat-text">
-                    <h1>Contrat #{{ contrat.id }}</h1>
-                    <p class="contrat-subtitle">Détails et suivi du contrat d'enseignement</p>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-user-tie me-2"></i> Professeur</h6>
+                            <p class="mb-0">{{ contrat.professeur.user.get_full_name }}</p>
+                            <small class="text-muted">{{ contrat.professeur.user.email }}</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-book me-2"></i> Module</h6>
+                            <p class="mb-0"><strong>{{ contrat.module_propose.nom_module }}</strong></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-users me-2"></i>Classe</h6>
+                            <p class="mb-0">{{ contrat.classe.nom }}</p>
+                            <small class="text-muted">{{ contrat.classe.departement }}</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-chalkboard-teacher me-2"></i> Type d'Enseignement</h6>
+                            <p class="mb-0">{{ contrat.get_type_enseignement_display }}</p>
+                            {% if contrat.type_enseignement == 'TRONC_COMMUN' %}
+                            <small class="text-muted">
+                                Avec: 
+                                {% for classe in contrat.classes_tronc_commun.all %}
+                                    {{ classe.nom }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value text-primary">{{ contrat.volume_total_contractuel }}h</div>
+                            <div class="stat-label">Volume Total</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value text-success">{{ contrat.volume_total_effectue }}h</div>
+                            <div class="stat-label">Heures Effectuées</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value 
+                                {% if contrat.taux_realisation >= 90 %}text-success
+                                {% elif contrat.taux_realisation >= 50 %}text-warning
+                                {% else %}text-danger{% endif %}">
+                                {{ contrat.taux_realisation|floatformat:1 }}%
+                            </div>
+                            <div class="stat-label">Taux Réalisation</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value text-info">{{ contrat.montant_total_contractuel|floatformat:0 }}</div>
+                            <div class="stat-label">Montant Contractuel</div>
+                            <small class="text-muted">FCFA</small>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="contrat-status-section">
-                <span class="status-badge 
-                    {% if contrat.status == 'VALIDATED' %}bg-info
-                    {% elif contrat.status == 'IN_PROGRESS' %}bg-primary
-                    {% elif contrat.status == 'COMPLETED' %}bg-success
-                    {% elif contrat.status == 'PENDING_DOCUMENTS' %}bg-warning
-                    {% elif contrat.status == 'READY_FOR_PAYMENT' %}bg-success
-                    {% elif contrat.status == 'PAID' %}bg-dark
-                    {% endif %}">
-                    {{ contrat.get_status_display }}
-                </span>
             </div>
         </div>
         
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <h6><i class="fas fa-user-tie me-2"></i> Professeur</h6>
-                    <p class="mb-0">{{ contrat.professeur.user.get_full_name }}</p>
-                    <small class="text-muted">{{ contrat.professeur.user.email }}</small>
+        <!-- Groupes Concernés -->
+        <div class="groupes-concernes-card">
+            <div class="card groupes-concernes-card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i> Groupes Concernés</h5>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <h6><i class="fas fa-book me-2"></i> Module</h6>
-                    <p class="mb-0"><strong>{{ contrat.module_propose.nom_module }}</strong></p>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <h6><i class="fas fa-users me-2"></i> Classe</h6>
-                    <p class="mb-0">{{ contrat.classe.nom }}</p>
-                    <small class="text-muted">{{ contrat.classe.departement }}</small>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <h6><i class="fas fa-chalkboard-teacher me-2"></i> Type d'Enseignement</h6>
-                    <p class="mb-0">{{ contrat.get_type_enseignement_display }}</p>
-                    {% if contrat.type_enseignement == 'TRONC_COMMUN' %}
-                    <small class="text-muted">
-                        Avec: 
-                        {% for classe in contrat.classes_tronc_commun.all %}
-                            {{ classe.nom }}{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
-                    </small>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <hr>
-            
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-value text-primary">{{ contrat.volume_total_contractuel }}h</div>
-                    <div class="stat-label">Volume Total</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value text-success">{{ contrat.volume_total_effectue }}h</div>
-                    <div class="stat-label">Heures Effectuées</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value 
-                        {% if contrat.taux_realisation >= 90 %}text-success
-                        {% elif contrat.taux_realisation >= 50 %}text-warning
-                        {% else %}text-danger{% endif %}">
-                        {{ contrat.taux_realisation|floatformat:1 }}%
+                <div class="card-body">
+                    <div class="groupes-sections-container">
+                        <!-- Classe principale -->
+                        <div class="groupe-section principale">
+                            <div class="groupe-section-title">
+                                <i class="fas fa-school"></i>
+                                <h6 class="text-primary mb-0">Classe Principale</h6>
+                            </div>
+                            <p class="mb-3"><strong>{{ contrat.classe.nom }}</strong></p>
+                            
+                            {% with groupes_principaux=contrat.groupes_selectionnes.all %}
+                            {% if groupes_principaux %}
+                                <div class="groupes-list">
+                                    {% for groupe in groupes_principaux %}
+                                    <div class="groupe-card">
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-user-friends me-1"></i>{{ groupe.nom }}
+                                        </span>
+                                        <div class="groupe-info">
+                                            <small>Effectif: {{ groupe.effectif }} étudiants</small>
+                                            {% if groupe.capacite_max %}
+                                            <small>Capacité: {{ groupe.capacite_max }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning py-2">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Aucun groupe sélectionné
+                                </div>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        
+                        <!-- Classes tronc commun -->
+                        {% if contrat.type_enseignement == 'TRONC_COMMUN' and contrat.classes_tronc_commun.all %}
+                        <div class="groupe-section tronc-commun">
+                            <div class="groupe-section-title">
+                                <i class="fas fa-project-diagram"></i>
+                                <h6 class="text-success mb-0">Tronc Commun</h6>
+                            </div>
+                            
+                            {% for classe_tronc in contrat.classes_tronc_commun.all %}
+                            <div class="classe-tronc-section mb-3">
+                                <p class="mb-2"><strong>{{ classe_tronc.nom }}</strong></p>
+                                
+                                {% with groupes_tronc=classe_tronc.groupes.all %}
+                                {% if groupes_tronc %}
+                                    <div class="groupes-list">
+                                        {% for groupe in groupes_tronc %}
+                                        <div class="groupe-card">
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-user-friends me-1"></i>{{ groupe.nom }}
+                                            </span>
+                                            <div class="groupe-info">
+                                                <small>Effectif: {{ groupe.effectif }} étudiants</small>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <small class="text-muted">Aucun groupe dans cette classe</small>
+                                {% endif %}
+                                {% endwith %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
-                    <div class="stat-label">Taux Réalisation</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value text-info">{{ contrat.montant_total_contractuel|floatformat:0 }}</div>
-                    <div class="stat-label">Montant Contractuel</div>
-                    <small class="text-muted">FCFA</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <!-- Colonne principale -->
-        <div class="col-md-8">
-            <!-- Progression détaillée -->
-            <div class="card mb-4">
+    <!-- Deuxième ligne: Progression et Actions -->
+    <div class="progression-actions-row">
+        <!-- Progression du Cours -->
+        <div class="progression-card">
+            <div class="card progression-card h-100">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Progression du Cours</h5>
                 </div>
@@ -159,124 +242,85 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Graphique -->
-                    <div class="mt-4">
-                        <canvas id="progressChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Pointages -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i> Pointages</h5>
-                    {% if can_add_pointage %}
-                    <a href="{% url 'pointage_create' contrat.id %}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus-circle me-1"></i> Nouveau Pointage
-                    </a>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    {% if pointages %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Heures</th>
-                                    <th>Sujet</th>
-                                    <th>Présence</th>
-                                    <th>Enregistré par</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for pointage in pointages %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ pointage.date_seance|date:"d/m/Y" }}</strong><br>
-                                        {% if pointage.heure_debut %}
-                                        <small class="text-muted">{{ pointage.heure_debut }} - {{ pointage.heure_fin }}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if pointage.heures_cours > 0 %}
-                                        <span class="badge bg-info">CM: {{ pointage.heures_cours }}h</span>
-                                        {% endif %}
-                                        {% if pointage.heures_td > 0 %}
-                                        <span class="badge bg-primary">TD: {{ pointage.heures_td }}h</span>
-                                        {% endif %}
-                                        {% if pointage.heures_tp > 0 %}
-                                        <span class="badge bg-warning">TP: {{ pointage.heures_tp }}h</span>
-                                        {% endif %}
-                                        <br>
-                                        <small><strong>Total: {{ pointage.total_heures }}h</strong></small>
-                                    </td>
-                                    <td>
-                                        {{ pointage.sujet_traite|default:"-"|truncatewords:8 }}
-                                        {% if pointage.observations %}
-                                        <br><small class="text-muted">{{ pointage.observations|truncatewords:10 }}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <small>{{ pointage.enregistre_par.get_full_name }}<br>
-                                        {{ pointage.date_enregistrement|date:"d/m/Y" }}</small>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i> Aucun pointage enregistré pour ce contrat.
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
         
-        <!-- Sidebar -->
-        <div class="col-md-4">
-            <!-- Actions -->
-            <div class="card mb-4">
+        <!-- Actions -->
+        <div class="actions-card">
+            <div class="card actions-card h-100">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-bolt me-2"></i> Actions</h5>
                 </div>
                 <div class="card-body">
                     {% if can_start %}
-                    <a href="{% url 'contrat_start' contrat.id %}" class="btn btn-success w-100 mb-2">
+                    <a href="{% url 'contrat_start' contrat.id %}" class="btn btn-success w-100 mb-2 action-btn">
                         <i class="fas fa-play-circle me-2"></i> Démarrer le Cours
                     </a>
                     {% endif %}
                     
                     {% if can_add_pointage %}
-                    <a href="{% url 'pointage_create' contrat.id %}" class="btn btn-primary w-100 mb-2">
+                    <a href="{% url 'pointage_create' contrat.id %}" class="btn btn-primary w-100 mb-2 action-btn">
                         <i class="fas fa-plus-circle me-2"></i> Ajouter Pointage
                     </a>
                     {% endif %}
                     
                     {% if can_upload_documents %}
-                    <a href="{% url 'document_upload' contrat.id %}" class="btn btn-info w-100 mb-2">
+                    <a href="{% url 'document_upload' contrat.id %}" class="btn btn-info w-100 mb-2 action-btn">
                         <i class="fas fa-cloud-upload-alt me-2"></i> Charger Documents
                     </a>
                     {% endif %}
                     
                     {% if can_complete %}
-                    <a href="{% url 'contrat_complete' pk=contrat.pk %}" class="btn btn-warning w-100 mb-2">
+                    <a href="{% url 'contrat_complete' pk=contrat.pk %}" class="btn btn-warning w-100 mb-2 action-btn">
                         <i class="fas fa-check-circle me-2"></i> Terminer le Cours
                     </a>
                     {% endif %}
 
-                    
-                    <a href="#" onclick="window.print()" class="btn btn-outline-secondary w-100">
+                    <a href="#" onclick="window.print()" class="btn btn-outline-secondary w-100 action-btn">
                         <i class="fas fa-print me-2"></i> Imprimer
                     </a>
                 </div>
             </div>
-            
-            <!-- Documents -->
-            <div class="card mb-4">
+        </div>
+    </div>
+
+    <!-- Troisième ligne: Finance, Documents, Dates -->
+    <div class="finance-documents-dates-row">
+        <!-- Finance -->
+        <div class="finance-card">
+            <div class="card finance-card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i> Finance</h5>
+                </div>
+                <div class="card-body">
+                    <table class="finance-table">
+                        <tr>
+                            <td>Taux Cours:</td>
+                            <td class="finance-value">{{ contrat.taux_horaire_cours|floatformat:0 }} FCFA</td>
+                        </tr>
+                        {% if contrat.volume_heure_td > 0 %}
+                        <tr>
+                            <td>Taux TD:</td>
+                            <td class="finance-value">{{ contrat.taux_horaire_td|floatformat:0 }} FCFA</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="table-primary">
+                            <td><strong>Montant Contractuel:</strong></td>
+                            <td class="finance-value"><strong>{{ contrat.montant_total_contractuel|floatformat:0 }} FCFA</strong></td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><strong>Montant À Payer:</strong></td>
+                            <td class="finance-value"><strong>{{ contrat.calculate_montant_a_payer|floatformat:0 }} FCFA</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Documents -->
+        <div class="documents-card">
+            <div class="card documents-card h-100">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-files me-2"></i> Documents</h5>
                 </div>
@@ -317,57 +361,141 @@
                     {% endif %}
                 </div>
             </div>
-            
-            <!-- Informations Financières -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i> Finance</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table table-sm">
-                        <tr>
-                            <td>Taux Cours:</td>
-                            <td class="text-end"><strong>{{ contrat.taux_horaire_cours|floatformat:0 }} FCFA</strong></td>
-                        </tr>
-                        {% if contrat.volume_heure_td > 0 %}
-                        <tr>
-                            <td>Taux TD:</td>
-                            <td class="text-end"><strong>{{ contrat.taux_horaire_td|floatformat:0 }} FCFA</strong></td>
-                        </tr>
-                        {% endif %}
-                        <tr class="table-primary">
-                            <td><strong>Montant Contractuel:</strong></td>
-                            <td class="text-end"><strong>{{ contrat.montant_total_contractuel|floatformat:0 }} FCFA</strong></td>
-                        </tr>
-                        <tr class="table-success">
-                            <td><strong>Montant À Payer:</strong></td>
-                            <td class="text-end"><strong>{{ contrat.calculate_montant_a_payer|floatformat:0 }} FCFA</strong></td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Dates -->
-            <div class="card">
+        </div>
+        
+        <!-- Dates -->
+        <div class="dates-card">
+            <div class="card dates-card h-100">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i> Dates</h5>
                 </div>
                 <div class="card-body">
-                    <p class="mb-2">
-                        <strong>Validation:</strong><br>
-                        <small>{{ contrat.date_validation|date:"d/m/Y à H:i" }}</small>
-                    </p>
-                    {% if contrat.date_debut_reelle %}
-                    <p class="mb-2">
-                        <strong>Début:</strong><br>
-                        <small>{{ contrat.date_debut_reelle|date:"d/m/Y" }}</small>
-                    </p>
+                    <div class="dates-list">
+                        <div class="date-item">
+                            <div class="date-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="date-content">
+                                <div class="date-label">Validation</div>
+                                <div class="date-value">{{ contrat.date_validation|date:"d/m/Y à H:i" }}</div>
+                            </div>
+                        </div>
+                        {% if contrat.date_debut_reelle %}
+                        <div class="date-item">
+                            <div class="date-icon">
+                                <i class="fas fa-play-circle"></i>
+                            </div>
+                            <div class="date-content">
+                                <div class="date-label">Début</div>
+                                <div class="date-value">{{ contrat.date_debut_reelle|date:"d/m/Y" }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if contrat.date_fin_reelle %}
+                        <div class="date-item">
+                            <div class="date-icon">
+                                <i class="fas fa-flag-checkered"></i>
+                            </div>
+                            <div class="date-content">
+                                <div class="date-label">Fin</div>
+                                <div class="date-value">{{ contrat.date_fin_reelle|date:"d/m/Y" }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quatrième ligne: Pointages -->
+    <div class="pointages-card">
+        <div class="col-12">
+            <div class="card pointages-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i> Pointages</h5>
+                    {% if can_add_pointage %}
+                    <a href="{% url 'pointage_create' contrat.id %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus-circle me-1"></i> Nouveau Pointage
+                    </a>
                     {% endif %}
-                    {% if contrat.date_fin_reelle %}
-                    <p class="mb-2">
-                        <strong>Fin:</strong><br>
-                        <small>{{ contrat.date_fin_reelle|date:"d/m/Y" }}</small>
-                    </p>
+                </div>
+                <div class="card-body">
+                    {% if pointages %}
+                    <div class="pointages-table-container">
+                        <table class="table table-hover pointages-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Heures</th>
+                                    <th>Sujet</th>
+                                    <th>Enregistré par</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pointage in pointages %}
+                                <tr>
+                                    <td>
+                                        <div class="date-cell">
+                                            <div class="date-main">{{ pointage.date_seance|date:"d/m/Y" }}</div>
+                                            {% if pointage.heure_debut %}
+                                            <div class="date-time">{{ pointage.heure_debut }} - {{ pointage.heure_fin }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="heures-badges">
+                                            {% if pointage.heures_cours > 0 %}
+                                            <span class="heure-badge badge-cm">CM: {{ pointage.heures_cours }}h</span>
+                                            {% endif %}
+                                            {% if pointage.heures_td > 0 %}
+                                            <span class="heure-badge badge-td">TD: {{ pointage.heures_td }}h</span>
+                                            {% endif %}
+                                            {% if pointage.heures_tp > 0 %}
+                                            <span class="heure-badge badge-tp">TP: {{ pointage.heures_tp }}h</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="total-heures">
+                                            <strong>Total: {{ pointage.total_heures }}h</strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="sujet-cell">
+                                            <div class="sujet-main">{{ pointage.sujet_traite|default:"-"|truncatewords:8 }}</div>
+                                            {% if pointage.observations %}
+                                            <div class="sujet-observations">{{ pointage.observations|truncatewords:10 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="enregistre-cell">
+                                            <div class="enregistre-nom">{{ pointage.enregistre_par.get_full_name }}</div>
+                                            <div class="enregistre-date">{{ pointage.date_enregistrement|date:"d/m/Y" }}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="pointage-actions">
+                                            <a href="#" class="btn-action" title="Voir détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="#" class="btn-action" title="Modifier">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="#" class="btn-action text-danger" title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> Aucun pointage enregistré pour ce contrat.
+                    </div>
                     {% endif %}
                 </div>
             </div>

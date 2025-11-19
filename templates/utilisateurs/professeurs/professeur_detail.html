@@ -1,0 +1,223 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'professeur_list' %}">Professeurs</a></li>
+<li class="breadcrumb-item active">{{ professeur.user.get_full_name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête du professeur -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    {% if professeur.photo %}
+                    <img src="{{ professeur.photo.url }}" alt="{{ professeur.user.get_full_name }}" 
+                         class="rounded-circle" width="100" height="100">
+                    {% else %}
+                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" 
+                         style="width: 100px; height: 100px;">
+                        <i class="fas fa-user fa-2x text-muted"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    <h1 class="h3 mb-1">{{ professeur.user.get_full_name }}</h1>
+                    <p class="text-muted mb-2">{{ professeur.matricule }}</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-primary">{{ professeur.get_grade_display }}</span>
+                        <span class="badge bg-secondary">{{ professeur.get_statut_display }}</span>
+                        <span class="badge bg-info">{{ professeur.get_genre_display }}</span>
+                        {% if professeur.is_active %}
+                        <span class="badge bg-success">Actif</span>
+                        {% else %}
+                        <span class="badge bg-danger">Inactif</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group">
+                        <a href="{% url 'prof_dossier' pk=professeur.pk %}" class="btn btn-outline-primary">
+                            <i class="fas fa-folder me-2"></i>Dossiers
+                        </a>
+                        <a href="{% url 'prof_contrat' pk=professeur.pk %}" class="btn btn-outline-success">
+                            <i class="fas fa-file-contract me-2"></i>Contrats
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations personnelles -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Informations Personnelles</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Email:</strong></td>
+                            <td>{{ professeur.user.email }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Téléphone:</strong></td>
+                            <td>{{ professeur.user.telephone|default:"Non renseigné" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Date de naissance:</strong></td>
+                            <td>{{ professeur.date_naissance|date:"d/m/Y" }} ({{ professeur.get_age }} ans)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nationalité:</strong></td>
+                            <td>{{ professeur.nationalite|default:"Non renseignée" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Situation matrimoniale:</strong></td>
+                            <td>{{ professeur.get_situation_matrimoniale_display }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Domicile:</strong></td>
+                            <td>{{ professeur.domicile|default:"Non renseigné" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations professionnelles -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Informations Professionnelles</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Spécialité:</strong></td>
+                            <td>{{ professeur.specialite|default:"Non renseignée" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Diplôme:</strong></td>
+                            <td>{{ professeur.diplome|default:"Non renseigné" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Années d'expérience:</strong></td>
+                            <td>{{ professeur.annee_experience }} ans</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Date d'embauche:</strong></td>
+                            <td>{{ professeur.date_embauche|date:"d/m/Y" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sections:</strong></td>
+                            <td>
+                                {% for section in professeur.sections.all %}
+                                <span class="badge bg-light text-dark">{{ section.nom }}</span>
+                                {% empty %}
+                                <span class="text-muted">Aucune section</span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistiques</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <div class="stat-value text-primary">{{ contrats_stats.total_contrats|default:0 }}</div>
+                                <div class="stat-label">Total Contrats</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <div class="stat-value text-warning">{{ contrats_stats.contrats_en_cours|default:0 }}</div>
+                                <div class="stat-label">En Cours</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <div class="stat-value text-success">{{ contrats_stats.contrats_termines|default:0 }}</div>
+                                <div class="stat-label">Terminés</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <div class="stat-value text-info">{{ contrats_stats.total_heures_effectuees|default:0|floatformat:1 }}h</div>
+                                <div class="stat-label">Heures Effectuées</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Derniers contrats -->
+    {% if derniers_contrats %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Derniers Contrats</h5>
+                    <a href="{% url 'prof_contrat' pk=professeur.pk %}" class="btn btn-sm btn-primary">
+                        Voir tous
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Module</th>
+                                    <th>Classe</th>
+                                    <th>Statut</th>
+                                    <th>Date Validation</th>
+                                    <th>Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contrat in derniers_contrats %}
+                                <tr>
+                                    <td>{{ contrat.maquette.filiere_nom }}</td>
+                                    <td>{{ contrat.classe.nom }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if contrat.status == 'IN_PROGRESS' %}bg-warning
+                                            {% elif contrat.status == 'COMPLETED' %}bg-success
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ contrat.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ contrat.date_validation|date:"d/m/Y" }}</td>
+                                    <td>{{ contrat.volume_total_contractuel }}h</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

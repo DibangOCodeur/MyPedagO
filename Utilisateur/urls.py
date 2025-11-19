@@ -56,6 +56,12 @@ urlpatterns = [
     path('professeurs/<int:pk>/imprimer/', views.professeur_print_view, name='professeur_print'),
 
 
+
+    path('prof/<int:pk>/', views.professeur_detail, name='prof_detail'),
+    path('prof/<int:pk>/dossiers/', views.professeur_dossiers, name='prof_dossier'),
+    path('prof/<int:pk>/contrats/', views.professeur_contrats, name='prof_contrat'),
+
+
     # Actions sur professeurs
     path('professeurs/<int:pk>/toggle-status/', views.professeur_toggle_status, name='professeur_toggle_status'),
     

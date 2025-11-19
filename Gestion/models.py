@@ -1079,15 +1079,47 @@ class Contrat(models.Model):
         return montant
     
     def get_heures_effectuees(self):
-        """Retourne les heures effectivement réalisées"""
-        pointages = self.pointages.aggregate(
-            cours=models.Sum('heures_cours'),
-            td=models.Sum('heures_td'),
-        )
+        """Retourne les heures effectivement réalisées pour ce contrat"""
+        # Récupérer tous les pointages de ce contrat
+        pointages = self.pointages.all()
+        
+        total_cours = Decimal('0.00')
+        total_td = Decimal('0.00')
+        
+        for pointage in pointages:
+            total_cours += pointage.heures_cours
+            total_td += pointage.heures_td
+        
         return {
-            'cours': pointages['cours'] or Decimal('0.00'),
-            'td': pointages['td'] or Decimal('0.00'),
+            'cours': total_cours,
+            'td': total_td,
         }
+    
+    def get_all_groupes(self):
+            """Retourne tous les groupes associés à ce contrat"""
+            groupes = set()
+            
+            # Groupes de la classe principale
+            groupes.update(self.groupes_selectionnes.all())
+            
+            # Groupes des classes en tronc commun
+            if self.type_enseignement == 'TRONC_COMMUN':
+                for classe in self.classes_tronc_commun.all():
+                    # Récupérer les groupes de chaque classe tronc commun
+                    groupes_classe = Groupe.objects.filter(
+                        classe=classe,
+                        is_active=True
+                    )
+                    groupes.update(groupes_classe)
+            
+            return list(groupes)
+    
+    def get_classes_concernées(self):
+        """Retourne toutes les classes concernées par ce contrat"""
+        classes = [self.classe]
+        if self.type_enseignement == 'TRONC_COMMUN':
+            classes.extend(self.classes_tronc_commun.all())
+        return classes
     
     @property
     def volume_total_effectue(self):
@@ -1192,6 +1224,13 @@ class Contrat(models.Model):
             self.syllabus_uploaded and
             self.volume_total_effectue > 0
         )
+    
+
+
+
+# ==========================================
+# POINTAGE GROUPE
+# ==========================================
 
 
 class Pointage(models.Model):
@@ -1206,6 +1245,15 @@ class Pointage(models.Model):
         on_delete=models.CASCADE,
         related_name='pointages',
         verbose_name="Contrat"
+    )
+    
+    # ⭐ NOUVEAU : Groupes concernés par ce pointage
+    groupes = models.ManyToManyField(
+        'Gestion.Groupe',
+        related_name='pointages',
+        verbose_name="Groupes concernés",
+        help_text="Groupes pour lesquels ce pointage s'applique",
+        blank=True
     )
     
     # Date et heures
@@ -1238,6 +1286,7 @@ class Pointage(models.Model):
         default=Decimal('0.00'),
         verbose_name="Heures de TD"
     )   
+    
     # Validation
     est_valide = models.BooleanField(
         default=True,
@@ -1271,12 +1320,17 @@ class Pointage(models.Model):
         ]
     
     def __str__(self):
-        return f"Pointage {self.date_seance} - {self.contrat}"
+        groupes_count = self.groupes.count()
+        return f"Pointage {self.date_seance} - {self.contrat} ({groupes_count} groupe(s))"
     
     @property
     def total_heures(self):
         """Total des heures de la séance"""
         return self.heures_cours + self.heures_td
+    
+    def get_groupes_display(self):
+        """Retourne la liste des groupes sous forme de string"""
+        return ", ".join([groupe.nom for groupe in self.groupes.all()])
     
     def clean(self):
         """Validation personnalisée"""
@@ -1286,9 +1340,8 @@ class Pointage(models.Model):
         if self.total_heures == 0:
             raise ValidationError("Au moins un type d'heure doit être renseigné")
         
-        # ⭐ CORRECTION : Vérifier si le contrat existe sans déclencher d'erreur RelatedObjectDoesNotExist
+        # Vérifier si le contrat existe sans déclencher d'erreur RelatedObjectDoesNotExist
         if not hasattr(self, 'contrat') or not self.contrat:
-            # Si le contrat n'est pas défini, on ne peut pas faire les vérifications de volume
             return
         
         # Vérifier que les heures ne dépassent pas les volumes contractuels
@@ -1310,6 +1363,11 @@ class Pointage(models.Model):
                 f"Les heures de TD dépassent le volume contractuel "
                 f"({effectues['td'] + self.heures_td} > {self.contrat.volume_heure_td})"
             )
+
+    def get_groupes(self):
+        """Retourne les groupes associés à ce pointage"""
+        return self.groupes.all()
+
 
 
 class DocumentContrat(models.Model):

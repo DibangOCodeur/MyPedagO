@@ -2111,41 +2111,6 @@ def liste_groupes(request):
     return render(request, 'groupes/liste_groupes.html', context)
 
 
-# @login_required
-# def sync_groupes_only(request):
-#     """Synchroniser uniquement les groupes (AJAX)"""
-#     if request.user.role not in ['ADMIN', 'INFORMATICIEN']:
-#         return JsonResponse({'error': 'Permission refusée'}, status=403)
-    
-#     try:
-#         from .services import SyncService
-#         sync_service = SyncService()
-        
-#         force = request.GET.get('force', 'false').lower() == 'true'
-        
-#         logger.info(f"🔄 Synchronisation groupes demandée: force={force}")
-        
-#         success, result = sync_service.sync_groupes(force=force)
-        
-#         if success:
-#             return JsonResponse({
-#                 'success': True,
-#                 'message': f'Synchronisation des groupes effectuée: {result.get("created", 0)} créés, {result.get("updated", 0)} mis à jour',
-#                 'result': result
-#             })
-#         else:
-#             return JsonResponse({
-#                 'success': False,
-#                 'error': result.get('error', 'Erreur inconnue')
-#             }, status=400)
-            
-#     except Exception as e:
-#         logger.error(f"Erreur sync groupes: {e}", exc_info=True)
-#         return JsonResponse({
-#             'success': False,
-#             'error': f"Erreur lors de la synchronisation des groupes: {str(e)}"
-#         }, status=500)
-
 @login_required
 def sync_all_api_data(request):
     """Synchroniser toutes les données API (AJAX)"""
@@ -2860,3 +2825,200 @@ class SyncDashboardView(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
         ).order_by('last_synced')[:10]
         
         return context
+
+
+
+
+
+# ==========================================
+# VUE LIEE AUX PROFS
+# ==========================================
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Count, Sum, Q
+from django.utils import timezone
+from decimal import Decimal
+from .models import Professeur, CustomUser
+from Gestion.models import Contrat, Pointage, DocumentContrat
+
+@login_required
+def professeur_detail(request, pk):
+    """
+    Vue pour le détail d'un professeur
+    """
+    professeur = get_object_or_404(Professeur, pk=pk, user__is_active=True)
+    
+    # Vérifier que l'utilisateur a le droit de voir ce professeur
+    if not (request.user.role in ['ADMIN', 'RESP_PEDA', 'RESP_RH'] or 
+            request.user == professeur.user):
+        messages.error(request, "Vous n'avez pas la permission de voir ce profil.")
+        return redirect('dashboard')
+    
+    # Statistiques des contrats
+    contrats_stats = Contrat.objects.filter(professeur=professeur).aggregate(
+        total_contrats=Count('id'),
+        contrats_en_cours=Count('id', filter=Q(status='IN_PROGRESS')),
+        contrats_termines=Count('id', filter=Q(status__in=['COMPLETED', 'READY_FOR_PAYMENT', 'PAID'])),
+        total_heures_effectuees=Sum('pointages__heures_cours') + Sum('pointages__heures_td')
+    )
+    
+    # Derniers contrats
+    derniers_contrats = Contrat.objects.filter(professeur=professeur).select_related(
+        'classe', 'maquette'
+    ).order_by('-date_validation')[:5]
+    
+    # Documents status
+    documents_status = {
+        'photo': bool(professeur.photo),
+        'cni': bool(professeur.cni_document),
+        'rib': bool(professeur.rib_document),
+        'cv': bool(professeur.cv_document),
+        'diplome': bool(professeur.diplome_document),
+    }
+    
+    context = {
+        'professeur': professeur,
+        'contrats_stats': contrats_stats,
+        'derniers_contrats': derniers_contrats,
+        'documents_status': documents_status,
+        'title': f'Profil - {professeur.user.get_full_name()}'
+    }
+    
+    return render(request, 'utilisateurs/professeurs/professeur_detail.html', context)
+
+@login_required
+def professeur_dossiers(request, pk):
+    """
+    Vue pour les dossiers/document d'un professeur
+    """
+    professeur = get_object_or_404(Professeur, pk=pk, user__is_active=True)
+    
+    # Vérifier les permissions
+    if not (request.user.role in ['ADMIN', 'RESP_PEDA', 'RESP_RH'] or 
+            request.user == professeur.user):
+        messages.error(request, "Vous n'avez pas la permission d'accéder à ces documents.")
+        return redirect('dashboard')
+    
+    # Liste des documents avec leurs métadonnées
+    documents = [
+        {
+            'type': 'photo',
+            'nom': 'Photo de profil',
+            'fichier': professeur.photo,
+            'date_upload': professeur.photo_uploaded_at,
+            'requis': True,
+            'description': 'Photo d\'identité récente'
+        },
+        {
+            'type': 'cni',
+            'nom': 'Carte Nationale d\'Identité',
+            'fichier': professeur.cni_document,
+            'date_upload': professeur.cni_uploaded_at,
+            'requis': True,
+            'description': 'CNI recto-verso valide'
+        },
+        {
+            'type': 'rib',
+            'nom': 'Relevé d\'Identité Bancaire',
+            'fichier': professeur.rib_document,
+            'date_upload': professeur.rib_uploaded_at,
+            'requis': True,
+            'description': 'RIB à votre nom'
+        },
+        {
+            'type': 'cv',
+            'nom': 'Curriculum Vitae',
+            'fichier': professeur.cv_document,
+            'date_upload': professeur.cv_uploaded_at,
+            'requis': True,
+            'description': 'CV à jour'
+        },
+        {
+            'type': 'diplome',
+            'nom': 'Diplôme',
+            'fichier': professeur.diplome_document,
+            'date_upload': professeur.diplome_uploaded_at,
+            'requis': True,
+            'description': 'Diplôme le plus élevé'
+        },
+    ]
+    
+    # Calcul du pourcentage de complétion
+    documents_complets = sum(1 for doc in documents if doc['fichier'])
+    pourcentage_completion = (documents_complets / len(documents)) * 100
+    
+    context = {
+        'professeur': professeur,
+        'documents': documents,
+        'documents_complets': documents_complets,
+        'total_documents': len(documents),
+        'pourcentage_completion': pourcentage_completion,
+        'title': f'Dossiers - {professeur.user.get_full_name()}'
+    }
+    
+    return render(request, 'utilisateurs/professeurs/professeur_dossiers.html', context)
+
+@login_required
+def professeur_contrats(request, pk):
+    """
+    Vue pour les contrats d'un professeur
+    """
+    professeur = get_object_or_404(Professeur, pk=pk, user__is_active=True)
+    
+    # Vérifier les permissions
+    if not (request.user.role in ['ADMIN', 'RESP_PEDA', 'RESP_RH'] or 
+            request.user == professeur.user):
+        messages.error(request, "Vous n'avez pas la permission de voir ces contrats.")
+        return redirect('dashboard')
+    
+    # Filtres
+    statut_filter = request.GET.get('statut', '')
+    annee_filter = request.GET.get('annee', '')
+    
+    # Base queryset
+    contrats = Contrat.objects.filter(professeur=professeur).select_related(
+        'classe', 'maquette', 'module_propose'
+    ).prefetch_related('pointages')
+    
+    # Appliquer les filtres
+    if statut_filter:
+        contrats = contrats.filter(status=statut_filter)
+    
+    if annee_filter:
+        contrats = contrats.filter(date_validation__year=annee_filter)
+    
+    # Statistiques détaillées
+    stats_detail = {}
+    for contrat in contrats:
+        heures_effectuees = contrat.get_heures_effectuees()
+        stats_detail[contrat.id] = {
+            'heures_effectuees': heures_effectuees,
+            'volume_total_effectue': heures_effectuees['cours'] + heures_effectuees['td'],
+            'taux_realisation': contrat.taux_realisation,
+            'montant_a_payer': contrat.calculate_montant_a_payer(),
+        }
+    
+    # Statistiques globales
+    stats_globales = contrats.aggregate(
+        total_contrats=Count('id'),
+        total_montant_contractuel=Sum('montant_total_contractuel'),
+        volume_total_contractuel=Sum('volume_total_contractuel'),
+    )
+    
+    # Années disponibles pour le filtre
+    annees = Contrat.objects.filter(professeur=professeur).dates('date_validation', 'year')
+    
+    context = {
+        'professeur': professeur,
+        'contrats': contrats,
+        'stats_detail': stats_detail,
+        'stats_globales': stats_globales,
+        'statut_filter': statut_filter,
+        'annee_filter': annee_filter,
+        'annees': annees,
+        'status_choices': Contrat.STATUS_CHOICES,
+        'title': f'Contrats - {professeur.user.get_full_name()}'
+    }
+    
+    return render(request, 'utilisateur/professeur_contrats.html', context)

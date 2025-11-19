@@ -173,6 +173,12 @@ body.dark-theme {
     animation: slideInLeft 0.8s ease;
     display: flex;
     flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 900;
+    overflow-y: auto;
 }
 
 .dark-theme .sidebar {
@@ -358,6 +364,8 @@ body.dark-theme {
     padding: 30px;
     animation: slideInRight 0.8s ease 0.2s both;
     overflow-y: auto;
+    margin-left: 280px;
+    transition: margin-left 0.3s ease;
 }
 
 /* Header */

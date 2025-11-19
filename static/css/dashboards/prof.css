@@ -65,6 +65,17 @@ body.dark-theme {
     100% { transform: translateY(0px); }
 }
 
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Layout */
 .container {
     display: flex;
@@ -143,29 +154,33 @@ body.dark-theme {
 /* Sidebar - Couleurs adaptées pour professeur */
 .sidebar {
     width: 280px;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(10px);
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
     transition: all 0.5s ease;
     animation: slideInLeft 0.8s ease;
     display: flex;
     flex-direction: column;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dark-theme .sidebar {
-    background: rgba(30, 30, 45, 0.95);
+    background: rgba(30, 30, 45, 0.98);
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+    border-right-color: rgba(255, 255, 255, 0.05);
 }
 
 .sidebar-header {
     padding: 30px 25px;
     text-align: center;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     position: relative;
+    background: linear-gradient(135deg, rgba(44, 85, 48, 0.05) 0%, rgba(74, 124, 89, 0.05) 100%);
 }
 
 .dark-theme .sidebar-header {
-    border-bottom-color: rgba(255, 255, 255, 0.1);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, rgba(44, 85, 48, 0.1) 0%, rgba(74, 124, 89, 0.1) 100%);
 }
 
 .logo-img {
@@ -176,6 +191,7 @@ body.dark-theme {
     animation: float 3s ease-in-out infinite;
     object-fit: cover;
     border: 3px solid rgba(44, 85, 48, 0.3);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-header h2 {
@@ -202,12 +218,13 @@ body.dark-theme {
 .professor-badge {
     background: linear-gradient(45deg, #4a7c59, #5d9b6e);
     color: white;
-    padding: 4px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
     font-size: 0.8rem;
     font-weight: 600;
     display: inline-block;
     animation: pulse 2s infinite;
+    box-shadow: 0 3px 10px rgba(74, 124, 89, 0.3);
 }
 
 .sidebar-nav {
@@ -219,15 +236,34 @@ body.dark-theme {
 }
 
 .nav-item {
-    margin: 5px 15px;
+    margin: 3px 15px;
     border-radius: 12px;
     transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
+    overflow: hidden;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: linear-gradient(45deg, #2c5530, #4a7c59);
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+}
+
+.nav-item:hover::before,
+.nav-item.active::before,
+.nav-item.has-submenu.open::before {
+    transform: scaleY(1);
 }
 
 .nav-item:hover {
-    background: rgba(44, 85, 48, 0.1);
+    background: rgba(44, 85, 48, 0.08);
     transform: translateX(5px);
 }
 
@@ -243,6 +279,12 @@ body.dark-theme {
 .nav-item.logout {
     margin-top: auto;
     margin-bottom: 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 10px;
+}
+
+.dark-theme .nav-item.logout {
+    border-top-color: rgba(255, 255, 255, 0.05);
 }
 
 .nav-link {
@@ -254,6 +296,7 @@ body.dark-theme {
     transition: all 0.3s ease;
     font-weight: 500;
     position: relative;
+    border-radius: 12px;
 }
 
 .dark-theme .nav-link {
@@ -265,6 +308,12 @@ body.dark-theme {
     font-size: 1.1rem;
     width: 20px;
     text-align: center;
+    transition: all 0.3s ease;
+}
+
+.nav-item.active .nav-link i,
+.nav-item.has-submenu.open .nav-link i {
+    color: inherit;
 }
 
 .notification-badge {
@@ -281,12 +330,23 @@ body.dark-theme {
     align-items: center;
     justify-content: center;
     animation: pulse 2s infinite;
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
 }
 
-/* Sous-menus */
+/* Sous-menus - STYLE AMÉLIORÉ */
 .nav-item.has-submenu {
     display: flex;
     flex-direction: column;
+    transition: all 0.4s ease;
+}
+
+.nav-item.has-submenu.open {
+    background: rgba(44, 85, 48, 0.06);
+    margin-bottom: 5px;
+}
+
+.dark-theme .nav-item.has-submenu.open {
+    background: rgba(44, 85, 48, 0.15);
 }
 
 .submenu-toggle {
@@ -294,39 +354,75 @@ body.dark-theme {
     justify-content: space-between;
     align-items: center;
     width: 100%;
+    cursor: pointer;
+    user-select: none;
+}
+
+.submenu-toggle:hover {
+    background: rgba(44, 85, 48, 0.05);
 }
 
 .submenu-icon {
     font-size: 0.8rem;
-    transition: transform 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     margin-left: auto;
     padding-left: 10px;
+    color: #888;
 }
 
 .nav-item.has-submenu.open .submenu-icon {
     transform: rotate(180deg);
+    color: #2c5530;
+}
+
+.dark-theme .nav-item.has-submenu.open .submenu-icon {
+    color: #5d9b6e;
 }
 
 .submenu {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease;
-    padding-left: 20px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-left: 15px;
+    opacity: 0;
+    transform: translateY(-5px);
 }
 
 .nav-item.has-submenu.open .submenu {
     max-height: 500px;
+    opacity: 1;
+    transform: translateY(0);
+    animation: slideDown 0.3s ease;
 }
 
 .submenu-item {
-    display: block;
-    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
     color: #666;
     text-decoration: none;
     transition: all 0.3s ease;
     font-size: 0.9rem;
     border-radius: 8px;
-    margin: 5px 0;
+    margin: 2px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.submenu-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background: linear-gradient(45deg, #4a7c59, #5d9b6e);
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+}
+
+.submenu-item:hover::before {
+    transform: scaleY(1);
 }
 
 .dark-theme .submenu-item {
@@ -334,12 +430,41 @@ body.dark-theme {
 }
 
 .submenu-item:hover {
-    background: rgba(44, 85, 48, 0.1);
+    background: rgba(44, 85, 48, 0.08);
     color: #2c5530;
+    transform: translateX(3px);
 }
 
 .dark-theme .submenu-item:hover {
     color: #5d9b6e;
+    background: rgba(44, 85, 48, 0.15);
+}
+
+.submenu-item i {
+    margin-right: 10px;
+    font-size: 0.9rem;
+    width: 16px;
+    text-align: center;
+    color: #4a7c59;
+    transition: all 0.3s ease;
+}
+
+.dark-theme .submenu-item i {
+    color: #5d9b6e;
+}
+
+.submenu-item:hover i {
+    transform: scale(1.1);
+}
+
+.submenu-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(44, 85, 48, 0.2) 50%, transparent 100%);
+    margin: 8px 15px;
+}
+
+.dark-theme .submenu-divider {
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
 }
 
 /* Main Content */
@@ -348,6 +473,11 @@ body.dark-theme {
     padding: 30px;
     animation: slideInRight 0.8s ease 0.2s both;
     overflow-y: auto;
+    background: rgba(248, 249, 250, 0.5);
+}
+
+.dark-theme .main-content {
+    background: rgba(18, 18, 28, 0.5);
 }
 
 /* Header */
@@ -362,10 +492,12 @@ body.dark-theme {
     justify-content: space-between;
     align-items: center;
     animation: fadeInUp 0.8s ease 0.4s both;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dark-theme .main-header {
     background: rgba(30, 30, 45, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .welcome-section h1 {
@@ -406,6 +538,7 @@ body.dark-theme {
     font-size: 1.2rem;
     animation: pulse 2s infinite;
     flex-shrink: 0;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar.professor {
@@ -439,6 +572,7 @@ body.dark-theme {
     background: #4CAF50;
     border-radius: 50%;
     display: inline-block;
+    animation: pulse 2s infinite;
 }
 
 .user-notification {
@@ -484,10 +618,12 @@ body.dark-theme {
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dark-theme .stat-card {
     background: rgba(30, 30, 45, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .stat-card:hover {
@@ -527,6 +663,7 @@ body.dark-theme {
     justify-content: center;
     font-size: 1.2rem;
     color: white;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .stat-icon.classes { background: linear-gradient(45deg, #4CAF50, #45a049); }
@@ -651,10 +788,12 @@ body.dark-theme {
     animation: fadeInUp 0.8s ease 0.6s both;
     grid-column: 1;
     grid-row: 1;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dark-theme .next-class {
     background: rgba(30, 30, 45, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .class-info {
@@ -675,6 +814,7 @@ body.dark-theme {
     color: white;
     font-size: 1.5rem;
     animation: pulse 2s infinite;
+    box-shadow: 0 8px 25px rgba(44, 85, 48, 0.4);
 }
 
 .class-details h3 {
@@ -733,6 +873,7 @@ body.dark-theme {
     align-items: center;
     gap: 8px;
     font-size: 0.9rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary {
@@ -772,10 +913,12 @@ body.dark-theme {
     animation: fadeInUp 0.8s ease 0.7s both;
     grid-column: 2;
     grid-row: 1;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dark-theme .pending-evaluations {
     background: rgba(30, 30, 45, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .evaluations-list {
@@ -818,6 +961,7 @@ body.dark-theme {
     color: white;
     font-size: 0.9rem;
     flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .evaluation-item .evaluation-icon {
@@ -892,10 +1036,12 @@ body.dark-theme {
     animation: fadeInUp 0.8s ease 0.8s both;
     grid-column: 1;
     grid-row: 2;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dark-theme .quick-actions {
     background: rgba(30, 30, 45, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .action-buttons {
@@ -919,6 +1065,7 @@ body.dark-theme {
     gap: 10px;
     text-decoration: none;
     text-align: left;
+    box-shadow: 0 5px 15px rgba(44, 85, 48, 0.3);
 }
 
 .action-btn:hover {
@@ -937,10 +1084,12 @@ body.dark-theme {
     animation: fadeInUp 0.8s ease 0.9s both;
     grid-column: 2;
     grid-row: 2;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dark-theme .recent-activity {
     background: rgba(30, 30, 45, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .activity-list {
@@ -979,6 +1128,7 @@ body.dark-theme {
     color: white;
     font-size: 0.9rem;
     flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .activity-icon.course { background: linear-gradient(45deg, #4CAF50, #45a049); }
@@ -1057,6 +1207,7 @@ body.dark-theme {
         z-index: 900;
         transform: translateX(-100%);
         transition: transform 0.3s ease;
+        width: 280px;
     }
     
     .sidebar.active {
@@ -1109,6 +1260,15 @@ body.dark-theme {
     
     .mobile-menu-toggle {
         display: flex;
+    }
+
+    /* Styles mobiles pour les sous-menus */
+    .nav-item.has-submenu.open {
+        background: rgba(44, 85, 48, 0.1);
+    }
+    
+    .submenu {
+        padding-left: 10px;
     }
 }
 

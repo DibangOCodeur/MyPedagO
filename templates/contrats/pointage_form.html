@@ -9,6 +9,10 @@
 <li class="breadcrumb-item active">Nouveau Pointage</li>
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/contrats/pointe.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
@@ -32,7 +36,8 @@
                             <div class="col-md-6">
                                 <strong>Professeur:</strong> {{ contrat.professeur.user.get_full_name }}<br>
                                 <strong>Classe:</strong> {{ contrat.classe.nom }}<br>
-                                <strong>Module:</strong> {{ contrat.maquette.filiere_nom }}
+                                <strong>Module:</strong> {{ contrat.maquette.filiere_nom }}<br>
+                                <strong>Type:</strong> {{ contrat.get_type_enseignement_display }}
                             </div>
                             <div class="col-md-6">
                                 <strong>Heures effectuées:</strong><br>
@@ -40,6 +45,21 @@
                                 • TD: {{ heures_effectuees.td }}h / {{ contrat.volume_heure_td }}h<br>
                                 <strong>Reste:</strong> {{ heures_restantes.cours }}h CM, {{ heures_restantes.td }}h TD
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Groupes disponibles -->
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-users me-2"></i>
+                            Groupes concernés
+                        </h6>
+                        <div class="mt-2">
+                            {% for groupe in groupes_disponibles %}
+                                <span class="badge bg-primary me-1">{{ groupe.nom }}</span>
+                            {% empty %}
+                                <span class="text-danger">Aucun groupe sélectionné pour ce contrat</span>
+                            {% endfor %}
                         </div>
                     </div>
 
@@ -55,9 +75,14 @@
                         </div>
                         {% endif %}
 
-                        <div class="row">
-                            <!-- Date et heures -->
-                            <div class="col-md-6">
+                        <!-- Date/Heures et Volumes horaires sur la même ligne -->
+                        <div class="form-row-container">
+                            <!-- Bloc Date et Heures -->
+                            <div class="form-section">
+                                <div class="section-title">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Date et Heures
+                                </div>
                                 <div class="mb-3">
                                     <label for="{{ form.date_seance.id_for_label }}" class="form-label">
                                         <strong>Date de la séance *</strong>
@@ -71,13 +96,11 @@
                                     </div>
                                     {% endif %}
                                 </div>
-                            </div>
-                            <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">
                                         <strong>Heures (optionnel)</strong>
                                     </label>
-                                    <div class="row">
+                                    <div class="row time-fields">
                                         <div class="col-6">
                                             <label class="form-label small">Début</label>
                                             {{ form.heure_debut }}
@@ -87,31 +110,20 @@
                                             {{ form.heure_fin }}
                                         </div>
                                     </div>
-                                    {% if form.heure_debut.errors or form.heure_fin.errors %}
-                                    <div class="text-danger small">
-                                        {% for error in form.heure_debut.errors %}
-                                            {{ error }}<br>
-                                        {% endfor %}
-                                        {% for error in form.heure_fin.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Volumes horaires -->
-                        <div class="row">
-                            <div class="col-md-6">
+                            <!-- Bloc Volumes horaires -->
+                            <div class="form-section">
+                                <div class="section-title">
+                                    <i class="fas fa-clock"></i>
+                                    Volumes Horaire
+                                </div>
                                 <div class="mb-3">
                                     <label for="{{ form.heures_cours.id_for_label }}" class="form-label">
-                                        <strong>Heures de Cours (CM)</strong>
+                                        <strong>Heures de Cours (CM) *</strong>
                                     </label>
                                     {{ form.heures_cours }}
-                                    {% if form.heures_cours.help_text %}
-                                    <div class="form-text">{{ form.heures_cours.help_text }}</div>
-                                    {% endif %}
                                     {% if form.heures_cours.errors %}
                                     <div class="text-danger small">
                                         {% for error in form.heures_cours.errors %}
@@ -120,16 +132,11 @@
                                     </div>
                                     {% endif %}
                                 </div>
-                            </div>
-                            <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="{{ form.heures_td.id_for_label }}" class="form-label">
-                                        <strong>Heures de TD</strong>
+                                        <strong>Heures de TD *</strong>
                                     </label>
                                     {{ form.heures_td }}
-                                    {% if form.heures_td.help_text %}
-                                    <div class="form-text">{{ form.heures_td.help_text }}</div>
-                                    {% endif %}
                                     {% if form.heures_td.errors %}
                                     <div class="text-danger small">
                                         {% for error in form.heures_td.errors %}
@@ -139,7 +146,26 @@
                                     {% endif %}
                                 </div>
                             </div>
-                        </div>                        
+                        </div>
+
+                        <!-- Sélection des groupes -->
+                        <div class="mb-3">
+                            <label for="{{ form.groupes_selection.id_for_label }}" class="form-label">
+                                <strong>Groupes pour ce pointage *</strong>
+                            </label>
+                            {{ form.groupes_selection }}
+                            {% if form.groupes_selection.help_text %}
+                            <div class="form-text">{{ form.groupes_selection.help_text }}</div>
+                            {% endif %}
+                            {% if form.groupes_selection.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.groupes_selection.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
                         <!-- Actions -->
                         <div class="d-flex justify-content-between mt-4">
                             <a href="{% url 'contrat_detail' pk=contrat.pk %}" class="btn btn-secondary">

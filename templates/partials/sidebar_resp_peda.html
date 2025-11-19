@@ -1,5 +1,5 @@
 <div class="nav-item active">
-    <a href="#" class="nav-link">
+    <a href="{% url 'dashboard_resp_peda' %}" class="nav-link">
         <i class="fas fa-tachometer-alt"></i>
         Dashboard
     </a>
@@ -8,14 +8,14 @@
 <div class="nav-item has-submenu">
     <div class="nav-link submenu-toggle">
         <i class="fas fa-users-cog"></i>
-        Utilisateurs
+        Professeurs
         <i class="fas fa-chevron-down submenu-icon"></i>
     </div>
     <div class="submenu">
-        <a href="{% url 'professeur_list' %}" class="submenu-item">Tous les Professeurs   </a>
+        <a href="{% url 'professeur_list' %}" class="submenu-item">Tous les Professeurs</a>
+        <a href="{% url 'user_create' %}" class="submenu-item">Créer un Professeur</a>
     </div>
 </div>
-
 <div class="nav-item has-submenu">
     <div class="nav-link submenu-toggle">
         <i class="fas fa-users"></i>
@@ -23,21 +23,19 @@
         <i class="fas fa-chevron-down submenu-icon"></i>
     </div>
     <div class="submenu">
-        <a href="#" class="submenu-item">Liste de classes</a>
+        <a href="{% url 'classe_list' %}" class="submenu-item">Liste de classes</a>
     </div>
 </div>
-
 <div class="nav-item has-submenu">
     <div class="nav-link submenu-toggle">
-        <i class="fas fa-project-diagram"></i>
+        <i class="fas fa-project-diagram me-2"></i>
         Maquettes
         <i class="fas fa-chevron-down submenu-icon"></i>
     </div>
     <div class="submenu">
-        <a href="#" class="submenu-item">Liste de Maquettes</a>
+        <a href="{% url 'maquette_list' %}" class="submenu-item">Liste de Maquettes</a>
     </div>
 </div>
-
 <div class="nav-item has-submenu">
     <div class="nav-link submenu-toggle">
         <i class="fas fa-clipboard-list"></i>
@@ -49,14 +47,33 @@
         <a href="#" class="submenu-item">Nouveau Pointage</a>
     </div>
 </div>
-
-<div class="nav-item">
+<div class="nav-item has-submenu">
     <a href="#" class="nav-link">
         <i class="fas fa-calendar-alt"></i>
         Emplois du temps
     </a>
 </div>
-
+<div class="nav-item has-submenu">
+    <div class="nav-link submenu-toggle">
+        <i class="fas fa-file-signature"></i>
+        Précontrats
+        <i class="fas fa-chevron-down submenu-icon"></i>
+    </div>
+    <div class="submenu">
+        <a href="{% url 'precontrat_list' %}" class="submenu-item">Liste des Précontrats</a>
+        <a href="{% url 'precontrat_create' %}" class="submenu-item">Nouveau Précontrat</a>
+    </div>
+</div>
+<div class="nav-item has-submenu">
+    <div class="nav-link submenu-toggle">
+        <i class="fas fa-file-contract"></i>
+        Contrats
+        <i class="fas fa-chevron-down submenu-icon"></i>
+    </div>
+    <div class="submenu">
+        <a href="{% url 'contrat_list' %}" class="submenu-item">Liste des contrats</a>
+    </div>
+</div>
 <div class="nav-item has-submenu">
     <div class="nav-link submenu-toggle">
         <i class="fas fa-folder-open"></i>
@@ -68,7 +85,6 @@
         <a href="#" class="submenu-item">Dossiers de cours</a>
     </div>
 </div>
-
 <div class="nav-item has-submenu">
     <div class="nav-link submenu-toggle">
         <i class="fas fa-cogs"></i>

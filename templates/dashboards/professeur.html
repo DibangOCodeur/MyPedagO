@@ -40,7 +40,30 @@
                         Tableau de bord
                     </a>
                 </div>
-                
+
+                <div class="nav-item has-submenu">
+                    <div class="nav-link submenu-toggle">
+                        <i class="fas fa-user-circle"></i>
+                        Mon Profil
+                        <i class="fas fa-chevron-down submenu-icon"></i>
+                    </div>
+                    <div class="submenu">
+                        <a href="{% url 'prof_detail' pk=request.user.professeur.pk %}" class="submenu-item">
+                            <i class="fas fa-id-card"></i>
+                            Mon Profil
+                        </a>
+                        <a href="{% url 'prof_dossier' pk=request.user.professeur.pk %}" class="submenu-item">
+                            <i class="fas fa-folder"></i>
+                            Mes Dossiers
+                        </a>
+                        <a href="{% url 'prof_contrat' pk=request.user.professeur.pk %}" class="submenu-item">
+                            <i class="fas fa-file-contract"></i>
+                            Mes Contrats
+                        </a>
+                        <div class="submenu-divider"></div>
+                    </div>
+                </div>
+
                 <!-- Cours et matières -->
                 <div class="nav-item has-submenu">
                     <div class="nav-link submenu-toggle">
@@ -49,9 +72,18 @@
                         <i class="fas fa-chevron-down submenu-icon"></i>
                     </div>
                     <div class="submenu">
-                        <a href="#" class="submenu-item">Mes matières</a>
-                        <a href="#" class="submenu-item">Planning des cours</a>
-                        <a href="#" class="submenu-item">Ressources pédagogiques</a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-book-open"></i>
+                            Mes matières
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-calendar"></i>
+                            Planning des cours
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-file-download"></i>
+                            Ressources pédagogiques
+                        </a>
                     </div>
                 </div>
                 
@@ -63,9 +95,18 @@
                         <i class="fas fa-chevron-down submenu-icon"></i>
                     </div>
                     <div class="submenu">
-                        <a href="#" class="submenu-item">Mes classes</a>
-                        <a href="#" class="submenu-item">Liste des étudiants</a>
-                        <a href="#" class="submenu-item">Groupes de travail</a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            Mes classes
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-list"></i>
+                            Liste des étudiants
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-user-friends"></i>
+                            Groupes de travail
+                        </a>
                     </div>
                 </div>
                 
@@ -77,9 +118,18 @@
                         <i class="fas fa-chevron-down submenu-icon"></i>
                     </div>
                     <div class="submenu">
-                        <a href="#" class="submenu-item">Notes et appréciations</a>
-                        <a href="#" class="submenu-item">Créer une évaluation</a>
-                        <a href="#" class="submenu-item">Historique des notes</a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-chart-bar"></i>
+                            Notes et appréciations
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-plus-circle"></i>
+                            Créer une évaluation
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-history"></i>
+                            Historique des notes
+                        </a>
                     </div>
                 </div>
                 
@@ -107,9 +157,18 @@
                         <i class="fas fa-chevron-down submenu-icon"></i>
                     </div>
                     <div class="submenu">
-                        <a href="#" class="submenu-item">Mes documents</a>
-                        <a href="#" class="submenu-item">Partagés avec moi</a>
-                        <a href="#" class="submenu-item">Documents étudiants</a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-folder"></i>
+                            Mes documents
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-share-alt"></i>
+                            Partagés avec moi
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-user-graduate"></i>
+                            Documents étudiants
+                        </a>
                     </div>
                 </div>
                 
@@ -121,9 +180,18 @@
                         <i class="fas fa-chevron-down submenu-icon"></i>
                     </div>
                     <div class="submenu">
-                        <a href="#" class="submenu-item">Messagerie</a>
-                        <a href="#" class="submenu-item">Annonces</a>
-                        <a href="#" class="submenu-item">Forum</a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-envelope"></i>
+                            Messagerie
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-bullhorn"></i>
+                            Annonces
+                        </a>
+                        <a href="#" class="submenu-item">
+                            <i class="fas fa-comments"></i>
+                            Forum
+                        </a>
                     </div>
                 </div>
                 
@@ -433,6 +501,8 @@
     <script src="{% static 'js/bases/script.js' %}"></script>
     <script src="{% static 'js/bases/rebase.js' %}"></script>
     <script src="{% static 'js/mobile/script.js' %}"></script>
+    <script src="{% static 'js/dashboards/prof.js' %}"></script>
+
     <script>
     // Fonction pour mettre à jour l'heure en temps réel
     function updateCurrentTime() {

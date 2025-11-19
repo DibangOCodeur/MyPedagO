@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from decimal import Decimal
 from datetime import date
 from django.db.models import Sum
+from .models import Groupe
 
 # ============================================================================
 # IMPORTS DES MODÈLES - DOIT ÊTRE EN PREMIER
@@ -311,16 +312,29 @@ class ContratCreateForm(forms.ModelForm):
 # ============================================================================
 # FORMULAIRES POUR POINTAGES
 # ============================================================================
+# Dans forms.py - Créez un nouveau formulaire
+
 class PointageForm(forms.ModelForm):
     """
-    Formulaire pour enregistrer les heures effectuées
+    Formulaire pour enregistrer les heures effectuées avec sélection des groupes
     """
+    
+    # ⭐ CORRECTION : Ce champ n'est pas dans le modèle, c'est un champ personnalisé
+    groupes_selection = forms.ModelMultipleChoiceField(
+        queryset=Groupe.objects.none(),
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-select',
+            'size': '5'
+        }),
+        label="Groupes concernés",
+        help_text="Sélectionnez les groupes pour ce pointage"
+    )
     
     class Meta:
         model = Pointage
-        fields = [
+        fields = [  # ⭐ CORRECTION : Ne pas inclure groupes_selection ici
             'date_seance',
-            'heure_debut',
+            'heure_debut', 
             'heure_fin',
             'heures_cours',
             'heures_td',
@@ -355,45 +369,54 @@ class PointageForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        # ⭐ CORRECTION : Ne plus passer le contrat au formulaire
-        # La validation se fera dans la vue après assignation du contrat
+        self.contrat = kwargs.pop('contrat', None)
         super().__init__(*args, **kwargs)
+        
+        if self.contrat:
+            # Remplir le queryset avec les groupes du contrat
+            groupes = self.contrat.get_all_groupes()
+            self.fields['groupes_selection'].queryset = Groupe.objects.filter(
+                id__in=[g.id for g in groupes]
+            )
+            
+            # Sélectionner tous les groupes par défaut
+            self.fields['groupes_selection'].initial = [g.id for g in groupes]
 
     def clean(self):
         cleaned_data = super().clean()
         
-        # Vérifier qu'au moins un type d'heures est renseigné
+        # Vérifications existantes...
         cours = cleaned_data.get('heures_cours', 0) or 0
         td = cleaned_data.get('heures_td', 0) or 0
 
         if cours + td == 0:
             raise ValidationError(
-                'Vous devez renseigner au moins un type d\'heures (cours, TD ou)'
+                'Vous devez renseigner au moins un type d\'heures (cours ou TD)'
             )
         
-        # ⭐ CORRECTION : La validation des volumes se fera dans le modèle Pointage
-        # via la méthode clean() qui a accès à la relation contrat après sauvegarde
-        
-        # Vérifier la cohérence des heures début/fin
-        heure_debut = cleaned_data.get('heure_debut')
-        heure_fin = cleaned_data.get('heure_fin')
-        
-        if heure_debut and heure_fin:
-            if heure_fin <= heure_debut:
-                self.add_error(
-                    'heure_fin',
-                    "L'heure de fin doit être postérieure à l'heure de début"
-                )
-        
-        # Vérifier le taux de présence
-        taux = cleaned_data.get('taux_presence')
-        if taux is not None and (taux < 0 or taux > 100):
-            self.add_error(
-                'taux_presence',
-                'Le taux de présence doit être entre 0 et 100%'
-            )
+        # Vérifier qu'au moins un groupe est sélectionné
+        groupes = cleaned_data.get('groupes_selection')
+        if not groupes:
+            raise ValidationError('Vous devez sélectionner au moins un groupe')
         
         return cleaned_data
+
+    # ⭐ CORRECTION : Méthode save pour gérer la relation ManyToMany
+    def save(self, commit=True):
+        # Sauvegarder d'abord l'instance Pointage
+        pointage = super().save(commit=False)
+        
+        if commit:
+            pointage.save()
+            # Sauvegarder la relation ManyToMany avec les groupes
+            if hasattr(self, 'save_m2m'):
+                self.save_m2m()
+            else:
+                # Si save_m2m n'existe pas, sauvegarder manuellement
+                groupes_selectionnes = self.cleaned_data.get('groupes_selection', [])
+                pointage.groupes.set(groupes_selectionnes)
+        
+        return pointage
 #==============================================
 # FORMULAIRES POUR DOCUMENTS
 # ============================================================================

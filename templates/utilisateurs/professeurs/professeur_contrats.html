@@ -1,0 +1,221 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'professeur_list' %}">Professeurs</a></li>
+<li class="breadcrumb-item"><a href="{% url 'professeur_detail' pk=professeur.pk %}">{{ professeur.user.get_full_name }}</a></li>
+<li class="breadcrumb-item active">Contrats</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-file-contract me-2"></i>Contrats de {{ professeur.user.get_full_name }}
+                    </h1>
+                    <p class="text-muted mb-0">Historique et suivi des contrats</p>
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group">
+                        <a href="{% url 'professeur_detail' pk=professeur.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Retour
+                        </a>
+                        <a href="{% url 'professeur_dossiers' pk=professeur.pk %}" class="btn btn-outline-primary">
+                            Voir les dossiers
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres et statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="statut" class="form-label">Statut</label>
+                            <select name="statut" id="statut" class="form-select">
+                                <option value="">Tous les statuts</option>
+                                {% for status in status_choices %}
+                                <option value="{{ status.0 }}" {% if statut_filter == status.0 %}selected{% endif %}>
+                                    {{ status.1 }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="annee" class="form-label">Année</label>
+                            <select name="annee" id="annee" class="form-select">
+                                <option value="">Toutes les années</option>
+                                {% for annee in annees %}
+                                <option value="{{ annee.year }}" {% if annee_filter == annee.year|stringformat:"s" %}selected{% endif %}>
+                                    {{ annee.year }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter me-1"></i>Filtrer
+                            </button>
+                            <a href="{% url 'professeur_contrats' pk=professeur.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Réinitialiser
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h4 class="text-primary mb-1">{{ stats_globales.total_contrats|default:0 }}</h4>
+                    <p class="mb-0 text-muted">Contrats au total</p>
+                    {% if stats_globales.total_montant_contractuel %}
+                    <hr class="my-2">
+                    <p class="mb-0">
+                        <strong>{{ stats_globales.total_montant_contractuel|floatformat:0 }} FCFA</strong>
+                        <br><small class="text-muted">Montant contractuel total</small>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des contrats -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Liste des Contrats</h5>
+        </div>
+        <div class="card-body">
+            {% if contrats %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Module</th>
+                            <th>Classe</th>
+                            <th>Statut</th>
+                            <th>Dates</th>
+                            <th>Volumes</th>
+                            <th>Progression</th>
+                            <th>Montant</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contrat in contrats %}
+                        {% with stats=stats_detail|get_item:contrat.id %}
+                        <tr>
+                            <td>
+                                <strong>#{{ contrat.id }}</strong>
+                                <br><small class="text-muted">{{ contrat.date_validation|date:"d/m/Y" }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ contrat.maquette.filiere_nom }}</strong>
+                                <br><small class="text-muted">{{ contrat.module_propose.nom_module }}</small>
+                            </td>
+                            <td>
+                                {{ contrat.classe.nom }}
+                                <br><small class="text-muted">{{ contrat.get_type_enseignement_display }}</small>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if contrat.status == 'VALIDATED' %}bg-info
+                                    {% elif contrat.status == 'IN_PROGRESS' %}bg-primary
+                                    {% elif contrat.status == 'COMPLETED' %}bg-success
+                                    {% elif contrat.status == 'PENDING_DOCUMENTS' %}bg-warning
+                                    {% elif contrat.status == 'READY_FOR_PAYMENT' %}bg-success
+                                    {% elif contrat.status == 'PAID' %}bg-dark
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ contrat.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if contrat.date_debut_reelle %}
+                                <small>Début: {{ contrat.date_debut_reelle|date:"d/m/Y" }}</small>
+                                {% endif %}
+                                {% if contrat.date_fin_reelle %}
+                                <br><small>Fin: {{ contrat.date_fin_reelle|date:"d/m/Y" }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>Contractuel: {{ contrat.volume_total_contractuel }}h</small>
+                                {% if stats.volume_total_effectue %}
+                                <br><small>Effectué: {{ stats.volume_total_effectue|floatformat:1 }}h</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if stats.taux_realisation %}
+                                <div class="progress" style="height: 20px; width: 100px;">
+                                    <div class="progress-bar 
+                                        {% if stats.taux_realisation >= 90 %}bg-success
+                                        {% elif stats.taux_realisation >= 50 %}bg-warning
+                                        {% else %}bg-danger{% endif %}"
+                                        role="progressbar" 
+                                        style="width: {{ stats.taux_realisation }}%">
+                                        {{ stats.taux_realisation|floatformat:0 }}%
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>Contractuel: {{ contrat.montant_total_contractuel|floatformat:0 }} FCFA</small>
+                                {% if stats.montant_a_payer %}
+                                <br><small>À payer: {{ stats.montant_a_payer|floatformat:0 }} FCFA</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'contrat_detail' pk=contrat.pk %}" class="btn btn-outline-primary"
+                                       title="Voir le détail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if request.user.role in ['ADMIN','RESP_PEDA'] and contrat.status == 'IN_PROGRESS' %}
+                                    <a href="{% url 'pointage_create' contrat_id=contrat.pk %}" class="btn btn-outline-success"
+                                       title="Ajouter pointage">
+                                        <i class="fas fa-plus"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-file-contract fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Aucun contrat trouvé</h5>
+                <p class="text-muted">Aucun contrat ne correspond aux critères de recherche.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Fonction utilitaire pour récupérer les valeurs du dictionnaire de stats
+function getStats(contratId) {
+    return {{ stats_detail|safe }}[contratId] || {};
+}
+</script>
+{% endblock %}
