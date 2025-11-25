@@ -1,0 +1,286 @@
+/* style-contrat.css */
+/* Styles pour l'affichage écran */
+@media screen {
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 20px;
+        background: #f8f9fa;
+        color: #333;
+        line-height: 1.4;
+    }
+    
+    .contract-container {
+        position: relative;
+        max-width: 21cm;
+        margin: 0 auto;
+        background: white;
+        padding: 25px;
+        box-shadow: 0 0 25px rgba(0,0,0,0.1);
+        border-radius: 10px;
+    }
+    
+    .print-button {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 24px;
+        background: linear-gradient(45deg, #1e3c72, #2a5298);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
+        transition: all 0.3s ease;
+        z-index: 1000;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .print-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(30, 60, 114, 0.4);
+    }
+    
+    .no-print {
+        display: block;
+    }
+    
+    .watermark {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('/static/images/logo/IIPEA.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 50% auto;
+        opacity: 0.05;
+        z-index: -1;
+        pointer-events: none;
+    }
+}
+
+/* Styles pour l'impression */
+@media print {
+    @page {
+        margin: 0.5cm;
+        size: A4 portrait;
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 11px;
+        line-height: 1.2;
+        color: #000;
+        background: white !important;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+    
+    .contract-container {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        border-radius: 0;
+    }
+    
+    .watermark {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('/static/images/logo/IIPEA.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 60% auto;
+        opacity: 0.08;
+        z-index: -1;
+        pointer-events: none;
+    }
+    
+    /* Optimisations pour tenir sur une seule page */
+    .contract-section {
+        break-inside: avoid;
+        margin-bottom: 12px;
+        page-break-inside: avoid;
+    }
+    
+    .contract-title {
+        page-break-before: avoid;
+    }
+    
+    .signature-area {
+        page-break-inside: avoid;
+    }
+    
+    /* Réduire les marges internes pour économiser de l'espace */
+    .header-logo, .contract-title, .contract-section {
+        padding: 0;
+    }
+    
+    .info-card {
+        padding: 8px;
+    }
+    
+    table {
+        font-size: 10px;
+    }
+}
+
+/* Styles communs */
+.header-logo {
+    text-align: center;
+    border-bottom: 2px solid #1e3c72;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.header-logo h1 {
+    color: #1e3c72;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 5px 0;
+}
+
+.header-logo p {
+    margin: 2px 0;
+    font-size: 12px;
+}
+
+.contract-title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #2a5298;
+    margin: 15px 0;
+    text-transform: uppercase;
+}
+
+.contract-section {
+    margin-bottom: 15px;
+    border: 1px solid #e0e7ff;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.contract-section h2 {
+    background: linear-gradient(45deg, #1e3c72, #2a5298);
+    color: white;
+    padding: 8px 15px;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    padding: 15px;
+}
+
+.info-card {
+    padding: 10px;
+    border: 1px solid #e0e7ff;
+    border-radius: 6px;
+    background: #f8f9ff;
+}
+
+.info-card h3 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: #1e3c72;
+    border-bottom: 1px solid #e0e7ff;
+    padding-bottom: 5px;
+}
+
+.info-card p {
+    margin: 4px 0;
+    font-size: 12px;
+}
+
+.info-card ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.info-card li {
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 11px;
+}
+
+table th {
+    background: #f0f2ff;
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #e0e7ff;
+    font-weight: 600;
+}
+
+table td {
+    padding: 8px;
+    border: 1px solid #e0e7ff;
+}
+
+.text-bold {
+    font-weight: 700;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.signature-area {
+    margin-top: 20px;
+}
+
+.signature-line {
+    height: 1px;
+    background: #000;
+    margin: 30px 0 10px;
+    width: 80%;
+}
+
+.footer {
+    margin-top: 20px;
+    text-align: center;
+    color: #666;
+    font-size: 11px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 12px;
+}
+
+/* Optimisations responsive */
+@media (max-width: 768px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .contract-container {
+        padding: 15px;
+    }
+}
+
+/* Assurer que le contenu reste lisible sur le filigrane */
+.contract-section, .info-card, .footer {
+    background: rgba(255, 255, 255, 0.95);
+}

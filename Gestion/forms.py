@@ -645,35 +645,64 @@ class ContratSearchForm(forms.Form):
     )
 
 
-# ============================================================================
-# ⭐ RÉSUMÉ DES CORRECTIONS DJANGO 5.x ⭐
-# ============================================================================
-"""
-CORRECTIONS CRITIQUES POUR DJANGO 5.x :
+#=====================================
+# DOCUMENT CONTRAT
+#=====================================
+from django import forms
+from .models import DocumentContrat
+import os
 
-1. ✅ Ligne 38 : Extraction de la vraie valeur avec value.value
-   - Django 5.x utilise ModelChoiceIteratorValue qui encapsule la valeur
-   - On doit extraire la vraie valeur avec hasattr(value, 'value')
-   
-2. ✅ Ligne 72 : Même correction pour ProfesseurSelectWidget
-   - actual_value = value.value if hasattr(value, 'value') else value
-   
-3. ✅ Ligne 48 & 82 : Gestion des exceptions (ValueError, TypeError)
-   - Ajout de ValueError et TypeError pour gérer tous les cas d'erreur
-
-RÉSULTAT :
-✅ Plus d'erreur "Field 'id' expected a number"
-✅ Le niveau et la filière s'affichent correctement
-✅ Les modules de la maquette se chargent
-✅ Compatible Django 5.x
-
-COMMENT ÇA FONCTIONNE :
-1. Django 5.x encapsule les valeurs dans ModelChoiceIteratorValue
-2. On extrait la vraie valeur (l'ID) avec .value
-3. On utilise cet ID pour faire le get() sur la base de données
-4. Les attributs data-* sont ajoutés correctement
-"""
-
-# ============================================================================
-# FIN DU FICHIER
-# ============================================================================
+class DocumentContratForm(forms.ModelForm):
+    """Formulaire pour l'upload de documents de contrat"""
+    
+    class Meta:
+        model = DocumentContrat
+        fields = ['type_document', 'titre', 'fichier', 'description']
+        widgets = {
+            'titre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Titre du document'
+            }),
+            'type_document': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'fichier': forms.FileInput(attrs={
+                'class': 'form-control'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Description du document (optionnel)'
+            }),
+        }
+        labels = {
+            'fichier': 'Fichier à uploader',
+            'type_document': 'Type de document'
+        }
+    
+    def clean_fichier(self):
+        fichier = self.cleaned_data.get('fichier')
+        if fichier:
+            # Validation de la taille (20MB max)
+            if fichier.size > 20 * 1024 * 1024:
+                raise forms.ValidationError("Le fichier est trop volumineux (max 20MB)")
+            
+            # Validation de l'extension
+            ext = os.path.splitext(fichier.name)[1].lower()
+            extensions_valides = [
+                '.pdf', '.doc', '.docx', '.ppt', '.pptx', 
+                '.jpg', '.jpeg', '.png', '.xls', '.xlsx', '.txt'
+            ]
+            
+            if ext not in extensions_valides:
+                raise forms.ValidationError(
+                    f"Type de fichier non supporté. Formats acceptés: {', '.join(extensions_valides)}"
+                )
+        
+        return fichier
+    
+    def clean_titre(self):
+        titre = self.cleaned_data.get('titre')
+        if titre and len(titre) < 3:
+            raise forms.ValidationError("Le titre doit contenir au moins 3 caractères")
+        return titre

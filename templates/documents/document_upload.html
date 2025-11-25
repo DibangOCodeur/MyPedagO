@@ -1,0 +1,70 @@
+<!-- templates/contrats/document_upload.html -->
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4>
+                        <i class="fas fa-upload"></i>
+                        Uploader un document - {{ contrat.reference }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Contrat:</strong> {{ contrat.reference }}<br>
+                        <strong>Professeur:</strong> {{ contrat.professeur.get_full_name }}<br>
+                        <strong>Classe:</strong> {{ contrat.classe.nom }}
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                            <div class="alert alert-danger">
+                                <strong>Erreurs:</strong>
+                                {{ form.errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="form-group">
+                            <label>{{ form.type_document.label }}</label>
+                            {{ form.type_document }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>{{ form.titre.label }}</label>
+                            {{ form.titre }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>{{ form.fichier.label }}</label>
+                            {{ form.fichier }}
+                            <small class="form-text text-muted">
+                                Formats acceptés: PDF, Word, Excel, PowerPoint, Images (max 20MB)
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>{{ form.description.label }}</label>
+                            {{ form.description }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-upload"></i> Uploader
+                            </button>
+                            <a href="{% url 'contrat_detail' pk=contrat.pk %}" class="btn btn-secondary">
+                                Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

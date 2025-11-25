@@ -145,12 +145,6 @@
                                 <span class="info-badge info">{{ precontrat.classe_niveau }}</span>
                             </div>
                         </div>
-                        {% comment %} <div class="info-row">
-                            <div class="info-label">Filière</div>
-                            <div class="info-value">
-                                <span class="info-badge secondary">{{ precontrat.classe_filiere }}</span>
-                            </div>
-                        </div> {% endcomment %}
                     </div>
                 </div>
 
@@ -248,21 +242,17 @@
                                         <th class="col-taux">Taux TD</th>
                                         <th class="col-montant">Montant</th>
                                         <th class="col-statut">Statut</th>
-                                        <th class="col-notes">Notes</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for module in modules %}
                                     <tr class="module-row">
-
-                                        <!-- Colonne Module -->
                                         <td class="col-module">
                                             <div class="module-info">
                                                 <span class="module-name">{{ module.nom_module }}</span>
                                             </div>
                                         </td>
                                         
-                                        <!-- Colonne UE -->
                                         <td class="col-ue">
                                             {% if module.ue_nom %}
                                                 <span>{{ module.ue_nom }}</span>
@@ -271,7 +261,6 @@
                                             {% endif %}
                                         </td>
                                         
-                                        <!-- Colonne Volume CM -->
                                         <td class="col-volume">
                                             <div class="volume-details">
                                                 {% if module.volume_heure_cours > 0 %}
@@ -291,7 +280,6 @@
                                             </div>
                                         </td>
 
-                                        <!-- Colonne Taux CM -->
                                         <td class="col-taux">
                                             <div class="rate-details">
                                                 {% if module.volume_heure_cours > 0 %}
@@ -311,14 +299,12 @@
                                             </div>
                                         </td>
                                         
-                                        <!-- Colonne Montant -->
                                         <td class="col-montant">
                                             <div class="amount-cell">
                                                 <strong class="amount-value">{{ module.get_montant_total|floatformat:0 }} FCFA</strong>
                                             </div>
                                         </td>
                                         
-                                        <!-- Colonne Statut -->
                                         <td class="col-statut">
                                             {% if module.est_valide %}
                                             <span class="status-badge status-validated">
@@ -328,18 +314,6 @@
                                             <span class="status-badge status-under_review">
                                                 <i class="fas fa-clock me-1"></i>En attente
                                             </span>
-                                            {% endif %}
-                                        </td>
-                                        
-                                        <!-- Colonne Notes -->
-                                        <td class="col-notes">
-                                            {% if module.notes_validation %}
-                                            <div class="notes-preview" title="{{ module.notes_validation }}">
-                                                <i class="fas fa-comment-alt text-info me-1"></i>
-                                                <small>Voir note</small>
-                                            </div>
-                                            {% else %}
-                                            {% comment %} <span class="text-muted">-</span> {% endcomment %}
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -385,28 +359,26 @@
                     </h3>
                 </div>
                 <div class="action-buttons vertical">
-                    {% if can_submit %}
-                    <a href="{% url 'precontrat_recapitulatif' precontrat.pk %}" 
-                       class="action-btn primary">
+                    <!-- BOUTON CORRIGÉ POUR LE RÉCAPITULATIF -->
+                    <!-- ⭐⭐ CORRECTION : URL EXACTE -->
+                    {% if can_submit or can_validate %}
+                    <a href="{% url 'precontrat_recapitulatif' pk=precontrat.pk %}" 
+                    class="action-btn primary">
                         <i class="fas fa-paper-plane me-2"></i>
-                        Soumettre pour validation
+                        {% if can_submit %}Soumettre pour validation{% endif %}
+                        {% if can_validate %}Valider le précontrat{% endif %}
                     </a>
                     {% endif %}
                     
                     {% if can_edit %}
                     <a href="{% url 'precontrat_edit' precontrat.pk %}" 
-                       class="action-btn secondary">
+                    class="action-btn secondary">
                         <i class="fas fa-edit me-2"></i>
                         Modifier
                     </a>
                     {% endif %}
                     
                     {% if can_validate %}
-                    <button type="button" class="action-btn success" 
-                            data-modal="validateModal">
-                        <i class="fas fa-check-circle me-2"></i>
-                        Valider
-                    </button>
                     <button type="button" class="action-btn danger"
                             data-modal="rejectModal">
                         <i class="fas fa-times-circle me-2"></i>
@@ -415,7 +387,7 @@
                     {% endif %}
                     
                     <a href="{% url 'precontrat_export_pdf' precontrat.pk %}" 
-                       class="action-btn secondary">
+                    class="action-btn secondary">
                         <i class="fas fa-file-pdf me-2"></i>
                         Exporter PDF
                     </a>
@@ -425,7 +397,7 @@
     </div>
 </div>
 
-<!-- Modal Validation - Positionné en haut -->
+<!-- Modal Validation -->
 <div class="modal-overlay modal-top" id="validateModal">
     <div class="modal-content modal-top-content">
         <div class="modal-header">
@@ -478,7 +450,16 @@
     </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script src="{% static 'js/precontrat/detail.js' %}"></script>
+<script>
+// Version simplifiée - juste pour le logging
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page détail précontrat chargée');
+    console.log('Précontrat ID:', '{{ precontrat.pk }}');
+    console.log('Précontrat Status:', '{{ precontrat.status }}');
+    console.log('Can Submit:', '{{ can_submit }}');
+    console.log('Can Validate:', '{{ can_validate }}');
+});
+</script>
 {% endblock %}

@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from datetime import date
+from django_countries.widgets import CountrySelectWidget
 from .models import (
     Section, CustomUser, Professeur,
     Comptable, GradesProfesseurs,
@@ -192,11 +193,14 @@ from .models import (
     SituationMatrimoniale
 )
 from datetime import date
+import logging
+logger = logging.getLogger(__name__)
+
 
 class CustomUserCreationWithDocumentsForm(UserCreationForm):
     """
     Formulaire de création d'utilisateur avec gestion des documents
-    À utiliser à la place de CustomUserCreationForm dans create.html
+    Version adaptée pour les responsables pédagogiques
     """
     
     # Champs de base utilisateur
@@ -261,25 +265,12 @@ class CustomUserCreationWithDocumentsForm(UserCreationForm):
         required=False
     )
     
-    is_active_user = forms.BooleanField(
-        required=False,
-        initial=True,
-        label="Utilisateur Actif",
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
-    )
-    
+
     # Champs spécifiques PROFESSEUR
     date_naissance_prof = forms.DateField(
         required=False,
         label="Date de naissance",
         widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
-    )
-    
-    grade = forms.ChoiceField(
-        choices=GradesProfesseurs.choices,
-        required=False,
-        label="Grade",
-        widget=forms.Select(attrs={'class': 'form-control'})
     )
     
     statut = forms.ChoiceField(
@@ -295,14 +286,39 @@ class CustomUserCreationWithDocumentsForm(UserCreationForm):
         label="Genre",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-    
+
+    grade = forms.ChoiceField(
+        choices=[('', '---------')] + list(GradesProfesseurs.choices),
+        required=False,
+        label="Grade",
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'id_grade'
+        })
+    )
+
+    diplome = forms.CharField(
+        max_length=100,
+        required=False,
+        label="Diplôme",
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'id': 'id_diplome',
+            'readonly': 'readonly'
+        })
+    )
+
     nationalite = forms.CharField(
         max_length=100,
         required=False,
         label="Nationalité",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ivoirienne', 'list': 'pays-list'})
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'id': 'id_nationalite',
+            'placeholder': 'Sélectionnez une nationalité'
+        })
     )
-    
+        
     numero_cni = forms.CharField(
         max_length=20,
         required=False,
@@ -330,19 +346,22 @@ class CustomUserCreationWithDocumentsForm(UserCreationForm):
         label="Spécialité",
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Mathématiques'})
     )
-    
-    diplome = forms.CharField(
-        max_length=100,
-        required=False,
-        label="Diplôme",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Master en Mathématiques'})
-    )
-    
+
     annee_experience = forms.IntegerField(
-        required=False,
         initial=0,
+        min_value=0,
+        required=True,
         label="Années d'expérience",
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '50'})
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': '0',
+            'step': '1',
+            'required': 'required'
+        }),
+        error_messages={
+            'min_value': 'Les années d\'expérience doivent être positives.',
+            'required': 'Ce champ est obligatoire pour les professeurs.'
+        }
     )
     
     sections_enseignement = forms.ModelMultipleChoiceField(
@@ -399,14 +418,64 @@ class CustomUserCreationWithDocumentsForm(UserCreationForm):
         model = CustomUser
         fields = [
             'first_name', 'last_name', 'email', 'role', 'telephone',
-            'section_principale', 'sections_autorisees', 'is_active_user',
+            'section_principale', 'sections_autorisees',
             'password1', 'password2'
         ]
     
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)  # Récupérer l'utilisateur connecté
         super().__init__(*args, **kwargs)
+        
+        # Appliquer les restrictions selon le rôle
+        if self.user:
+            if self.user.role == 'RESP_PEDA':
+                self._apply_resp_peda_restrictions()
+            elif self.user.role == 'ADMIN':
+                self._apply_admin_permissions()
+        
         self.fields['password1'].required = False
         self.fields['password2'].required = False
+    
+    def _apply_resp_peda_restrictions(self):
+        """Appliquer les restrictions pour les responsables pédagogiques"""
+        logger.info("Application des restrictions RESP_PEDA")
+        
+        # Forcer le rôle à PROFESSEUR et désactiver le champ
+        self.fields['role'].initial = 'PROFESSEUR'
+        self.fields['role'].disabled = True
+        self.fields['role'].help_text = "Les responsables pédagogiques ne peuvent créer que des professeurs"
+        
+        # Limiter les sections aux sections accessibles
+        sections_accessibles = self.user.get_sections_disponibles()
+        if sections_accessibles:
+            self.fields['sections_enseignement'].queryset = sections_accessibles
+            self.fields['section_principale'].queryset = sections_accessibles
+            self.fields['sections_autorisees'].queryset = sections_accessibles
+            
+            # Définir la section principale par défaut si une seule section accessible
+            if sections_accessibles.count() == 1:
+                self.fields['section_principale'].initial = sections_accessibles.first()
+        else:
+            # Si aucune section accessible, désactiver les champs de sections
+            self.fields['sections_enseignement'].disabled = True
+            self.fields['section_principale'].disabled = True
+            self.fields['sections_autorisees'].disabled = True
+            self.fields['sections_enseignement'].help_text = "Aucune section accessible"
+        
+        # Masquer les champs spécifiques aux comptables
+        comptable_fields = ['date_naissance_compta']
+        for field in comptable_fields:
+            if field in self.fields:
+                del self.fields[field]
+        
+        # Ajuster les labels et help_texts
+        self.fields['sections_enseignement'].help_text = "Sélectionnez les sections où ce professeur interviendra"
+        self.fields['sections_enseignement'].required = True
+        
+    def _apply_admin_permissions(self):
+        """Permissions complètes pour l'admin"""
+        # L'admin a accès à tout, pas de restrictions
+        pass
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -448,6 +517,12 @@ class CustomUserCreationWithDocumentsForm(UserCreationForm):
     
     def clean_diplome_document(self):
         return self._validate_document(self.cleaned_data.get('diplome_document'), 'Diplôme')
+
+    def clean_annee_experience(self):
+        annee_experience = self.cleaned_data.get('annee_experience')
+        if annee_experience is not None and annee_experience < 0:
+            raise ValidationError("Les années d'expérience doivent être positives.")
+        return annee_experience
     
     def clean_date_naissance_prof(self):
         date_naissance = self.cleaned_data.get('date_naissance_prof')
@@ -475,22 +550,53 @@ class CustomUserCreationWithDocumentsForm(UserCreationForm):
         password1 = cleaned_data.get('password1')
         password2 = cleaned_data.get('password2')
         
+        # Validation spécifique pour RESP_PEDA
+        if self.user and self.user.role == 'RESP_PEDA':
+            # Forcer le rôle à PROFESSEUR
+            if role != 'PROFESSEUR':
+                raise ValidationError("Les responsables pédagogiques ne peuvent créer que des professeurs.")
+            
+            # Vérifier les sections d'enseignement
+            sections_enseignement = cleaned_data.get('sections_enseignement', [])
+            sections_accessibles = self.user.get_sections_disponibles()
+            
+            if not sections_enseignement:
+                raise ValidationError({
+                    'sections_enseignement': "Au moins une section d'enseignement est requise."
+                })
+            
+            # Vérifier que toutes les sections sélectionnées sont accessibles
+            for section in sections_enseignement:
+                if section not in sections_accessibles:
+                    raise ValidationError({
+                        'sections_enseignement': f"Vous n'avez pas accès à la section '{section.nom}'."
+                    })
+        
+        # Validation du mot de passe
         if password1 or password2:
             if password1 != password2:
                 raise ValidationError({'password2': "Les mots de passe ne correspondent pas."})
         
+        # Validation selon le rôle
         if role == 'PROFESSEUR':
             date_naissance = cleaned_data.get('date_naissance_prof')
             if not date_naissance:
-                raise ValidationError({'date_naissance_prof': "La date de naissance est obligatoire pour un professeur."})
+                raise ValidationError({
+                    'date_naissance_prof': "La date de naissance est obligatoire pour un professeur."
+                })
+            
             sections_enseignement = cleaned_data.get('sections_enseignement')
             if not sections_enseignement:
-                raise ValidationError({'sections_enseignement': "Au moins une section d'enseignement est requise."})
+                raise ValidationError({
+                    'sections_enseignement': "Au moins une section d'enseignement est requise."
+                })
         
         if role == 'COMPTABLE':
             date_naissance = cleaned_data.get('date_naissance_compta')
             if not date_naissance:
-                raise ValidationError({'date_naissance_compta': "La date de naissance est obligatoire pour un comptable."})
+                raise ValidationError({
+                    'date_naissance_compta': "La date de naissance est obligatoire pour un comptable."
+                })
         
         return cleaned_data
     
@@ -507,29 +613,6 @@ class CustomUserCreationWithDocumentsForm(UserCreationForm):
             self.save_m2m()
         
         return user
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1222,14 +1305,14 @@ class CustomUserCreationForm(UserCreationForm):
         required=False
     )
     
-    is_active_user = forms.BooleanField(
-        required=False,
-        initial=True,
-        label="Utilisateur actif",
-        widget=forms.CheckboxInput(attrs={
-            'class': 'form-check-input'
-        })
-    )
+    # is_active_user = forms.BooleanField(
+    #     required=False,
+    #     initial=True,
+    #     label="Utilisateur actif",
+    #     widget=forms.CheckboxInput(attrs={
+    #         'class': 'form-check-input'
+    #     })
+    # )
     
     # Champs spécifiques pour PROFESSEUR
     date_naissance_prof = forms.DateField(
@@ -1362,7 +1445,7 @@ class CustomUserCreationForm(UserCreationForm):
         model = CustomUser
         fields = [
             'first_name', 'last_name', 'email', 'role', 'telephone',
-            'section_principale', 'sections_autorisees', 'is_active_user',
+            'section_principale', 'sections_autorisees',
             'password1', 'password2'
         ]
     

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTRAT {{ contrat.id }} - {{ contrat.professeur.user.get_full_name|upper }}</title>
+    {% load contrat_filters %}
+</head>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/contrats/impression.css' %}">
+{% endblock %}
+<body>
+    <div class="contract-container">
+        <!-- Bouton d'impression (visible seulement à l'écran) -->
+        <div class="no-print text-center mb-3">
+            <button class="print-button" onclick="window.print()">
+                🖨️ Imprimer le Contrat
+            </button>
+            <a href="{% url 'contrat_detail' contrat.pk %}" style="margin-left: 10px;">
+                ← Retour au détail
+            </a>
+        </div>
+
+        <!-- En-tête du contrat -->
+        <div class="header-logo">
+            <h1>{{ infos_etablissement.nom }}</h1>
+            <p>{{ infos_etablissement.adresse }}</p>
+            <p>Tél: {{ infos_etablissement.telephone }} | Email: {{ infos_etablissement.email }}</p>
+        </div>
+
+        <div class="contract-title">
+            CONTRAT D'ENSEIGNEMENT Année Académique {{ contrat.maquette.annee_academique }}
+
+        </div>
+
+        <!-- Section 1: Parties contractantes -->
+        <div class="contract-section">
+            <h2>1. PARTIES CONTRACTANTES</h2>
+            
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>IIPEA</h3>
+                    <p><strong>Établissement:</strong> {{ infos_etablissement.nom }}</p>
+                    <p><strong>Adresse:</strong> {{ infos_etablissement.adresse }}</p>
+                    <p><strong>Représenté par:</strong> Moussa Ismaël KONE, Fondateur et Président de l'IIPEA</p>
+                </div>
+                
+                <div class="info-card">
+                    <h3>PROFESSEUR</h3>
+                    <p><strong>Nom:</strong> {{ contrat.professeur.user.get_full_name|upper }}</p>
+                    <p><strong>Date de naissance:</strong> {{ contrat.professeur.date_naissance|default:"Non spécifié" }}</p>
+                    <p><strong>Nationalité:</strong> {{ contrat.professeur.nationalite| default:"Non spécifié" }}</p>
+                    <p><strong>N° CNI ou passeport:</strong> {{ contrat.professeur.numero_cni|default:"Non spécifié" }}</p> 
+                    <p><strong>Téléphone:</strong> {{ contrat.professeur.user.telephone|default:"Non spécifié" }}</p>
+                    <p><strong>Domicile:</strong> {{ contrat.professeur.domicile }}</p>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Objet du contrat -->
+        <div class="contract-section">
+            <h2>2. OBJET DU CONTRAT</h2>
+            
+            <div class="info-card">
+                <p><strong>Filière:</strong> {{ contrat.maquette.filiere_nom }} ({{ contrat.maquette.filiere_sigle }}) </p>
+                <p><strong>Classe principale:</strong> {{ contrat.classe.nom }}</p>
+                <p><strong>Type d'enseignement:</strong> {{ contrat.get_type_enseignement_display }}</p>
+                <p><strong>Module:</strong> {{ contrat.module_propose.nom_module }}</p>
+                
+                {% if classes_tronc_commun %}
+                <p><strong>Classes en tronc commun:</strong>
+                    {% for classe in classes_tronc_commun %}
+                        {{ classe.nom }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </p>
+                {% endif %}
+                
+                {% if groupes %}
+                <p><strong>Groupes concernés:</strong>
+                    {% for groupe in groupes %}
+                        {{ groupe.nom }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </p>
+                {% endif %}
+                
+            </div>
+        </div>
+
+        <!-- Section 3: Volumes horaires et rémunération -->
+        <div class="contract-section">
+            <h2>3. VOLUMES HORAIRES ET RÉMUNÉRATION</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type d'heure</th>
+                        <th>Volume contractuel</th>
+                        <th>Taux horaire (FCFA)</th>
+                        <th>Montant total (FCFA)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Heures de Cours (CM)</td>
+                        <td>{{ contrat.volume_heure_cours }}h</td>
+                        <td>{{ contrat.taux_horaire_cours|floatformat:0 }}</td>
+                        <td>{{ contrat.volume_heure_cours|multiply:contrat.taux_horaire_cours|floatformat:0 }}</td>
+                    </tr>
+                    <tr>
+                        <td>Heures de TD</td>
+                        <td>{{ contrat.volume_heure_td }}h</td>
+                        <td>{{ contrat.taux_horaire_td|floatformat:0 }}</td>
+                        <td>{{ contrat.volume_heure_td|multiply:contrat.taux_horaire_td|floatformat:0 }}</td>
+                    </tr>
+                    <tr class="text-bold">
+                        <td>TOTAL</td>
+                        <td>{{ contrat.volume_total_contractuel }}h</td>
+                        <td>-</td>
+                        <td>{{ montant_total_contractuel|floatformat:0 }} FCFA</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 6: Conditions de paiement -->
+        <div class="contract-section">
+            <h2>4. CONDITIONS DE PAIEMENT</h2>
+            
+            <div class="info-card">
+                <p>Le paiement sera effectué sur la base des heures réellement effectuées et validées.</p>
+                <p><strong>Montant contractuel total:</strong> {{ montant_total_contractuel|floatformat:0 }} FCFA</p>
+                {% if montant_a_payer %}
+                <p><strong>Montant à payer (basé sur les heures effectuées):</strong> {{ montant_a_payer|floatformat:0 }} FCFA</p>
+                {% endif %}
+                <p>Le paiement interviendra dans un délai de 60 jours après la réception de l'ensemble des documents obligatoires (support de cours et syllabus).</p>
+            </div>
+        </div>
+
+        <!-- Section 7: Obligations -->
+        <div class="contract-section">
+            <h2>5. OBLIGATIONS</h2>
+            
+            <div class="info-card">
+                <p><strong>Obligations du Professeur:</strong></p>
+                <ul>
+                    <li>Assurer les enseignements selon le volume horaire contractuel</li>
+                    <li>Fournir les supports de cours et syllabus dans les délais impartis</li>
+                    <li>Respecter le calendrier académique</li>
+                </ul>
+                
+                <p><strong>Obligations de l'IIPEA:</strong></p>
+                <ul>
+                    <li>Fournir les moyens pédagogiques nécessaires</li>
+                    <li>Effectuer le paiement dans les délais contractuels</li>
+                    <li>Assurer le suivi administratif du contrat</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="contract-section signature-area">
+            <div class="info-grid">
+                <div class="text-center">
+                    <p>Pour l'IIPEA,</p>
+                    <div class="signature-line"></div>
+                    <p>Le Responsable des Ressources Humaines</p>
+                    <p>Fait à Paris, le {{ today|date:"d/m/Y" }}</p>
+                </div>
+                
+                <div class="text-center">
+                    <p>Le Professeur,</p>
+                    <div class="signature-line"></div>
+                    <p>{{ contrat.professeur.user.get_full_name|upper }}</p>
+                    <p>Fait à __________________, le ______/______/________</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <div class="footer no-print">
+            <hr>
+                <p><small>Document généré le {{ today|date:"d/m/Y" }} - Contrat {{ contrat.id }}</small></p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-impression optionnelle
+        document.addEventListener('DOMContentLoaded', function() {
+            // Si un paramètre d'auto-impression est présent dans l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('auto_print') === '1') {
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

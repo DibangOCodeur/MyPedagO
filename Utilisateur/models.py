@@ -1,4 +1,6 @@
 from django.utils.text import slugify
+from django.core.validators import MinValueValidator
+import requests  # Ajoutez cette ligne en haut avec les autres imports
 
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -8,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.urls import reverse
 from datetime import date
+from django_countries.fields import CountryField
 import re
 import uuid
 import os
@@ -47,6 +50,34 @@ def validate_email_domain(value):
         # Pour l'instant, on accepte tous les domaines
         pass
 
+
+# ==========================================
+# APIS POUR LES PAYS
+# ==========================================
+# Ajoutez cette classe dans models.py
+class CountryService:
+    @staticmethod
+    def get_countries():
+        """Récupère la liste des pays depuis l'API"""
+        try:
+            response = requests.get('https://restcountries.com/v3.1/all?fields=name,translations')
+            if response.status_code == 200:
+                return response.json()
+        except:
+            pass
+        return []
+    
+    @staticmethod
+    def search_countries(query):
+        """Recherche des pays par nom"""
+        countries = CountryService.get_countries()
+        if not query:
+            return []
+        
+        search_term = query.lower()
+        return [country for country in countries 
+                if search_term in country['name']['common'].lower() 
+                or (country.get('translations', {}).get('fra', {}).get('common', '').lower().find(search_term) != -1)]
 
 # ==========================================
 # MODÈLE SECTION
@@ -106,6 +137,15 @@ class Section(models.Model):
         except Exception:
             return 0
 
+
+
+class Pays(models.Model):
+    nom = models.CharField(max_length=100)
+    code = models.CharField(max_length=3, unique=True)
+    flag = models.URLField(blank=True, null=True)
+    
+    def __str__(self):
+        return self.nom
 
 # ==========================================
 # GESTIONNAIRE UTILISATEURS PERSONNALISÉ
@@ -385,7 +425,12 @@ class Professeur(models.Model):
         default=GenreProfesseurs.MASCULIN,
         verbose_name="Genre"
     )
-    nationalite = models.CharField(max_length=100, blank=True, verbose_name="Nationalité")
+    nationalite = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Nationalité",
+        help_text="Nationalité du professeur"
+    )
     numero_cni = models.CharField(max_length=20, blank=True, verbose_name="Numéro CNI")
     situation_matrimoniale = models.CharField(
         max_length=100,
@@ -405,7 +450,11 @@ class Professeur(models.Model):
     # Informations professionnelles
     specialite = models.CharField(max_length=100, blank=True, verbose_name="Spécialité")
     diplome = models.CharField(max_length=100, blank=True, verbose_name="Diplôme")
-    annee_experience = models.IntegerField(default=0, verbose_name="Année d'expérience")
+    annee_experience = models.IntegerField(
+        default=0,
+        verbose_name="Année d'expérience",
+        validators=[MinValueValidator(0, message="Les années d'expérience ne peuvent pas être négatives.")]
+    )
     sections = models.ManyToManyField(
         Section,
         related_name="professeurs",
@@ -903,3 +952,6 @@ def prevent_user_deletion_if_comptable(sender, instance, **kwargs):
             )
     except Comptable.DoesNotExist:
         pass
+
+
+

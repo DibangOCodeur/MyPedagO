@@ -80,7 +80,7 @@
                             <span class="detail-value progress-value">
                                 {{ precontrat.modules_valides_count }}/{{ precontrat.nombre_modules }}
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: {{ precontrat.modules_valides_count|default:0|floatformat:0|add:0|stringformat:'d' }}{{ precontrat.nombre_modules|default:1|floatformat:0|add:0|stringformat:'d' }}%"></div>
+                                    <div class="progress-fill" style="width: {{ precontrat.progression_pourcentage }}%"></div>
                                 </div>
                             </span>
                         </div>
@@ -141,7 +141,7 @@
                         </div>
                         <div class="financial-card-content">
                             <h3>Montant Total</h3>
-                            <div class="financial-value">{{ montant_total|floatformat:2 }} F CFA</div>
+                            <div class="financial-value">{{ montant_total|floatformat:0 }} F CFA</div>
                             <div class="financial-subtext">Coût total du précontrat</div>
                         </div>
                     </div>
@@ -150,7 +150,7 @@
         </div>
     </div>
 
-    <!-- Tableau des Modules -->
+    <!-- Tableau des Modules CORRIGÉ -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="modules-table-container">
@@ -160,7 +160,7 @@
                             <i class="fas fa-book"></i>
                         </div>
                         <div class="table-text">
-                            <h2>Détails des Modules - Validation Individuelle</h2>
+                            <h2>Détails des Modules</h2>
                             <p>Gestion et validation des modules du précontrat</p>
                         </div>
                     </div>
@@ -234,19 +234,24 @@
                                     </div>
                                 </td>
                                 <td class="module-cost">
-                                    {{ module_detail.details.cm.montant|floatformat:2 }} F CFA
+                                    {{ module_detail.details.cm.montant|floatformat:0 }} F CFA
                                 </td>
                                 <td class="module-cost">
-                                    {{ module_detail.details.td.montant|floatformat:2 }} F CFA
+                                    {{ module_detail.details.td.montant|floatformat:0 }} F CFA
                                 </td>
                                 <td class="module-cost">
-                                    <div class="cost-main">{{ module_detail.module.get_montant_total|floatformat:2 }} F CFA</div>
+                                    <div class="cost-main">{{ module_detail.module.get_montant_total|floatformat:0 }} F CFA</div>
                                 </td>
                                 <td class="module-status">
                                     {% if module_detail.contrat_existe %}
                                     <span class="status-badge validated">
                                         <i class="fas fa-check-circle"></i>
                                         Contrat créé
+                                    </span>
+                                    {% elif module_detail.module.est_valide %}
+                                    <span class="status-badge validated">
+                                        <i class="fas fa-check"></i>
+                                        Validé
                                     </span>
                                     {% else %}
                                     <span class="status-badge pending">
@@ -258,31 +263,38 @@
                                 <td class="module-actions">
                                     {% if module_detail.contrat_existe %}
                                     <a href="{% url 'contrat_detail' pk=module_detail.contrat.pk %}" 
-                                       class="btn-action view-contract">
-                                        <i class="fas fa-eye"></i>
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye me-1"></i>
                                         Voir contrat
                                     </a>
                                     {% else %}
-                                        {% if can_validate_modules %}
-                                        <form method="post" class="action-form">
+                                        {% if can_validate_modules and not module_detail.module.est_valide %}
+                                        <form method="post" class="d-inline">
                                             {% csrf_token %}
                                             <input type="hidden" name="module_id" value="{{ module_detail.module.id }}">
                                             <input type="hidden" name="action" value="validate_module">
-                                            <button type="submit" class="btn-action validate-module" 
-                                                    onclick="return confirm('Valider ce module et créer automatiquement le contrat ?')">
-                                                <i class="fas fa-check"></i>
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="fas fa-check me-1"></i>
                                                 Valider
                                             </button>
                                         </form>
+                                        {% elif can_validate_modules and module_detail.module.est_valide %}
+                                        <span class="text-success">
+                                            <i class="fas fa-check-circle me-1"></i>
+                                            Validé
+                                        </span>
                                         {% else %}
-                                        <span class="no-action">En attente RH</span>
+                                        <span class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            En attente RH
+                                        </span>
                                         {% endif %}
                                     {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="no-modules">
+                                <td colspan="11" class="no-modules">
                                     <div class="empty-state">
                                         <i class="fas fa-exclamation-triangle"></i>
                                         <p>Aucun module n'a été ajouté à ce précontrat.</p>
@@ -297,7 +309,7 @@
         </div>
     </div>
 
-    <!-- Informations complémentaires et Actions (gardés identiques) -->
+    <!-- Informations complémentaires CORRIGÉE -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm info-card">
@@ -316,11 +328,11 @@
                         </h6>
                         <p class="mb-2">En tant que responsable RH, vous pouvez :</p>
                         <ul class="mb-2">
-                            <li>Valider individuellement chaque module</li>
+                            <li>Valider individuellement chaque module (bouton "Valider")</li>
+                            <li>Valider tous les modules en une seule fois (bouton "Valider tous les modules")</li>
+                            <li>Valider définitivement le précontrat (bouton "Valider le précontrat")</li>
                             <li>Un contrat sera automatiquement créé pour chaque module validé</li>
-                            <li>Les contrats créés apparaîtront dans la liste des contrats</li>
                         </ul>
-                        <p class="mb-0">Vous pouvez également soumettre l'ensemble du précontrat en une seule fois.</p>
                     </div>
                     {% else %}
                     <div class="alert alert-info">
@@ -337,7 +349,7 @@
         </div>
     </div>
 
-    <!-- Actions -->
+    <!-- Actions CORRIGÉES -->
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm actions-card">
@@ -356,16 +368,30 @@
                             <!-- Boutons de droite -->
                             <div class="actions-right">
                                 {% if can_validate_modules %}
-                                    <button type="submit" name="action" value="submit_all" class="btn btn-success">
-                                        <i class="fas fa-paper-plane me-2"></i>
-                                        Soumettre tout le précontrat
+                                    <!-- Actions pour RH -->
+                                    <button type="submit" name="action" value="validate_all_modules" 
+                                            class="btn btn-warning" 
+                                            onclick="return confirm('Valider tous les modules et créer les contrats automatiquement ?')">
+                                        <i class="fas fa-check-double me-2"></i>
+                                        Valider tous les modules
+                                    </button>
+                                    <button type="submit" name="action" value="submit_precontrat" 
+                                            class="btn btn-success"
+                                            onclick="return confirm('Valider définitivement ce précontrat ? Tous les contrats seront créés.')">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        Valider le précontrat
                                     </button>
                                 {% else %}
-                                    <button type="submit" name="action" value="back" class="btn btn-warning">
+                                    <!-- Actions pour créateur -->
+                                    {% if precontrat.status == 'DRAFT' %}
+                                    <a href="{% url 'precontrat_edit' pk=precontrat.pk %}" class="btn btn-warning">
                                         <i class="fas fa-edit me-2"></i>
                                         Modifier
-                                    </button>
-                                    <button type="submit" name="action" value="submit_all" class="btn btn-success">
+                                    </a>
+                                    {% endif %}
+                                    <button type="submit" name="action" value="submit_precontrat" 
+                                            class="btn btn-success"
+                                            onclick="return confirm('Soumettre ce précontrat pour validation RH ?')">
                                         <i class="fas fa-paper-plane me-2"></i>
                                         Soumettre pour validation
                                     </button>
@@ -379,15 +405,64 @@
     </div>
 
 </div>
-</div>
+
+{% comment %} <!-- Modal pour notes de validation (pour RH) -->
+{% if can_validate_modules %}
+<div class="modal fade" id="validationNotesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Notes de validation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="validationForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="validationNotes" class="form-label">Notes (optionnel)</label>
+                        <textarea class="form-control" id="validationNotes" name="notes" rows="4" 
+                                  placeholder="Ajoutez des notes ou commentaires pour cette validation..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success" name="action" value="submit_precontrat">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Confirmer la validation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> {% endcomment %}
+{% comment %} {% endif %} {% endcomment %}
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Confirmation avant soumission
-    $('button[value="submit_all"]').on('click', function(e) {
-        if (!confirm('Êtes-vous sûr de vouloir soumettre ce précontrat pour validation ?')) {
+    // Confirmation avant actions
+    $('button[name="action"]').on('click', function(e) {
+        const action = $(this).val();
+        let message = '';
+        
+        switch(action) {
+            case 'submit_precontrat':
+                if ({{ can_validate_modules|yesno:"true,false" }}) {
+                    e.preventDefault();
+                    $('#validationNotesModal').modal('show');
+                    return;
+                } else {
+                    message = 'Êtes-vous sûr de vouloir soumettre ce précontrat pour validation RH ?';
+                }
+                break;
+            case 'validate_all_modules':
+                message = 'Valider tous les modules et créer les contrats automatiquement ?';
+                break;
+        }
+        
+        if (message && !confirm(message)) {
             e.preventDefault();
         }
     });
@@ -402,7 +477,7 @@ $(document).ready(function() {
         }
     );
 
-    // Message d'information
+    // Affichage des messages
     {% if messages %}
         {% for message in messages %}
             showToast('{{ message.tags }}', '{{ message|safe }}');
@@ -411,16 +486,30 @@ $(document).ready(function() {
 });
 
 function showToast(type, message) {
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0`;
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    // Créer un conteneur toast s'il n'existe pas
+    if (!$('.toast-container').length) {
+        $('body').append('<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999"></div>');
+    }
+    
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
         </div>
     `;
-    document.querySelector('.toast-container').appendChild(toast);
-    new bootstrap.Toast(toast).show();
+    
+    $('.toast-container').append(toastHtml);
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    
+    // Supprimer le toast du DOM après fermeture
+    toastElement.addEventListener('hidden.bs.toast', function () {
+        $(this).remove();
+    });
 }
 </script>
 {% endblock %}

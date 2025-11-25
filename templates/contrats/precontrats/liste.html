@@ -270,6 +270,16 @@
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
                                 {% endif %}
+                                {% if precontrat.status == 'SUBMITTED' %}
+                                <button type="button" 
+                                        class="action-btn small submit" 
+                                        title="Valider"
+                                        onclick="window.location.href='{% url 'precontrat_recapitulatif' precontrat.id %}'"
+                                        data-precontrat-id="{{ precontrat.id }}"
+                                        data-precontrat-ref="{{ precontrat.reference }}">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

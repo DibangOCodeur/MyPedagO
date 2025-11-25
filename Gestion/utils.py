@@ -732,3 +732,95 @@ Merci pour votre engagement !
         message=message,
         contrat=paiement.contrat
     )
+
+
+
+
+
+
+# gestion/utils.py
+import logging
+from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from .models import Contrat, ActionLog, Maquette
+
+logger = logging.getLogger(__name__)
+
+def create_contrat_from_module(module, user):
+    """
+    ⭐ VERSION CORRIGÉE ET DÉBUGUÉE ⭐
+    Crée automatiquement un contrat à partir d'un module validé
+    """
+    with transaction.atomic():
+        # Vérifier si un contrat existe déjà pour ce module
+        if hasattr(module, 'contrat'):
+            logger.info(f"✅ Contrat existe déjà pour le module {module.id}")
+            return module.contrat
+        
+        # Vérifier que le module est bien validé
+        if not module.est_valide:
+            raise ValidationError(f"Le module {module.nom_module} doit être validé avant de créer un contrat")
+        
+        try:
+            logger.info(f"🔄 Début création contrat pour module: {module.nom_module}")
+            
+            # Récupérer la maquette associée
+            maquette = Maquette.objects.filter(
+                classe=module.pre_contrat.classe,
+                is_active=True
+            ).first()
+            
+            if not maquette:
+                raise ValidationError("Aucune maquette active trouvée pour cette classe")
+            
+            logger.info(f"✅ Maquette trouvée: {maquette}")
+            
+            # ⭐ GESTION SÉCURISÉE DE LA RELATION PROFESSEUR
+            from Utilisateur.models import Professeur
+            
+            # Vérifier si l'utilisateur a déjà un profil professeur
+            try:
+                professeur_instance = module.pre_contrat.professeur.professeur
+                logger.info(f"✅ Profil professeur trouvé: {professeur_instance}")
+            except Professeur.DoesNotExist:
+                # Créer un profil professeur si inexistant
+                logger.warning(f"⚠️ Création du profil professeur pour {module.pre_contrat.professeur}")
+                professeur_instance = Professeur.objects.create(
+                    user=module.pre_contrat.professeur,
+                    grade='AUTRE',
+                    specialite='Non spécifiée',
+                    est_actif=True
+                )
+                logger.info(f"✅ Profil professeur créé: {professeur_instance}")
+            
+            # ⭐ CRÉATION DU CONTRAT
+            contrat = Contrat.objects.create(
+                module_propose=module,
+                professeur=professeur_instance,
+                classe=module.pre_contrat.classe,
+                maquette=maquette,
+                volume_heure_cours=module.volume_heure_cours,
+                volume_heure_td=module.volume_heure_td,
+                taux_horaire_cours=module.taux_horaire_cours,
+                taux_horaire_td=module.taux_horaire_td,
+                valide_par=user,
+                date_validation=timezone.now(),
+                status='VALIDATED'
+            )
+            
+            logger.info(f"✅ Contrat #{contrat.id} créé avec succès pour le module {module.nom_module}")
+            
+            # Log de l'action
+            ActionLog.objects.create(
+                contrat=contrat,
+                action='CREATED',
+                user=user,
+                details=f"Contrat créé automatiquement depuis le module {module.code_module}"
+            )
+            
+            return contrat
+            
+        except Exception as e:
+            logger.error(f"❌ Erreur création contrat: {str(e)}", exc_info=True)
+            raise ValidationError(f"Erreur lors de la création du contrat: {str(e)}")

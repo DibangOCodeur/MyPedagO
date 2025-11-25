@@ -10,8 +10,22 @@
         <div class="col-md-12">
             <div class="card creation-card">
                 <div class="card-header">
-                    <h5 class="mb-0">Création d'un nouvel utilisateur</h5>
+                    <h5 class="mb-0">
+                        {% if is_resp_peda %}
+                        Enregistrement d'un nouveau professeur
+                        {% else %}
+                        Création d'un nouvel utilisateur
+                        {% endif %}
+                    </h5>
                     <p class="text-muted mb-0">Remplissez les informations étape par étape</p>
+                    
+                    <!-- Alertes spécifiques pour RESP_PEDA -->
+                    {% if is_resp_peda %}
+                    <div class="alert alert-info mt-2 mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Mode responsable pédagogique :</strong> Vous pouvez créer un nouveau professeur pour vos sections.
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <!-- Indicateur d'étapes -->
@@ -118,6 +132,9 @@
                                             {{ form.role.errors }}
                                         </div>
                                         {% endif %}
+                                        {% if form.role.help_text %}
+                                        <small class="form-text text-muted">{{ form.role.help_text }}</small>
+                                        {% endif %}
                                     </div>
 
                                     <div class="col-md-6 mb-3">
@@ -170,6 +187,24 @@
                                         </div>
                                         {% endif %}
                                         <small class="form-text text-muted">Maintenez Ctrl pour sélectionner plusieurs sections</small>
+                                    </div>
+                                </div>
+
+                                <!-- Sections d'enseignement (spécifique aux professeurs) -->
+                                <div class="row" id="sections-enseignement-row">
+                                    <div class="col-12 mb-3">
+                                        <label for="{{ form.sections_enseignement.id_for_label }}" class="form-label">
+                                            {{ form.sections_enseignement.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.sections_enseignement }}
+                                        {% if form.sections_enseignement.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.sections_enseignement.errors }}
+                                        </div>
+                                        {% endif %}
+                                        {% if form.sections_enseignement.help_text %}
+                                        <small class="form-text text-muted">{{ form.sections_enseignement.help_text }}</small>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </fieldset>
@@ -225,6 +260,20 @@
                                         </div>
 
                                         <div class="col-md-4 mb-3">
+                                            <label for="{{ form.diplome.id_for_label }}" class="form-label">
+                                                {{ form.diplome.label }}
+                                            </label>
+                                            {{ form.diplome }}
+                                            {% if form.diplome.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.diplome.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
                                             <label for="{{ form.statut.id_for_label }}" class="form-label">
                                                 {{ form.statut.label }}
                                             </label>
@@ -235,9 +284,7 @@
                                             </div>
                                             {% endif %}
                                         </div>
-                                    </div>
 
-                                    <div class="row">
                                         <div class="col-md-3 mb-3">
                                             <label for="{{ form.genre.id_for_label }}" class="form-label">
                                                 {{ form.genre.label }}
@@ -247,9 +294,19 @@
 
                                         <div class="col-md-3 mb-3">
                                             <label for="{{ form.nationalite.id_for_label }}" class="form-label">
-                                                {{ form.nationalite.label }}
+                                                Nationalité
                                             </label>
-                                            {{ form.nationalite }}
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-flag" id="nationalite-flag"></i>
+                                                </span>
+                                                {{ form.nationalite }}
+                                            </div>
+                                            {% if form.nationalite.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.nationalite.errors }}
+                                            </div>
+                                            {% endif %}
                                         </div>
 
                                         <div class="col-md-3 mb-3">
@@ -258,16 +315,16 @@
                                             </label>
                                             {{ form.numero_cni }}
                                         </div>
+                                    </div>
 
+                                    <div class="row">
                                         <div class="col-md-3 mb-3">
                                             <label for="{{ form.situation_matrimoniale.id_for_label }}" class="form-label">
                                                 {{ form.situation_matrimoniale.label }}
                                             </label>
                                             {{ form.situation_matrimoniale }}
                                         </div>
-                                    </div>
 
-                                    <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label for="{{ form.domicile.id_for_label }}" class="form-label">
                                                 {{ form.domicile.label }}
@@ -281,33 +338,20 @@
                                             </label>
                                             {{ form.specialite }}
                                         </div>
-
-                                        <div class="col-md-3 mb-3">
-                                            <label for="{{ form.diplome.id_for_label }}" class="form-label">
-                                                {{ form.diplome.label }}
-                                            </label>
-                                            {{ form.diplome }}
-                                        </div>
                                     </div>
 
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label for="{{ form.annee_experience.id_for_label }}" class="form-label">
-                                                {{ form.annee_experience.label }}
+                                                {{ form.annee_experience.label }} <span class="text-danger">*</span>
                                             </label>
                                             {{ form.annee_experience }}
-                                        </div>
-
-                                        <div class="col-md-6 mb-3">
-                                            <label for="{{ form.sections_enseignement.id_for_label }}" class="form-label">
-                                                {{ form.sections_enseignement.label }} <span class="text-danger">*</span>
-                                            </label>
-                                            {{ form.sections_enseignement }}
-                                            {% if form.sections_enseignement.errors %}
+                                            {% if form.annee_experience.errors %}
                                             <div class="invalid-feedback d-block">
-                                                {{ form.sections_enseignement.errors }}
+                                                {{ form.annee_experience.errors }}
                                             </div>
                                             {% endif %}
+                                            <small class="form-text text-muted">Doit être un nombre positif</small>
                                         </div>
                                     </div>
                                 </div>
@@ -485,7 +529,13 @@
                                 
                                 <div class="confirmation-summary">
                                     <div class="summary-header">
-                                        <h5>Récapitulatif de la création</h5>
+                                        <h5>
+                                            {% if is_resp_peda %}
+                                            Récapitulatif de l'enregistrement du professeur
+                                            {% else %}
+                                            Récapitulatif de la création
+                                            {% endif %}
+                                        </h5>
                                         <p class="text-muted">Vérifiez les informations avant de créer l'utilisateur</p>
                                     </div>
                                     
@@ -520,6 +570,10 @@
                                                 <span class="summary-label">Sections autorisées:</span>
                                                 <span class="summary-value" id="summary-allowed-sections"></span>
                                             </div>
+                                            <div class="summary-item" id="summary-teaching-sections-item">
+                                                <span class="summary-label">Sections d'enseignement:</span>
+                                                <span class="summary-value" id="summary-teaching-sections"></span>
+                                            </div>
                                         </div>
                                         
                                         <div class="summary-section" id="summary-professor" style="display: none;">
@@ -533,8 +587,20 @@
                                                 <span class="summary-value" id="summary-prof-grade"></span>
                                             </div>
                                             <div class="summary-item">
+                                                <span class="summary-label">Diplôme:</span>
+                                                <span class="summary-value" id="summary-prof-diplome"></span>
+                                            </div>
+                                            <div class="summary-item">
                                                 <span class="summary-label">Spécialité:</span>
                                                 <span class="summary-value" id="summary-prof-specialty"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Nationalité:</span>
+                                                <span class="summary-value" id="summary-prof-nationalite"></span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span class="summary-label">Années d'expérience:</span>
+                                                <span class="summary-value" id="summary-prof-experience"></span>
                                             </div>
                                         </div>
                                         
@@ -587,7 +653,12 @@
                                     <i class="fas fa-arrow-left"></i> Précédent
                                 </button>
                                 <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-user-plus"></i> Créer l'utilisateur
+                                    <i class="fas fa-user-plus"></i> 
+                                    {% if is_resp_peda %}
+                                    Créer le professeur
+                                    {% else %}
+                                    Créer l'utilisateur
+                                    {% endif %}
                                 </button>
                             </div>
                         </div>
@@ -597,21 +668,6 @@
         </div>
     </div>
 </div>
-
-<!-- Liste des pays pour la nationalité -->
-<datalist id="pays-list">
-    <option value="Côte d'Ivoire">
-    <option value="France">
-    <option value="Sénégal">
-    <option value="Mali">
-    <option value="Burkina Faso">
-    <option value="Niger">
-    <option value="Bénin">
-    <option value="Togo">
-    <option value="Ghana">
-    <option value="Nigeria">
-    <!-- Ajoutez d'autres pays si nécessaire -->
-</datalist>
 
 <style>
 /* Styles pour les cartes de documents */
@@ -686,41 +742,432 @@
     font-size: 0.85rem;
     color: #666;
 }
+
+/* Styles pour les drapeaux des pays */
+.country-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.country-flag {
+    width: 20px;
+    height: 15px;
+    object-fit: cover;
+    border: 1px solid #ddd;
+}
+
+/* Styles pour l'autocomplete des pays */
+.country-suggestions {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    width: 100%;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.country-suggestion {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.country-suggestion:hover {
+    background-color: #f8f9fa;
+}
+
+.country-suggestion img {
+    width: 20px;
+    height: 15px;
+}
+
+/* Style pour les champs désactivés */
+.form-control:disabled {
+    background-color: #e9ecef;
+    opacity: 1;
+}
+
+/* Style spécifique pour RESP_PEDA */
+.resp-peda-alert {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+.resp-peda-alert .fas {
+    color: white;
+}
 </style>
 
 <script src="{% static 'js/mobile/create.js' %}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Gestion des étapes
-    const steps = document.querySelectorAll('.form-step');
-    const stepIndicators = document.querySelectorAll('.step');
-    let currentStep = 1;
+// Gestion du mapping grade-diplôme
+class GradeDiplomeManager {
+    constructor() {
+        this.mapping = {
+            'Professeur': 'Master 2',
+            'Doctorant': '1ère année doctorat',
+            'Docteur': 'Doctorat'
+        };
+        
+        this.init();
+    }
+    
+    init() {
+        const gradeSelect = document.getElementById('id_grade');
+        const diplomeInput = document.getElementById('id_diplome');
+        
+        if (gradeSelect && diplomeInput) {
+            console.log('GradeDiplomeManager initialisé');
+            
+            // Initialiser la valeur du diplôme
+            this.updateDiplomeValue(gradeSelect.value);
+            
+            // Écouter les changements de grade
+            gradeSelect.addEventListener('change', (e) => {
+                console.log('Grade changé:', e.target.value);
+                this.updateDiplomeValue(e.target.value);
+            });
+        } else {
+            console.warn('Champs grade ou diplome non trouvés');
+        }
+    }
+    
+    updateDiplomeValue(selectedGrade) {
+        const diplomeInput = document.getElementById('id_diplome');
+        if (!diplomeInput) {
+            console.warn('Champ diplome non trouvé');
+            return;
+        }
+        
+        console.log('Mise à jour diplôme pour grade:', selectedGrade);
+        
+        // Mettre à jour la valeur selon le grade
+        if (selectedGrade && this.mapping[selectedGrade]) {
+            diplomeInput.value = this.mapping[selectedGrade];
+            console.log('Diplôme auto-rempli:', this.mapping[selectedGrade]);
+        } else {
+            diplomeInput.value = '';
+            console.log('Aucun diplôme trouvé pour ce grade');
+        }
+    }
+}
 
-    // Navigation entre les étapes
-    document.querySelectorAll('.btn-next').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const nextStep = parseInt(this.dataset.next);
-            if (validateStep(currentStep)) {
-                goToStep(nextStep);
+// Gestion de l'API des pays
+class CountryAPI {
+    constructor() {
+        this.countries = [];
+        this.init();
+    }
+
+    async init() {
+        await this.loadCountries();
+        this.setupNationaliteAutocomplete();
+    }
+
+    async loadCountries() {
+        try {
+            console.log('Chargement des pays...');
+            const response = await fetch('https://restcountries.com/v3.1/all?fields=name,translations,flags');
+            this.countries = await response.json();
+            console.log(`Chargement de ${this.countries.length} pays réussi`);
+        } catch (error) {
+            console.error('Erreur lors du chargement des pays:', error);
+            this.countries = this.getFallbackCountries();
+        }
+    }
+
+    getFallbackCountries() {
+        return [
+            { 
+                name: { common: "Côte d'Ivoire" }, 
+                translations: { fra: { common: "Côte d'Ivoire" } },
+                flags: { png: "https://flagcdn.com/w320/ci.png" }
+            },
+            { 
+                name: { common: "France" }, 
+                translations: { fra: { common: "France" } },
+                flags: { png: "https://flagcdn.com/w320/fr.png" }
+            },
+            { 
+                name: { common: "Senegal" }, 
+                translations: { fra: { common: "Sénégal" } },
+                flags: { png: "https://flagcdn.com/w320/sn.png" }
+            },
+            { 
+                name: { common: "Mali" }, 
+                translations: { fra: { common: "Mali" } },
+                flags: { png: "https://flagcdn.com/w320/ml.png" }
+            },
+            { 
+                name: { common: "Burkina Faso" }, 
+                translations: { fra: { common: "Burkina Faso" } },
+                flags: { png: "https://flagcdn.com/w320/bf.png" }
+            }
+        ];
+    }
+
+    setupNationaliteAutocomplete() {
+        const nationaliteInput = document.getElementById('id_nationalite');
+        if (!nationaliteInput) {
+            console.warn('Champ nationalité non trouvé');
+            return;
+        }
+
+        // Créer le conteneur pour les suggestions
+        const suggestionsContainer = document.createElement('div');
+        suggestionsContainer.className = 'country-suggestions';
+        suggestionsContainer.style.display = 'none';
+        nationaliteInput.parentNode.appendChild(suggestionsContainer);
+
+        // Trier les pays par nom français
+        const sortedCountries = this.countries.sort((a, b) => {
+            const nameA = (a.translations?.fra?.common || a.name.common).toLowerCase();
+            const nameB = (b.translations?.fra?.common || b.name.common).toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        nationaliteInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            suggestionsContainer.innerHTML = '';
+            suggestionsContainer.style.display = 'none';
+
+            if (query.length < 2) return;
+
+            const filteredCountries = sortedCountries.filter(country => {
+                const countryName = (country.translations?.fra?.common || country.name.common).toLowerCase();
+                return countryName.includes(query);
+            }).slice(0, 10); // Limiter à 10 résultats
+
+            if (filteredCountries.length > 0) {
+                filteredCountries.forEach(country => {
+                    const suggestion = document.createElement('div');
+                    suggestion.className = 'country-suggestion';
+                    suggestion.innerHTML = `
+                        <img src="${country.flags?.png || ''}" alt="${country.name.common}" class="country-flag">
+                        <span>${country.translations?.fra?.common || country.name.common}</span>
+                    `;
+                    
+                    suggestion.addEventListener('click', () => {
+                        nationaliteInput.value = country.translations?.fra?.common || country.name.common;
+                        this.updateFlag(nationaliteInput.value);
+                        suggestionsContainer.style.display = 'none';
+                    });
+                    
+                    suggestionsContainer.appendChild(suggestion);
+                });
+                suggestionsContainer.style.display = 'block';
             }
         });
-    });
 
-    document.querySelectorAll('.btn-prev').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const prevStep = parseInt(this.dataset.prev);
-            goToStep(prevStep);
+        // Cacher les suggestions quand on clique ailleurs
+        document.addEventListener('click', (e) => {
+            if (!nationaliteInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+                suggestionsContainer.style.display = 'none';
+            }
         });
-    });
 
-    function goToStep(step) {
-        document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
-        document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+        // Mettre à jour le drapeau quand la valeur change
+        nationaliteInput.addEventListener('change', () => {
+            this.updateFlag(nationaliteInput.value);
+        });
+
+        nationaliteInput.addEventListener('blur', () => {
+            setTimeout(() => {
+                suggestionsContainer.style.display = 'none';
+            }, 200);
+        });
+    }
+
+    updateFlag(countryName) {
+        const flagIcon = document.getElementById('nationalite-flag');
+        if (!flagIcon) return;
+
+        const country = this.countries.find(c => 
+            (c.translations?.fra?.common || c.name.common) === countryName
+        );
+
+        if (country && country.flags?.png) {
+            flagIcon.className = '';
+            flagIcon.style.backgroundImage = `url(${country.flags.png})`;
+            flagIcon.style.backgroundSize = 'cover';
+            flagIcon.style.backgroundPosition = 'center';
+            flagIcon.style.width = '20px';
+            flagIcon.style.height = '15px';
+            flagIcon.style.display = 'inline-block';
+        } else {
+            flagIcon.className = 'fas fa-flag';
+            flagIcon.style.backgroundImage = '';
+        }
+    }
+}
+
+// Validation de l'année d'expérience
+function setupAnneeExperienceValidation() {
+    const anneeExperienceInput = document.querySelector('input[name="annee_experience"]');
+    if (anneeExperienceInput) {
+        anneeExperienceInput.addEventListener('change', function() {
+            let value = this.value.trim();
+            // Supprimer les zéros non significatifs
+            if (value) {
+                value = parseInt(value).toString();
+                this.value = value;
+            }
+            
+            const numValue = parseInt(value || 0);
+            if (numValue < 0) {
+                alert("Les années d'expérience doivent être positives.");
+                this.value = 0;
+            }
+        });
+
+        anneeExperienceInput.addEventListener('input', function() {
+            // Empêcher la saisie de caractères non numériques
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            if (this.value < 0) {
+                this.value = 0;
+            }
+        });
+    }
+}
+
+// Gestion des étapes du formulaire
+class FormStepManager {
+    constructor() {
+        this.currentStep = 1;
+        this.init();
+    }
+    
+    init() {
+        console.log('FormStepManager initialisé');
+        this.setupNavigation();
+        this.setupRoleFields();
+        this.setupFilePreviews();
+        this.setupFormSubmission();
+        this.setupRespPedaFeatures();
+    }
+
+    setupRespPedaFeatures() {
+        // Pour RESP_PEDA, masquer les sections d'enseignement dans l'étape 2 si pas de rôle professeur
+        const roleSelect = document.getElementById('id_role');
+        if (roleSelect && roleSelect.disabled) {
+            console.log('Mode RESP_PEDA détecté');
+            this.toggleSectionsEnseignement(true);
+        }
+    }
+
+    toggleSectionsEnseignement(show) {
+        const sectionsRow = document.getElementById('sections-enseignement-row');
+        if (sectionsRow) {
+            sectionsRow.style.display = show ? 'block' : 'none';
+        }
+    }
+    
+    setupNavigation() {
+        // Boutons Suivant
+        document.querySelectorAll('.btn-next').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const nextStep = parseInt(e.target.dataset.next);
+                console.log('Navigation vers étape:', nextStep);
+                if (this.validateStep(this.currentStep)) {
+                    this.goToStep(nextStep);
+                }
+            });
+        });
+
+        // Boutons Précédent
+        document.querySelectorAll('.btn-prev').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const prevStep = parseInt(e.target.dataset.prev);
+                console.log('Retour à étape:', prevStep);
+                this.goToStep(prevStep);
+            });
+        });
+    }
+    
+    setupFormSubmission() {
+        const form = document.getElementById('multiStepForm');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                console.log('Soumission du formulaire détectée');
+                
+                // Validation finale avant soumission
+                if (!this.validateAllSteps()) {
+                    e.preventDefault();
+                    alert('Veuillez corriger les erreurs avant de soumettre le formulaire.');
+                    return;
+                }
+                
+                // Nettoyer les données avant soumission
+                this.cleanFormData();
+                
+                // Afficher un indicateur de chargement
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création en cours...';
+                submitBtn.disabled = true;
+                
+                console.log('Formulaire en cours de soumission...');
+            });
+        }
+    }
+
+    cleanFormData() {
+        // Nettoyer l'année d'expérience (supprimer les zéros non significatifs)
+        const anneeExperienceInput = document.querySelector('input[name="annee_experience"]');
+        if (anneeExperienceInput && anneeExperienceInput.value) {
+            anneeExperienceInput.value = parseInt(anneeExperienceInput.value).toString();
+        }
+
+        // S'assurer que le diplôme est bien rempli selon le grade
+        const gradeSelect = document.getElementById('id_grade');
+        const diplomeInput = document.getElementById('id_diplome');
+        if (gradeSelect && gradeSelect.value && diplomeInput && !diplomeInput.value) {
+            const mapping = {
+                'Professeur': 'Master 2',
+                'Doctorant': '1ère année doctorat', 
+                'Docteur': 'Doctorat'
+            };
+            diplomeInput.value = mapping[gradeSelect.value] || '';
+        }
+    }
+    
+    validateAllSteps() {
+        for (let step = 1; step <= 5; step++) {
+            if (!this.validateStep(step)) {
+                this.goToStep(step);
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    goToStep(step) {
+        console.log(`Changement d'étape: ${this.currentStep} -> ${step}`);
         
-        document.querySelector(`.form-step[data-step="${step}"]`).classList.add('active');
-        document.querySelector(`.step[data-step="${step}"]`).classList.add('active');
+        // Masquer l'étape actuelle
+        const currentStepElement = document.querySelector(`.form-step[data-step="${this.currentStep}"]`);
+        const currentIndicator = document.querySelector(`.step[data-step="${this.currentStep}"]`);
         
-        stepIndicators.forEach(indicator => {
+        if (currentStepElement) currentStepElement.classList.remove('active');
+        if (currentIndicator) currentIndicator.classList.remove('active');
+        
+        // Afficher la nouvelle étape
+        const newStepElement = document.querySelector(`.form-step[data-step="${step}"]`);
+        const newIndicator = document.querySelector(`.step[data-step="${step}"]`);
+        
+        if (newStepElement) newStepElement.classList.add('active');
+        if (newIndicator) newIndicator.classList.add('active');
+        
+        // Mettre à jour les indicateurs d'étape
+        document.querySelectorAll('.step').forEach(indicator => {
             const indicatorStep = parseInt(indicator.dataset.step);
             if (indicatorStep < step) {
                 indicator.classList.add('completed');
@@ -729,150 +1176,236 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        currentStep = step;
+        this.currentStep = step;
 
+        // Actions spécifiques selon l'étape
         if (step === 5) {
-            updateSummary();
+            this.updateSummary();
         }
         
-        // Gérer l'affichage des documents selon le rôle
         if (step === 4) {
-            toggleDocumentFields();
+            this.toggleDocumentFields();
         }
+        
+        // Scroll vers le haut pour une meilleure expérience utilisateur
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    function validateStep(step) {
+    
+    validateStep(step) {
+        console.log(`Validation étape ${step}`);
         const currentStepElement = document.querySelector(`.form-step[data-step="${step}"]`);
+        if (!currentStepElement) {
+            console.warn(`Étape ${step} non trouvée`);
+            return true;
+        }
+        
         const requiredFields = currentStepElement.querySelectorAll('[required]');
         let isValid = true;
+        let firstErrorField = null;
 
         requiredFields.forEach(field => {
+            // Ne pas valider les champs cachés
+            if (field.closest('.role-specific-fields') && 
+                field.closest('.role-specific-fields').style.display === 'none') {
+                return;
+            }
+
             if (!field.value.trim()) {
                 isValid = false;
                 field.classList.add('is-invalid');
+                
+                // Stocker le premier champ en erreur pour y scroll
+                if (!firstErrorField) {
+                    firstErrorField = field;
+                }
+                
+                console.log(`Champ requis vide: ${field.name}`);
             } else {
                 field.classList.remove('is-invalid');
             }
         });
 
+        // Validation spécifique pour l'année d'expérience
+        if (step === 3) {
+            const anneeExperience = document.querySelector('input[name="annee_experience"]');
+            if (anneeExperience && anneeExperience.value) {
+                const value = parseInt(anneeExperience.value);
+                if (value < 0) {
+                    isValid = false;
+                    anneeExperience.classList.add('is-invalid');
+                    if (!firstErrorField) firstErrorField = anneeExperience;
+                }
+            }
+        }
+
         if (!isValid) {
-            alert('Veuillez remplir tous les champs obligatoires');
+            // Scroll vers le premier champ en erreur
+            if (firstErrorField) {
+                firstErrorField.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+                // Focus sur le champ pour faciliter la correction
+                setTimeout(() => firstErrorField.focus(), 500);
+            }
+            
+            alert('Veuillez remplir tous les champs obligatoires correctement');
         }
 
         return isValid;
     }
-
-    // Gestion des champs spécifiques par rôle
-    const roleSelect = document.getElementById('id_role');
-    const professeurFields = document.getElementById('professeur-fields');
-    const comptableFields = document.getElementById('comptable-fields');
-    const autreRoleFields = document.getElementById('autre-role-fields');
-    const professeurDocuments = document.getElementById('professeur-documents');
-    const autreRoleDocuments = document.getElementById('autre-role-documents');
     
-    function toggleRoleFields() {
-        const selectedRole = roleSelect.value;
+    setupRoleFields() {
+        const roleSelect = document.getElementById('id_role');
+        const professeurFields = document.getElementById('professeur-fields');
+        const comptableFields = document.getElementById('comptable-fields');
+        const autreRoleFields = document.getElementById('autre-role-fields');
+        const professeurDocuments = document.getElementById('professeur-documents');
+        const autreRoleDocuments = document.getElementById('autre-role-documents');
         
-        document.querySelectorAll('.role-specific-fields').forEach(field => {
-            field.style.display = 'none';
-        });
-        
-        if (selectedRole === 'PROFESSEUR') {
-            professeurFields.style.display = 'block';
-        } else if (selectedRole === 'COMPTABLE') {
-            comptableFields.style.display = 'block';
-        } else {
-            autreRoleFields.style.display = 'block';
-        }
-    }
-    
-    function toggleDocumentFields() {
-        const selectedRole = roleSelect.value;
-        
-        if (selectedRole === 'PROFESSEUR') {
-            professeurDocuments.style.display = 'block';
-            autreRoleDocuments.style.display = 'none';
-        } else {
-            professeurDocuments.style.display = 'none';
-            autreRoleDocuments.style.display = 'block';
-        }
-    }
-    
-    toggleRoleFields();
-    roleSelect.addEventListener('change', toggleRoleFields);
-
-    // Prévisualisation des fichiers
-    const fileInputs = {
-        'id_photo': 'photo-preview',
-        'id_cni_document': 'cni-preview',
-        'id_rib_document': 'rib-preview',
-        'id_cv_document': 'cv-preview',
-        'id_diplome_document': 'diplome-preview'
-    };
-
-    Object.keys(fileInputs).forEach(inputId => {
-        const input = document.getElementById(inputId);
-        const previewId = fileInputs[inputId];
-        
-        if (input) {
-            input.addEventListener('change', function(e) {
-                handleFilePreview(e.target, previewId);
+        const toggleFields = () => {
+            const selectedRole = roleSelect ? roleSelect.value : '';
+            console.log('Rôle sélectionné:', selectedRole);
+            
+            [professeurFields, comptableFields, autreRoleFields].forEach(field => {
+                if (field) field.style.display = 'none';
             });
+            
+            // Gestion des sections d'enseignement
+            this.toggleSectionsEnseignement(selectedRole === 'PROFESSEUR');
+            
+            if (selectedRole === 'PROFESSEUR' && professeurFields) {
+                professeurFields.style.display = 'block';
+                console.log('Affichage des champs professeur');
+            } else if (selectedRole === 'COMPTABLE' && comptableFields) {
+                comptableFields.style.display = 'block';
+                console.log('Affichage des champs comptable');
+            } else if (autreRoleFields) {
+                autreRoleFields.style.display = 'block';
+                console.log('Affichage des champs autre rôle');
+            }
+        };
+        
+        this.toggleDocumentFields = () => {
+            const selectedRole = roleSelect ? roleSelect.value : '';
+            console.log('Toggle documents pour rôle:', selectedRole);
+            
+            if (professeurDocuments && autreRoleDocuments) {
+                if (selectedRole === 'PROFESSEUR') {
+                    professeurDocuments.style.display = 'block';
+                    autreRoleDocuments.style.display = 'none';
+                } else {
+                    professeurDocuments.style.display = 'none';
+                    autreRoleDocuments.style.display = 'block';
+                }
+            }
+        };
+        
+        if (roleSelect) {
+            toggleFields();
+            roleSelect.addEventListener('change', toggleFields);
         }
-    });
+    }
+    
+    setupFilePreviews() {
+        const fileInputs = {
+            'id_photo': 'photo-preview',
+            'id_cni_document': 'cni-preview',
+            'id_rib_document': 'rib-preview',
+            'id_cv_document': 'cv-preview',
+            'id_diplome_document': 'diplome-preview'
+        };
 
-    function handleFilePreview(input, previewId) {
+        Object.keys(fileInputs).forEach(inputId => {
+            const input = document.getElementById(inputId);
+            const previewId = fileInputs[inputId];
+            
+            if (input) {
+                input.addEventListener('change', (e) => {
+                    console.log('Fichier sélectionné:', inputId);
+                    this.handleFilePreview(e.target, previewId);
+                });
+            }
+        });
+    }
+    
+    handleFilePreview(input, previewId) {
         const preview = document.getElementById(previewId);
         const file = input.files[0];
         
-        if (file) {
+        if (file && preview) {
             preview.classList.add('active');
             
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                reader.onload = (e) => {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">`;
                 };
                 reader.readAsDataURL(file);
             } else {
                 const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                const fileIcon = file.type.includes('pdf') ? 'fa-file-pdf' : 
+                               file.type.includes('word') ? 'fa-file-word' : 'fa-file';
+                const fileColor = file.type.includes('pdf') ? '#e74c3c' : 
+                                file.type.includes('word') ? '#2c5aa0' : '#1e3c72';
+                
                 preview.innerHTML = `
-                    <div class="file-info">
-                        <i class="fas fa-file-pdf"></i>
-                        <div class="file-details">
-                            <div class="file-name">${file.name}</div>
-                            <div class="file-size">${fileSize} MB</div>
+                    <div class="file-info" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border-radius: 8px;">
+                        <i class="fas ${fileIcon}" style="font-size: 24px; color: ${fileColor};"></i>
+                        <div class="file-details" style="flex: 1;">
+                            <div class="file-name" style="font-weight: 600; color: #333;">${file.name}</div>
+                            <div class="file-size" style="font-size: 0.85rem; color: #666;">${fileSize} MB</div>
                         </div>
                     </div>
                 `;
             }
-        } else {
+        } else if (preview) {
             preview.classList.remove('active');
             preview.innerHTML = '';
         }
     }
-
-    // Mettre à jour le récapitulatif
-    function updateSummary() {
+    
+    updateSummary() {
+        console.log('Mise à jour du récapitulatif');
+        
         // Informations générales
-        document.getElementById('summary-fullname').textContent = 
-            `${document.getElementById('id_first_name').value} ${document.getElementById('id_last_name').value}`;
-        document.getElementById('summary-email').textContent = document.getElementById('id_email').value;
-        document.getElementById('summary-role').textContent = roleSelect.options[roleSelect.selectedIndex].text;
-        document.getElementById('summary-phone').textContent = document.getElementById('id_telephone').value || 'Non renseigné';
+        const firstName = document.getElementById('id_first_name')?.value || '';
+        const lastName = document.getElementById('id_last_name')?.value || '';
+        document.getElementById('summary-fullname').textContent = `${firstName} ${lastName}`.trim();
+        
+        document.getElementById('summary-email').textContent = document.getElementById('id_email')?.value || '';
+        
+        const roleSelect = document.getElementById('id_role');
+        document.getElementById('summary-role').textContent = roleSelect?.options[roleSelect?.selectedIndex]?.text || '';
+        
+        document.getElementById('summary-phone').textContent = document.getElementById('id_telephone')?.value || 'Non renseigné';
 
         // Sections
         const mainSectionSelect = document.getElementById('id_section_principale');
         document.getElementById('summary-main-section').textContent = 
-            mainSectionSelect.selectedIndex > 0 ? mainSectionSelect.options[mainSectionSelect.selectedIndex].text : 'Non définie';
+            mainSectionSelect?.selectedIndex > 0 ? mainSectionSelect.options[mainSectionSelect.selectedIndex].text : 'Non définie';
 
         const allowedSectionsSelect = document.getElementById('id_sections_autorisees');
-        const selectedSections = Array.from(allowedSectionsSelect.selectedOptions).map(option => option.text);
+        const selectedSections = allowedSectionsSelect ? 
+            Array.from(allowedSectionsSelect.selectedOptions).map(option => option.text) : [];
         document.getElementById('summary-allowed-sections').textContent = 
             selectedSections.length > 0 ? selectedSections.join(', ') : 'Aucune';
 
+        // Sections d'enseignement
+        const teachingSectionsSelect = document.getElementById('id_sections_enseignement');
+        const selectedTeachingSections = teachingSectionsSelect ? 
+            Array.from(teachingSectionsSelect.selectedOptions).map(option => option.text) : [];
+        document.getElementById('summary-teaching-sections').textContent = 
+            selectedTeachingSections.length > 0 ? selectedTeachingSections.join(', ') : 'Aucune';
+
+        // Afficher/masquer l'élément des sections d'enseignement
+        const teachingSectionsItem = document.getElementById('summary-teaching-sections-item');
+        if (teachingSectionsItem) {
+            teachingSectionsItem.style.display = selectedTeachingSections.length > 0 ? 'flex' : 'none';
+        }
+
         // Informations spécifiques au rôle
-        const selectedRole = roleSelect.value;
+        const selectedRole = roleSelect?.value;
         
         if (selectedRole === 'PROFESSEUR') {
             document.getElementById('summary-professor').style.display = 'block';
@@ -880,34 +1413,45 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('summary-documents').style.display = 'block';
             
             document.getElementById('summary-prof-birthdate').textContent = 
-                document.getElementById('id_date_naissance_prof').value || 'Non renseignée';
+                document.getElementById('id_date_naissance_prof')?.value || 'Non renseignée';
             
             const gradeSelect = document.getElementById('id_grade');
             document.getElementById('summary-prof-grade').textContent = 
-                gradeSelect.selectedIndex > 0 ? gradeSelect.options[gradeSelect.selectedIndex].text : 'Non renseigné';
+                gradeSelect?.selectedIndex > 0 ? gradeSelect.options[gradeSelect.selectedIndex].text : 'Non renseigné';
+            
+            const diplomeInput = document.getElementById('id_diplome');
+            document.getElementById('summary-prof-diplome').textContent = 
+                diplomeInput?.value || 'Non renseigné';
             
             document.getElementById('summary-prof-specialty').textContent = 
-                document.getElementById('id_specialite').value || 'Non renseignée';
+                document.getElementById('id_specialite')?.value || 'Non renseignée';
+
+            const nationaliteInput = document.getElementById('id_nationalite');
+            document.getElementById('summary-prof-nationalite').textContent = 
+                nationaliteInput?.value || 'Non renseignée';
+
+            document.getElementById('summary-prof-experience').textContent = 
+                document.getElementById('id_annee_experience')?.value || '0';
             
             // Documents
             document.getElementById('summary-doc-photo').textContent = 
-                document.getElementById('id_photo').files.length > 0 ? 
+                document.getElementById('id_photo')?.files.length > 0 ? 
                 document.getElementById('id_photo').files[0].name : 'Non fournie';
             
             document.getElementById('summary-doc-cni').textContent = 
-                document.getElementById('id_cni_document').files.length > 0 ? 
+                document.getElementById('id_cni_document')?.files.length > 0 ? 
                 document.getElementById('id_cni_document').files[0].name : 'Non fournie';
             
             document.getElementById('summary-doc-rib').textContent = 
-                document.getElementById('id_rib_document').files.length > 0 ? 
+                document.getElementById('id_rib_document')?.files.length > 0 ? 
                 document.getElementById('id_rib_document').files[0].name : 'Non fourni';
             
             document.getElementById('summary-doc-cv').textContent = 
-                document.getElementById('id_cv_document').files.length > 0 ? 
+                document.getElementById('id_cv_document')?.files.length > 0 ? 
                 document.getElementById('id_cv_document').files[0].name : 'Non fourni';
             
             document.getElementById('summary-doc-diplome').textContent = 
-                document.getElementById('id_diplome_document').files.length > 0 ? 
+                document.getElementById('id_diplome_document')?.files.length > 0 ? 
                 document.getElementById('id_diplome_document').files[0].name : 'Non fourni';
                 
         } else if (selectedRole === 'COMPTABLE') {
@@ -916,824 +1460,39 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('summary-documents').style.display = 'none';
             
             document.getElementById('summary-compta-birthdate').textContent = 
-                document.getElementById('id_date_naissance_compta').value || 'Non renseignée';
+                document.getElementById('id_date_naissance_compta')?.value || 'Non renseignée';
         } else {
             document.getElementById('summary-professor').style.display = 'none';
             document.getElementById('summary-comptable').style.display = 'none';
             document.getElementById('summary-documents').style.display = 'none';
         }
+        
+        console.log('Récapitulatif mis à jour');
+    }
+}
+
+// Initialisation quand le DOM est chargé
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Initialisation du formulaire de création utilisateur...');
+    
+    try {
+        // Initialiser l'API des pays
+        new CountryAPI();
+        
+        // Initialiser le mapping grade-diplôme
+        new GradeDiplomeManager();
+        
+        // Initialiser la gestion des étapes
+        new FormStepManager();
+        
+        // Initialiser la validation de l'année d'expérience
+        setupAnneeExperienceValidation();
+        
+        console.log('✅ Formulaire de création utilisateur initialisé avec succès');
+        
+    } catch (error) {
+        console.error('❌ Erreur lors de l\'initialisation:', error);
     }
 });
 </script>
 {% endblock %}
-
-
-
-
-{% comment %} {% extends 'bases/base_users.html' %}
-
-{% load static %}
-
-{% block title %}{{ title }}{% endblock %}
-
-{% block content %}
-<link rel="stylesheet" href="{% static 'css/utilisateurs/create.css' %}">
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card creation-card">
-                <div class="card-header">
-                    <h5 class="mb-0">Création d'un nouvel utilisateur</h5>
-                    <p class="text-muted mb-0">Remplissez les informations étape par étape</p>
-                </div>
-                <div class="card-body">
-                    <!-- Indicateur d'étapes -->
-                    <div class="step-indicator">
-                        <div class="step active" data-step="1">
-                            <div class="step-number">1</div>
-                            <div class="step-label">Informations<br>Générales</div>
-                        </div>
-                        <div class="step" data-step="2">
-                            <div class="step-number">2</div>
-                            <div class="step-label">Sections &<br>Permissions</div>
-                        </div>
-                        <div class="step" data-step="3">
-                            <div class="step-number">3</div>
-                            <div class="step-label">Profil<br>Spécifique</div>
-                        </div>
-                        <div class="step" data-step="4">
-                            <div class="step-number">4</div>
-                            <div class="step-label">Confirmation</div>
-                        </div>
-                    </div>
-
-                    <form method="post" novalidate id="multiStepForm">
-                        {% csrf_token %}
-                        
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {{ form.non_field_errors }}
-                        </div>
-                        {% endif %}
-
-                        <!-- Étape 1: Informations Générales -->
-                        <div class="form-step active" data-step="1">
-                            <fieldset class="form-fieldset">
-                                <legend class="form-legend">
-                                    <i class="fas fa-user"></i>
-                                    Informations Générales
-                                </legend>
-                                
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ form.first_name.id_for_label }}" class="form-label">
-                                            {{ form.first_name.label }} <span class="text-danger">*</span>
-                                        </label>
-                                        {{ form.first_name }}
-                                        {% if form.first_name.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.first_name.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ form.last_name.id_for_label }}" class="form-label">
-                                            {{ form.last_name.label }} <span class="text-danger">*</span>
-                                        </label>
-                                        {{ form.last_name }}
-                                        {% if form.last_name.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.last_name.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ form.email.id_for_label }}" class="form-label">
-                                            {{ form.email.label }} <span class="text-danger">*</span>
-                                        </label>
-                                        {{ form.email }}
-                                        {% if form.email.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.email.errors }}
-                                        </div>
-                                        {% endif %}
-                                        <small class="form-text text-muted">{{ form.email.help_text }}</small>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ form.telephone.id_for_label }}" class="form-label">
-                                            {{ form.telephone.label }}
-                                        </label>
-                                        {{ form.telephone }}
-                                        {% if form.telephone.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.telephone.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ form.role.id_for_label }}" class="form-label">
-                                            {{ form.role.label }} <span class="text-danger">*</span>
-                                        </label>
-                                        {{ form.role }}
-                                        {% if form.role.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.role.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <div class="form-check mt-4">
-                                            {{ form.is_active_user }}
-                                            <label class="form-check-label" for="{{ form.is_active_user.id_for_label }}">
-                                                {{ form.is_active_user.label }}
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </fieldset>
-
-                            <div class="form-step-actions">
-                                <button type="button" class="btn btn-next" data-next="2">
-                                    Suivant <i class="fas fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Étape 2: Sections et Permissions -->
-                        <div class="form-step" data-step="2">
-                            <fieldset class="form-fieldset">
-                                <legend class="form-legend">
-                                    <i class="fas fa-building"></i>
-                                    Sections et Permissions
-                                </legend>
-                                
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ form.section_principale.id_for_label }}" class="form-label">
-                                            {{ form.section_principale.label }}
-                                        </label>
-                                        {{ form.section_principale }}
-                                        {% if form.section_principale.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.section_principale.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ form.sections_autorisees.id_for_label }}" class="form-label">
-                                            {{ form.sections_autorisees.label }}
-                                        </label>
-                                        {{ form.sections_autorisees }}
-                                        {% if form.sections_autorisees.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.sections_autorisees.errors }}
-                                        </div>
-                                        {% endif %}
-                                        <small class="form-text text-muted">Maintenez Ctrl pour sélectionner plusieurs sections</small>
-                                    </div>
-                                </div>
-                            </fieldset>
-
-                            <div class="form-step-actions">
-                                <button type="button" class="btn btn-prev" data-prev="1">
-                                    <i class="fas fa-arrow-left"></i> Précédent
-                                </button>
-                                <button type="button" class="btn btn-next" data-next="3">
-                                    Suivant <i class="fas fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Étape 3: Profil Spécifique -->
-                        <div class="form-step" data-step="3">
-                            <fieldset class="form-fieldset">
-                                <legend class="form-legend">
-                                    <i class="fas fa-id-card"></i>
-                                    Informations du Profil
-                                </legend>
-                                
-                                <!-- Champs spécifiques pour PROFESSEUR -->
-                                <div class="role-specific-fields" id="professeur-fields">
-                                    <div class="role-header">
-                                        <i class="fas fa-chalkboard-teacher"></i>
-                                        Informations Professeur
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-4 mb-3">
-                                            <label for="{{ form.date_naissance_prof.id_for_label }}" class="form-label">
-                                                {{ form.date_naissance_prof.label }} <span class="text-danger">*</span>
-                                            </label>
-                                            {{ form.date_naissance_prof }}
-                                            {% if form.date_naissance_prof.errors %}
-                                            <div class="invalid-feedback d-block">
-                                                {{ form.date_naissance_prof.errors }}
-                                            </div>
-                                            {% endif %}
-                                        </div>
-
-                                        <div class="col-md-4 mb-3">
-                                            <label for="{{ form.grade.id_for_label }}" class="form-label">
-                                                {{ form.grade.label }}
-                                            </label>
-                                            {{ form.grade }}
-                                            {% if form.grade.errors %}
-                                            <div class="invalid-feedback d-block">
-                                                {{ form.grade.errors }}
-                                            </div>
-                                            {% endif %}
-                                        </div>
-
-                                        <div class="col-md-4 mb-3">
-                                            <label for="{{ form.statut.id_for_label }}" class="form-label">
-                                                {{ form.statut.label }}
-                                            </label>
-                                            {{ form.statut }}
-                                            {% if form.statut.errors %}
-                                            <div class="invalid-feedback d-block">
-                                                {{ form.statut.errors }}
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-3 mb-3">
-                                            <label for="{{ form.genre.id_for_label }}" class="form-label">
-                                                {{ form.genre.label }}
-                                            </label>
-                                            {{ form.genre }}
-                                        </div>
-
-                                        <div class="col-md-3 mb-3">
-                                            <label for="{{ form.nationalite.id_for_label }}" class="form-label">
-                                                {{ form.nationalite.label }}
-                                            </label>
-                                            {{ form.nationalite }}
-                                        </div>
-
-                                        <div class="col-md-3 mb-3">
-                                            <label for="{{ form.numero_cni.id_for_label }}" class="form-label">
-                                                {{ form.numero_cni.label }}
-                                            </label>
-                                            {{ form.numero_cni }}
-                                        </div>
-
-                                        <div class="col-md-3 mb-3">
-                                            <label for="{{ form.situation_matrimoniale.id_for_label }}" class="form-label">
-                                                {{ form.situation_matrimoniale.label }}
-                                            </label>
-                                            {{ form.situation_matrimoniale }}
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label for="{{ form.domicile.id_for_label }}" class="form-label">
-                                                {{ form.domicile.label }}
-                                            </label>
-                                            {{ form.domicile }}
-                                        </div>
-
-                                        <div class="col-md-3 mb-3">
-                                            <label for="{{ form.specialite.id_for_label }}" class="form-label">
-                                                {{ form.specialite.label }}
-                                            </label>
-                                            {{ form.specialite }}
-                                        </div>
-
-                                        <div class="col-md-3 mb-3">
-                                            <label for="{{ form.diplome.id_for_label }}" class="form-label">
-                                                {{ form.diplome.label }}
-                                            </label>
-                                            {{ form.diplome }}
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label for="{{ form.annee_experience.id_for_label }}" class="form-label">
-                                                {{ form.annee_experience.label }}
-                                            </label>
-                                            {{ form.annee_experience }}
-                                        </div>
-
-                                        <div class="col-md-6 mb-3">
-                                            <label for="{{ form.sections_enseignement.id_for_label }}" class="form-label">
-                                                {{ form.sections_enseignement.label }} <span class="text-danger">*</span>
-                                            </label>
-                                            {{ form.sections_enseignement }}
-                                            {% if form.sections_enseignement.errors %}
-                                            <div class="invalid-feedback d-block">
-                                                {{ form.sections_enseignement.errors }}
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Champs spécifiques pour COMPTABLE -->
-                                <div class="role-specific-fields" id="comptable-fields">
-                                    <div class="role-header">
-                                        <i class="fas fa-calculator"></i>
-                                        Informations Comptable
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label for="{{ form.date_naissance_compta.id_for_label }}" class="form-label">
-                                                {{ form.date_naissance_compta.label }} <span class="text-danger">*</span>
-                                            </label>
-                                            {{ form.date_naissance_compta }}
-                                            {% if form.date_naissance_compta.errors %}
-                                            <div class="invalid-feedback d-block">
-                                                {{ form.date_naissance_compta.errors }}
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Message pour autres rôles -->
-                                <div class="role-specific-fields" id="autre-role-fields">
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle"></i>
-                                        Aucune information supplémentaire n'est requise pour ce rôle.
-                                    </div>
-                                </div>
-                            </fieldset>
-
-                            <div class="form-step-actions">
-                                <button type="button" class="btn btn-prev" data-prev="2">
-                                    <i class="fas fa-arrow-left"></i> Précédent
-                                </button>
-                                <button type="button" class="btn btn-next" data-next="4">
-                                    Suivant <i class="fas fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Étape 4: Confirmation -->
-                        <div class="form-step" data-step="4">
-                            <fieldset class="form-fieldset">
-                                <legend class="form-legend">
-                                    <i class="fas fa-check-circle"></i>
-                                    Confirmation
-                                </legend>
-                                
-                                <div class="confirmation-summary">
-                                    <div class="summary-header">
-                                        <h5>Récapitulatif de la création</h5>
-                                        <p class="text-muted">Vérifiez les informations avant de créer l'utilisateur</p>
-                                    </div>
-                                    
-                                    <div class="summary-content">
-                                        <div class="summary-section">
-                                            <h6>Informations Générales</h6>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Nom complet:</span>
-                                                <span class="summary-value" id="summary-fullname"></span>
-                                            </div>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Email:</span>
-                                                <span class="summary-value" id="summary-email"></span>
-                                            </div>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Rôle:</span>
-                                                <span class="summary-value" id="summary-role"></span>
-                                            </div>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Téléphone:</span>
-                                                <span class="summary-value" id="summary-phone"></span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="summary-section">
-                                            <h6>Sections</h6>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Section principale:</span>
-                                                <span class="summary-value" id="summary-main-section"></span>
-                                            </div>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Sections autorisées:</span>
-                                                <span class="summary-value" id="summary-allowed-sections"></span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="summary-section" id="summary-professor" style="display: none;">
-                                            <h6>Informations Professeur</h6>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Date de naissance:</span>
-                                                <span class="summary-value" id="summary-prof-birthdate"></span>
-                                            </div>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Grade:</span>
-                                                <span class="summary-value" id="summary-prof-grade"></span>
-                                            </div>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Spécialité:</span>
-                                                <span class="summary-value" id="summary-prof-specialty"></span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="summary-section" id="summary-comptable" style="display: none;">
-                                            <h6>Informations Comptable</h6>
-                                            <div class="summary-item">
-                                                <span class="summary-label">Date de naissance:</span>
-                                                <span class="summary-value" id="summary-compta-birthdate"></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="password-info">
-                                        <div class="alert alert-warning">
-                                            <i class="fas fa-key"></i>
-                                            <strong>Mot de passe par défaut:</strong> @elites@
-                                            <br>
-                                            <small>L'utilisateur devra changer son mot de passe lors de sa première connexion.</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </fieldset>
-
-                            <div class="form-step-actions">
-                                <button type="button" class="btn btn-prev" data-prev="3">
-                                    <i class="fas fa-arrow-left"></i> Précédent
-                                </button>
-                                <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-user-plus"></i> Créer l'utilisateur
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Liste des pays pour la nationalité -->
-<datalist id="pays-list">
-    <option value="Afghanistan">
-    <option value="Afrique du Sud">
-    <option value="Albanie">
-    <option value="Algérie">
-    <option value="Allemagne">
-    <option value="Andorre">
-    <option value="Angola">
-    <option value="Antigua-et-Barbuda">
-    <option value="Arabie saoudite">
-    <option value="Argentine">
-    <option value="Arménie">
-    <option value="Australie">
-    <option value="Autriche">
-    <option value="Azerbaïdjan">
-    <option value="Bahamas">
-    <option value="Bahreïn">
-    <option value="Bangladesh">
-    <option value="Barbade">
-    <option value="Bélarus">
-    <option value="Belgique">
-    <option value="Belize">
-    <option value="Bénin">
-    <option value="Bhoutan">
-    <option value="Bolivie">
-    <option value="Bosnie-Herzégovine">
-    <option value="Botswana">
-    <option value="Brésil">
-    <option value="Brunei">
-    <option value="Bulgarie">
-    <option value="Burkina Faso">
-    <option value="Burundi">
-    <option value="Cambodge">
-    <option value="Cameroun">
-    <option value="Canada">
-    <option value="Cap-Vert">
-    <option value="Centrafrique">
-    <option value="Chili">
-    <option value="Chine">
-    <option value="Chypre">
-    <option value="Colombie">
-    <option value="Comores">
-    <option value="Congo">
-    <option value="Corée du Nord">
-    <option value="Corée du Sud">
-    <option value="Costa Rica">
-    <option value="Côte d'Ivoire">
-    <option value="Croatie">
-    <option value="Cuba">
-    <option value="Danemark">
-    <option value="Djibouti">
-    <option value="Dominique">
-    <option value="Égypte">
-    <option value="Émirats arabes unis">
-    <option value="Équateur">
-    <option value="Érythrée">
-    <option value="Espagne">
-    <option value="Estonie">
-    <option value="Eswatini">
-    <option value="États-Unis">
-    <option value="Éthiopie">
-    <option value="Fidji">
-    <option value="Finlande">
-    <option value="France">
-    <option value="Gabon">
-    <option value="Gambie">
-    <option value="Géorgie">
-    <option value="Ghana">
-    <option value="Grèce">
-    <option value="Grenade">
-    <option value="Guatemala">
-    <option value="Guinée">
-    <option value="Guinée équatoriale">
-    <option value="Guinée-Bissau">
-    <option value="Guyana">
-    <option value="Haïti">
-    <option value="Honduras">
-    <option value="Hongrie">
-    <option value="Îles Marshall">
-    <option value="Îles Salomon">
-    <option value="Inde">
-    <option value="Indonésie">
-    <option value="Irak">
-    <option value="Iran">
-    <option value="Irlande">
-    <option value="Islande">
-    <option value="Israël">
-    <option value="Italie">
-    <option value="Jamaïque">
-    <option value="Japon">
-    <option value="Jordanie">
-    <option value="Kazakhstan">
-    <option value="Kenya">
-    <option value="Kirghizistan">
-    <option value="Kiribati">
-    <option value="Kosovo">
-    <option value="Koweït">
-    <option value="Laos">
-    <option value="Lesotho">
-    <option value="Lettonie">
-    <option value="Liban">
-    <option value="Liberia">
-    <option value="Libye">
-    <option value="Liechtenstein">
-    <option value="Lituanie">
-    <option value="Luxembourg">
-    <option value="Macédoine du Nord">
-    <option value="Madagascar">
-    <option value="Malaisie">
-    <option value="Malawi">
-    <option value="Maldives">
-    <option value="Mali">
-    <option value="Malte">
-    <option value="Maroc">
-    <option value="Maurice">
-    <option value="Mauritanie">
-    <option value="Mexique">
-    <option value="Micronésie">
-    <option value="Moldavie">
-    <option value="Monaco">
-    <option value="Mongolie">
-    <option value="Monténégro">
-    <option value="Mozambique">
-    <option value="Namibie">
-    <option value="Nauru">
-    <option value="Népal">
-    <option value="Nicaragua">
-    <option value="Niger">
-    <option value="Nigéria">
-    <option value="Norvège">
-    <option value="Nouvelle-Zélande">
-    <option value="Oman">
-    <option value="Ouganda">
-    <option value="Ouzbékistan">
-    <option value="Pakistan">
-    <option value="Palaos">
-    <option value="Palestine">
-    <option value="Panama">
-    <option value="Papouasie-Nouvelle-Guinée">
-    <option value="Paraguay">
-    <option value="Pays-Bas">
-    <option value="Pérou">
-    <option value="Philippines">
-    <option value="Pologne">
-    <option value="Portugal">
-    <option value="Qatar">
-    <option value="Roumanie">
-    <option value="Royaume-Uni">
-    <option value="Russie">
-    <option value="Rwanda">
-    <option value="Saint-Christophe-et-Niévès">
-    <option value="Sainte-Lucie">
-    <option value="Saint-Marin">
-    <option value="Saint-Vincent-et-les-Grenadines">
-    <option value="Salvador">
-    <option value="Samoa">
-    <option value="Sao Tomé-et-Principe">
-    <option value="Sénégal">
-    <option value="Serbie">
-    <option value="Seychelles">
-    <option value="Sierra Leone">
-    <option value="Singapour">
-    <option value="Slovaquie">
-    <option value="Slovénie">
-    <option value="Somalie">
-    <option value="Soudan">
-    <option value="Soudan du Sud">
-    <option value="Sri Lanka">
-    <option value="Suède">
-    <option value="Suisse">
-    <option value="Suriname">
-    <option value="Syrie">
-    <option value="Tadjikistan">
-    <option value="Tanzanie">
-    <option value="Tchad">
-    <option value="République tchèque">
-    <option value="Thaïlande">
-    <option value="Timor oriental">
-    <option value="Togo">
-    <option value="Tonga">
-    <option value="Trinité-et-Tobago">
-    <option value="Tunisie">
-    <option value="Turkménistan">
-    <option value="Turquie">
-    <option value="Tuvalu">
-    <option value="Ukraine">
-    <option value="Uruguay">
-    <option value="Vanuatu">
-    <option value="Vatican">
-    <option value="Venezuela">
-    <option value="Viêt Nam">
-    <option value="Yémen">
-    <option value="Zambie">
-    <option value="Zimbabwe">
-</datalist>
-
-<script src="{% static 'js/mobile/create.js' %}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Gestion des étapes
-    const steps = document.querySelectorAll('.form-step');
-    const stepIndicators = document.querySelectorAll('.step');
-    let currentStep = 1;
-
-    // Navigation entre les étapes
-    document.querySelectorAll('.btn-next').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const nextStep = parseInt(this.dataset.next);
-            if (validateStep(currentStep)) {
-                goToStep(nextStep);
-            }
-        });
-    });
-
-    document.querySelectorAll('.btn-prev').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const prevStep = parseInt(this.dataset.prev);
-            goToStep(prevStep);
-        });
-    });
-
-    function goToStep(step) {
-        // Masquer l'étape actuelle
-        document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
-        document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
-        
-        // Afficher la nouvelle étape
-        document.querySelector(`.form-step[data-step="${step}"]`).classList.add('active');
-        document.querySelector(`.step[data-step="${step}"]`).classList.add('active');
-        
-        // Marquer les étapes précédentes comme complétées
-        stepIndicators.forEach(indicator => {
-            const indicatorStep = parseInt(indicator.dataset.step);
-            if (indicatorStep < step) {
-                indicator.classList.add('completed');
-            } else if (indicatorStep > step) {
-                indicator.classList.remove('completed');
-            }
-        });
-
-        currentStep = step;
-
-        // Mettre à jour le récapitulatif à l'étape 4
-        if (step === 4) {
-            updateSummary();
-        }
-    }
-
-    function validateStep(step) {
-        const currentStepElement = document.querySelector(`.form-step[data-step="${step}"]`);
-        const requiredFields = currentStepElement.querySelectorAll('[required]');
-        let isValid = true;
-
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                isValid = false;
-                field.classList.add('is-invalid');
-            } else {
-                field.classList.remove('is-invalid');
-            }
-        });
-
-        if (!isValid) {
-            showNotification('Veuillez remplir tous les champs obligatoires', 'error');
-        }
-
-        return isValid;
-    }
-
-    // Gestion des champs spécifiques par rôle
-    const roleSelect = document.getElementById('id_role');
-    const professeurFields = document.getElementById('professeur-fields');
-    const comptableFields = document.getElementById('comptable-fields');
-    const autreRoleFields = document.getElementById('autre-role-fields');
-    
-    function toggleRoleFields() {
-        const selectedRole = roleSelect.value;
-        
-        // Masquer tous les champs spécifiques
-        document.querySelectorAll('.role-specific-fields').forEach(field => {
-            field.style.display = 'none';
-        });
-        
-        // Afficher les champs correspondant au rôle
-        if (selectedRole === 'PROFESSEUR') {
-            professeurFields.style.display = 'block';
-        } else if (selectedRole === 'COMPTABLE') {
-            comptableFields.style.display = 'block';
-        } else {
-            autreRoleFields.style.display = 'block';
-        }
-    }
-    
-    // Appliquer au chargement et au changement
-    toggleRoleFields();
-    roleSelect.addEventListener('change', toggleRoleFields);
-
-    // Mettre à jour le récapitulatif
-    function updateSummary() {
-        // Informations générales
-        document.getElementById('summary-fullname').textContent = 
-            `${document.getElementById('id_first_name').value} ${document.getElementById('id_last_name').value}`;
-        document.getElementById('summary-email').textContent = document.getElementById('id_email').value;
-        document.getElementById('summary-role').textContent = roleSelect.options[roleSelect.selectedIndex].text;
-        document.getElementById('summary-phone').textContent = document.getElementById('id_telephone').value || 'Non renseigné';
-
-        // Sections
-        const mainSectionSelect = document.getElementById('id_section_principale');
-        document.getElementById('summary-main-section').textContent = 
-            mainSectionSelect.options[mainSectionSelect.selectedIndex].text || 'Non définie';
-
-        const allowedSectionsSelect = document.getElementById('id_sections_autorisees');
-        const selectedSections = Array.from(allowedSectionsSelect.selectedOptions).map(option => option.text);
-        document.getElementById('summary-allowed-sections').textContent = 
-            selectedSections.length > 0 ? selectedSections.join(', ') : 'Aucune';
-
-        // Informations spécifiques au rôle
-        const selectedRole = roleSelect.value;
-        
-        if (selectedRole === 'PROFESSEUR') {
-            document.getElementById('summary-professor').style.display = 'block';
-            document.getElementById('summary-comptable').style.display = 'none';
-            
-            document.getElementById('summary-prof-birthdate').textContent = 
-                document.getElementById('id_date_naissance_prof').value || 'Non renseignée';
-            document.getElementById('summary-prof-grade').textContent = 
-                document.getElementById('id_grade').options[document.getElementById('id_grade').selectedIndex].text;
-            document.getElementById('summary-prof-specialty').textContent = 
-                document.getElementById('id_specialite').value || 'Non renseignée';
-        } else if (selectedRole === 'COMPTABLE') {
-            document.getElementById('summary-professor').style.display = 'none';
-            document.getElementById('summary-comptable').style.display = 'block';
-            
-            document.getElementById('summary-compta-birthdate').textContent = 
-                document.getElementById('id_date_naissance_compta').value || 'Non renseignée';
-        } else {
-            document.getElementById('summary-professor').style.display = 'none';
-            document.getElementById('summary-comptable').style.display = 'none';
-        }
-    }
-
-    function showNotification(message, type = 'info') {
-        // Implémentez votre système de notification ici
-        alert(message); // Solution temporaire
-    }
-
-    // Ajouter la liste des pays à l'input nationalité
-    const nationaliteInput = document.getElementById('id_nationalite');
-    if (nationaliteInput) {
-        nationaliteInput.setAttribute('list', 'pays-list');
-    }
-});
-</script>
-{% endblock %} {% endcomment %}

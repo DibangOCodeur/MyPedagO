@@ -1,11 +1,11 @@
 {% extends 'bases/base_users.html' %}
 {% load static %}
 
-{% block title %}Contrat #{{ contrat.id }}{% endblock %}
+{% block title %}{{ contrat.reference }}{% endblock %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'contrat_list' %}">Contrats</a></li>
-<li class="breadcrumb-item active">Contrat #{{ contrat.id }}</li>
+<li class="breadcrumb-item active">{{ contrat.reference }}</li>
 {% endblock %}
 
 {% block extra_css %}
@@ -25,7 +25,7 @@
                             <i class="fas fa-file-contract"></i>
                         </div>
                         <div class="contrat-text">
-                            <h1>Contrat #{{ contrat.id }}</h1>
+                            <h1>{{ contrat.reference }}</h1>
                             <p class="contrat-subtitle">Détails et suivi du contrat d'enseignement</p>
                         </div>
                     </div>
@@ -98,6 +98,14 @@
                             <div class="stat-label">Montant Contractuel</div>
                             <small class="text-muted">FCFA</small>
                         </div>
+                    </div>
+                    <div class="btn-group">
+                        <a href="{% url 'contrat_imprimable' contrat.pk %}" class="btn btn-info">
+                            📄 Version Imprimable
+                        </a>
+                        <a href="{% url 'contrat_imprimable' contrat.pk %}?auto_print=1" class="btn btn-primary">
+                            🖨️ Imprimer Directement
+                        </a>
                     </div>
                 </div>
             </div>

@@ -1,0 +1,459 @@
+/* Styles spécifiques pour la page de suivi des classes */
+.container-fluid {
+    padding: 0 20px;
+}
+
+/* En-tête de page */
+.card-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 20px 25px;
+}
+
+.dark-theme .card-header {
+    background: rgba(30, 30, 45, 0.95);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.card-header h4 {
+    color: #333;
+    font-weight: 700;
+    margin: 0;
+    animation: fadeInUp 0.6s ease;
+}
+
+.dark-theme .card-header h4 {
+    color: #f0f0f0;
+}
+
+/* Filtres et boutons d'export */
+.card-header .d-flex {
+    animation: fadeInUp 0.6s ease 0.2s both;
+}
+
+.form-select {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.dark-theme .form-select {
+    background: rgba(30, 30, 45, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f0f0f0;
+}
+
+.form-select:focus {
+    border-color: #1e3c72;
+    box-shadow: 0 0 0 2px rgba(30, 60, 114, 0.2);
+    transform: translateY(-2px);
+}
+
+.btn-outline-primary {
+    border: 2px solid #1e3c72;
+    color: #1e3c72;
+    border-radius: 10px;
+    padding: 8px 15px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(45deg, #1e3c72, #2a5298);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(30, 60, 114, 0.3);
+}
+
+/* Cartes de statistiques */
+.card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.6s ease;
+    overflow: hidden;
+}
+
+.dark-theme .card {
+    background: rgba(30, 30, 45, 0.95);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Bordures colorées des cartes stats */
+.border-start-primary {
+    border-left: 4px solid #1e3c72 !important;
+}
+
+.border-start-info {
+    border-left: 4px solid #17a2b8 !important;
+}
+
+.border-start-warning {
+    border-left: 4px solid #ffc107 !important;
+}
+
+.border-start-success {
+    border-left: 4px solid #28a745 !important;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.text-muted {
+    color: #666 !important;
+    font-size: 0.9rem;
+}
+
+.dark-theme .text-muted {
+    color: #aaa !important;
+}
+
+.fw-bold {
+    font-size: 2.2rem;
+    background: linear-gradient(45deg, #1e3c72, #2a5298);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shine 3s ease-in-out infinite;
+}
+
+/* Icônes des cartes */
+.fa-chart-line, .fa-school, .fa-tasks, .fa-check-circle {
+    animation: float 3s ease-in-out infinite;
+}
+
+.fa-chart-line { color: #1e3c72; }
+.fa-school { color: #17a2b8; }
+.fa-tasks { color: #ffc107; }
+.fa-check-circle { color: #28a745; }
+
+/* Tableau des classes */
+.table-responsive {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.table {
+    margin: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    animation: fadeInUp 0.6s ease 0.4s both;
+}
+
+.dark-theme .table {
+    background: rgba(30, 30, 45, 0.95);
+}
+
+.table thead th {
+    background: linear-gradient(45deg, #1e3c72, #2a5298);
+    color: white;
+    border: none;
+    padding: 15px 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table tbody td {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    vertical-align: middle;
+    transition: all 0.3s ease;
+}
+
+.dark-theme .table tbody td {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    color: #f0f0f0;
+}
+
+.table tbody tr {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.table tbody tr:hover {
+    background: rgba(30, 60, 114, 0.05);
+    transform: translateX(5px);
+}
+
+.dark-theme .table tbody tr:hover {
+    background: rgba(30, 60, 114, 0.2);
+}
+
+/* Badges */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bg-secondary {
+    background: linear-gradient(45deg, #6c757d, #495057) !important;
+}
+
+.bg-success {
+    background: linear-gradient(45deg, #28a745, #20c997) !important;
+}
+
+.bg-info {
+    background: linear-gradient(45deg, #17a2b8, #6f42c1) !important;
+}
+
+.bg-warning {
+    background: linear-gradient(45deg, #ffc107, #fd7e14) !important;
+}
+
+/* Barres de progression */
+.progress {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.dark-theme .progress {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar {
+    border-radius: 10px;
+    transition: all 0.5s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shine 2s ease-in-out infinite;
+}
+
+/* Couleurs des barres de progression */
+.progress-bar.bg-success {
+    background: linear-gradient(45deg, #28a745, #20c997) !important;
+}
+
+.progress-bar.bg-info {
+    background: linear-gradient(45deg, #17a2b8, #6f42c1) !important;
+}
+
+.progress-bar.bg-warning {
+    background: linear-gradient(45deg, #ffc107, #fd7e14) !important;
+}
+
+.progress-bar.bg-danger {
+    background: linear-gradient(45deg, #dc3545, #e83e8c) !important;
+}
+
+/* Boutons d'action */
+.btn-group {
+    animation: fadeInUp 0.6s ease 0.6s both;
+}
+
+.btn-outline-primary, .btn-outline-info {
+    border: 2px solid;
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.btn-outline-primary {
+    border-color: #1e3c72;
+    color: #1e3c72;
+}
+
+.btn-outline-info {
+    border-color: #17a2b8;
+    color: #17a2b8;
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(45deg, #1e3c72, #2a5298);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(30, 60, 114, 0.3);
+}
+
+.btn-outline-info:hover {
+    background: linear-gradient(45deg, #17a2b8, #6f42c1);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(23, 162, 184, 0.3);
+}
+
+/* État vide */
+.text-center .text-muted {
+    animation: fadeInUp 0.6s ease;
+}
+
+.fa-inbox {
+    color: #6c757d;
+    animation: float 3s ease-in-out infinite;
+}
+
+.dark-theme .fa-inbox {
+    color: #aaa;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0 15px;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .card-header .d-flex {
+        justify-content: center;
+    }
+    
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .btn-group .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .card-body {
+        padding: 15px;
+    }
+    
+    .table thead {
+        display: none;
+    }
+    
+    .table tbody tr {
+        display: block;
+        margin-bottom: 15px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table tbody td {
+        display: block;
+        text-align: right;
+        padding: 10px 15px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .table tbody td::before {
+        content: attr(data-label);
+        float: left;
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        color: #666;
+    }
+    
+    .dark-theme .table tbody td::before {
+        color: #aaa;
+    }
+    
+    .btn-group {
+        justify-content: center;
+    }
+}
+
+/* Animations spécifiques */
+@keyframes tableRowAppear {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.table tbody tr {
+    animation: tableRowAppear 0.5s ease forwards;
+}
+
+.table tbody tr:nth-child(1) { animation-delay: 0.1s; }
+.table tbody tr:nth-child(2) { animation-delay: 0.2s; }
+.table tbody tr:nth-child(3) { animation-delay: 0.3s; }
+.table tbody tr:nth-child(4) { animation-delay: 0.4s; }
+.table tbody tr:nth-child(5) { animation-delay: 0.5s; }
+
+/* États de chargement */
+.skeleton-loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+.dark-theme .skeleton-loading {
+    background: linear-gradient(90deg, #2a2a3a 25%, #333344 50%, #2a2a3a 75%);
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Effets de focus améliorés */
+.btn:focus, .form-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Transitions douces pour les changements d'état */
+.progress-bar, .badge, .btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Amélioration de l'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

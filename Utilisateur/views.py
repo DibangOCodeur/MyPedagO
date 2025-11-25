@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Avg, Sum  # ← AJOUTEZ Sum ici
 from django.http import JsonResponse, FileResponse, Http404
 from django.db import transaction
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -34,6 +34,22 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+
+
+# ==========================================
+# VUES APIS CONTRIES
+# ==========================================
+# Dans views.py
+from django.http import JsonResponse
+from .models import CountryService
+
+def country_autocomplete(request):
+    query = request.GET.get('q', '')
+    countries = CountryService.search_countries(query)
+    results = [{'name': country['name']['common']} for country in countries[:10]]
+    return JsonResponse(results, safe=False)
+
+
 # ==========================================
 # MIXINS PERSONNALISÉS
 # ==========================================
@@ -51,7 +67,7 @@ class AdminRequiredMixin(UserPassesTestMixin):
 
 class RoleRequiredMixin(UserPassesTestMixin):
     """Mixin pour vérifier les rôles autorisés"""
-    allowed_roles = []
+    allowed_roles = ['ADMIN', 'RESP_PEDA', 'RESP_RH']  # ← AJOUTEZ RESP_PEDA ici
     
     def test_func(self):
         if not self.request.user.is_authenticated:
@@ -608,7 +624,7 @@ class SectionDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
 # VUES UTILISATEURS
 # ==========================================
 
-class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
+class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView, RoleRequiredMixin):
     """Liste des utilisateurs"""
     model = CustomUser
     template_name = 'utilisateurs/liste.html'
@@ -710,11 +726,166 @@ class UserCompleteDetailView(LoginRequiredMixin, DetailView):
         
         return context
 
-
+@login_required
+def create_user(request):
+    """Vue pour créer un utilisateur avec documents - VERSION AVEC RESTRICTIONS PAR RÔLE"""
+    
+    # Vérifier les permissions
+    if not request.user.role in ['ADMIN', 'RESP_PEDA']:
+        messages.error(request, "Vous n'avez pas les permissions nécessaires.")
+        return redirect('dashboard')
+    
+    # Pour les RESP_PEDA, vérifier qu'ils ont au moins une section
+    if request.user.role == 'RESP_PEDA':
+        sections_accessibles = request.user.get_sections_disponibles()
+        if not sections_accessibles:
+            messages.error(request, "Vous n'avez accès à aucune section.")
+            return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = CustomUserCreationWithDocumentsForm(request.POST, request.FILES, user=request.user)
+        
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Sauvegarder l'utilisateur de base
+                    user = form.save(commit=False)
+                    user.set_password('@elites@')
+                    user.save()
+                    form.save_m2m()
+                    
+                    role = form.cleaned_data['role']
+                    
+                    # Pour les RESP_PEDA, forcer le rôle PROFESSEUR
+                    if request.user.role == 'RESP_PEDA':
+                        role = 'PROFESSEUR'
+                        user.role = 'PROFESSEUR'
+                        user.save(update_fields=['role'])
+                    
+                    logger.info(f"✅ Utilisateur créé: {user.email} avec rôle {role}")
+                    
+                    if role == 'PROFESSEUR':
+                        # Récupérer les données du formulaire
+                        sections_enseignement = form.cleaned_data.get('sections_enseignement', [])
+                        
+                        # Pour RESP_PEDA, filtrer les sections accessibles
+                        if request.user.role == 'RESP_PEDA':
+                            sections_accessibles = request.user.get_sections_disponibles()
+                            sections_enseignement = [s for s in sections_enseignement if s in sections_accessibles]
+                        
+                        if not sections_enseignement:
+                            raise ValidationError(
+                                "Au moins une section d'enseignement valide est requise pour un professeur."
+                            )
+                        
+                        sections_list = list(sections_enseignement)
+                        section_active = sections_list[0] if sections_list else None
+                        
+                        logger.info(
+                            f"📝 Création professeur pour {user.email} avec "
+                            f"{len(sections_list)} sections, active: {section_active}"
+                        )
+                        
+                        # Créer le professeur
+                        professeur = Professeur.objects.create(
+                            user=user,
+                            date_naissance=form.cleaned_data.get('date_naissance_prof'),
+                            grade=form.cleaned_data.get('grade', ''),
+                            statut=form.cleaned_data.get('statut', ''),
+                            genre=form.cleaned_data.get('genre', ''),
+                            nationalite=form.cleaned_data.get('nationalite', ''),
+                            numero_cni=form.cleaned_data.get('numero_cni', ''),
+                            situation_matrimoniale=form.cleaned_data.get('situation_matrimoniale', ''),
+                            domicile=form.cleaned_data.get('domicile', ''),
+                            specialite=form.cleaned_data.get('specialite', ''),
+                            diplome=form.cleaned_data.get('diplome', ''),
+                            annee_experience=form.cleaned_data.get('annee_experience', 0),
+                            section_active=section_active,
+                            photo=form.cleaned_data.get('photo'),
+                            cni_document=form.cleaned_data.get('cni_document'),
+                            rib_document=form.cleaned_data.get('rib_document'),
+                            cv_document=form.cleaned_data.get('cv_document'),
+                            diplome_document=form.cleaned_data.get('diplome_document'),
+                        )
+                        
+                        professeur.sections.set(sections_list)
+                        
+                        logger.info(f"✅ Professeur créé avec matricule: {professeur.matricule}")
+                        
+                        messages.success(
+                            request,
+                            f"✅ Le professeur {user.get_full_name()} a été créé avec succès. "
+                            f"Matricule: {professeur.matricule}"
+                        )
+                    
+                    elif role == 'COMPTABLE' and request.user.role == 'ADMIN':
+                        # Seul l'admin peut créer des comptables
+                        comptable = Comptable.objects.create(
+                            user=user,
+                            date_naissance=form.cleaned_data.get('date_naissance_compta')
+                        )
+                        
+                        logger.info(f"✅ Comptable créé avec matricule: {comptable.matricule}")
+                        
+                        messages.success(
+                            request,
+                            f"✅ Le comptable {user.get_full_name()} a été créé avec succès. "
+                            f"Matricule: {comptable.matricule}"
+                        )
+                    
+                    else:
+                        # Autres rôls (uniquement pour ADMIN)
+                        if request.user.role == 'ADMIN':
+                            logger.info(f"✅ Utilisateur {role} créé: {user.email}")
+                            
+                            messages.success(
+                                request,
+                                f"✅ L'utilisateur {user.get_full_name()} ({user.get_role_display()}) "
+                                f"a été créé avec succès."
+                            )
+                    
+                    # Redirection différente selon le rôle
+                    if request.user.role == 'RESP_PEDA':
+                        return redirect('professeur_list')
+                    else:
+                        return redirect('user_list')
+                    
+            except ValidationError as ve:
+                logger.error(f"❌ ValidationError lors de la création: {str(ve)}")
+                messages.error(request, f"❌ Erreur de validation : {str(ve)}")
+                
+            except Exception as e:
+                import traceback
+                error_details = traceback.format_exc()
+                logger.error(f"❌ Erreur création utilisateur: {error_details}")
+                messages.error(
+                    request,
+                    f"❌ Une erreur est survenue lors de la création : {str(e)}"
+                )
+        else:
+            logger.warning(f"⚠️ Formulaire invalide: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, f"❌ {error}")
+                    else:
+                        field_label = form.fields[field].label if field in form.fields else field
+                        messages.error(request, f"❌ {field_label}: {error}")
+    else:
+        form = CustomUserCreationWithDocumentsForm(user=request.user)
+    
+    context = {
+        'form': form,
+        'title': 'Créer un utilisateur',
+        'is_resp_peda': request.user.role == 'RESP_PEDA',
+        'is_admin': request.user.role == 'ADMIN',
+    }
+    
+    return render(request, 'utilisateurs/creation.html', context)
 # @login_required
 # @permission_required('utilisateurs.add_customuser', raise_exception=True)
 # def create_user(request):
-#     """Vue pour créer un utilisateur avec documents"""
+#     """Vue pour créer un utilisateur avec documents - VERSION CORRIGÉE"""
     
 #     if request.method == 'POST':
 #         form = CustomUserCreationWithDocumentsForm(request.POST, request.FILES)
@@ -722,18 +893,27 @@ class UserCompleteDetailView(LoginRequiredMixin, DetailView):
 #         if form.is_valid():
 #             try:
 #                 with transaction.atomic():
-#                     # Sauvegarder l'utilisateur
-#                     user = form.save()
-#                     role = form.cleaned_data['role']
+#                     # Sauvegarder l'utilisateur de base
+#                     user = form.save(commit=False)
                     
-#                     logger.info(f"Utilisateur créé: {user.email} avec rôle {role}")
+#                     # Définir le mot de passe par défaut
+#                     user.set_password('@elites@')
+                    
+#                     # Sauvegarder l'utilisateur d'abord
+#                     user.save()
+                    
+#                     # Sauvegarder les relations many-to-many
+#                     form.save_m2m()
+                    
+#                     role = form.cleaned_data['role']
+#                     logger.info(f"✅ Utilisateur créé: {user.email} avec rôle {role}")
                     
 #                     if role == 'PROFESSEUR':
-#                         # Récupérer les sections d'enseignement
-#                         sections_enseignement = form.cleaned_data.get('sections_enseignement')
+#                         # Récupérer les données du formulaire
+#                         sections_enseignement = form.cleaned_data.get('sections_enseignement', [])
                         
 #                         # Vérification de sécurité
-#                         if not sections_enseignement or not sections_enseignement.exists():
+#                         if not sections_enseignement:
 #                             raise ValidationError(
 #                                 "Au moins une section d'enseignement est requise pour un professeur."
 #                             )
@@ -742,10 +922,10 @@ class UserCompleteDetailView(LoginRequiredMixin, DetailView):
 #                         sections_list = list(sections_enseignement)
                         
 #                         # Déterminer la section active (première section par défaut)
-#                         section_active = sections_list[0]
+#                         section_active = sections_list[0] if sections_list else None
                         
 #                         logger.info(
-#                             f"Création professeur pour {user.email} avec "
+#                             f"📝 Création professeur pour {user.email} avec "
 #                             f"{len(sections_list)} sections, active: {section_active}"
 #                         )
                         
@@ -771,39 +951,40 @@ class UserCompleteDetailView(LoginRequiredMixin, DetailView):
 #                             diplome_document=form.cleaned_data.get('diplome_document'),
 #                         )
                         
-#                         logger.info(f"Professeur créé avec matricule: {professeur.matricule}")
-                        
 #                         # Assigner les sections d'enseignement (relation ManyToMany)
 #                         professeur.sections.set(sections_list)
                         
-#                         logger.info(f"Sections assignées: {[s.nom for s in sections_list]}")
+#                         logger.info(f"✅ Professeur créé avec matricule: {professeur.matricule}")
+#                         logger.info(f"✅ Sections assignées: {[s.nom for s in sections_list]}")
                         
 #                         messages.success(
 #                             request,
-#                             f"✓ Le professeur {user.get_full_name()} a été créé avec succès. "
+#                             f"✅ Le professeur {user.get_full_name()} a été créé avec succès. "
 #                             f"Matricule: {professeur.matricule}"
 #                         )
                     
 #                     elif role == 'COMPTABLE':
+#                         # Créer le comptable
 #                         comptable = Comptable.objects.create(
 #                             user=user,
 #                             date_naissance=form.cleaned_data.get('date_naissance_compta')
 #                         )
-#                         logger.info(f"Comptable créé avec matricule: {comptable.matricule}")
+                        
+#                         logger.info(f"✅ Comptable créé avec matricule: {comptable.matricule}")
                         
 #                         messages.success(
 #                             request,
-#                             f"✓ Le comptable {user.get_full_name()} a été créé avec succès. "
+#                             f"✅ Le comptable {user.get_full_name()} a été créé avec succès. "
 #                             f"Matricule: {comptable.matricule}"
 #                         )
                     
 #                     else:
 #                         # Autres rôles (ADMIN, RESP_PEDA, etc.)
-#                         logger.info(f"Utilisateur {role} créé: {user.email}")
+#                         logger.info(f"✅ Utilisateur {role} créé: {user.email}")
                         
 #                         messages.success(
 #                             request,
-#                             f"✓ L'utilisateur {user.get_full_name()} ({user.get_role_display()}) "
+#                             f"✅ L'utilisateur {user.get_full_name()} ({user.get_role_display()}) "
 #                             f"a été créé avec succès."
 #                         )
                     
@@ -811,7 +992,7 @@ class UserCompleteDetailView(LoginRequiredMixin, DetailView):
                     
 #             except ValidationError as ve:
 #                 # Erreurs de validation
-#                 logger.error(f"ValidationError lors de la création: {str(ve)}")
+#                 logger.error(f"❌ ValidationError lors de la création: {str(ve)}")
 #                 messages.error(request, f"❌ Erreur de validation : {str(ve)}")
                 
 #             except Exception as e:
@@ -819,23 +1000,28 @@ class UserCompleteDetailView(LoginRequiredMixin, DetailView):
 #                 import traceback
 #                 error_details = traceback.format_exc()
                 
-#                 logger.error(f"Erreur création utilisateur: {error_details}")
+#                 logger.error(f"❌ Erreur création utilisateur: {error_details}")
                 
 #                 messages.error(
 #                     request,
 #                     f"❌ Une erreur est survenue lors de la création : {str(e)}"
 #                 )
 #         else:
-#             # Afficher les erreurs du formulaire
-#             logger.warning(f"Formulaire invalide: {form.errors}")
+#             # Afficher les erreurs du formulaire de manière plus détaillée
+#             logger.warning(f"⚠️ Formulaire invalide: {form.errors}")
             
+#             # Afficher toutes les erreurs
 #             for field, errors in form.errors.items():
 #                 for error in errors:
 #                     if field == '__all__':
 #                         messages.error(request, f"❌ {error}")
 #                     else:
-#                         field_label = form.fields.get(field).label if field in form.fields else field
+#                         field_label = form.fields[field].label if field in form.fields else field
 #                         messages.error(request, f"❌ {field_label}: {error}")
+            
+#             # Debug: logger les données du formulaire
+#             logger.warning(f"📤 Données POST: {dict(request.POST)}")
+#             logger.warning(f"📎 Fichiers: {list(request.FILES.keys())}")
 #     else:
 #         form = CustomUserCreationWithDocumentsForm()
     
@@ -845,151 +1031,6 @@ class UserCompleteDetailView(LoginRequiredMixin, DetailView):
 #     }
     
 #     return render(request, 'utilisateurs/creation.html', context)
-@login_required
-@permission_required('utilisateurs.add_customuser', raise_exception=True)
-def create_user(request):
-    """Vue pour créer un utilisateur avec documents"""
-    
-    if request.method == 'POST':
-        form = CustomUserCreationWithDocumentsForm(request.POST, request.FILES)
-        
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    # Sauvegarder l'utilisateur
-                    user = form.save(commit=False)
-                    
-                    # Pour les nouveaux utilisateurs, définir un mot de passe par défaut
-                    if not user.pk:
-                        user.set_password('@elites@')  # Mot de passe par défaut
-                    
-                    user.save()
-                    role = form.cleaned_data['role']
-                    
-                    logger.info(f"Utilisateur créé: {user.email} avec rôle {role}")
-                    
-                    if role == 'PROFESSEUR':
-                        # Récupérer les sections d'enseignement
-                        sections_enseignement = form.cleaned_data.get('sections_enseignement', [])
-                        
-                        # Vérification de sécurité
-                        if not sections_enseignement:
-                            raise ValidationError(
-                                "Au moins une section d'enseignement est requise pour un professeur."
-                            )
-                        
-                        # Convertir en liste pour manipulation
-                        sections_list = list(sections_enseignement)
-                        
-                        # Déterminer la section active (première section par défaut)
-                        section_active = sections_list[0]
-                        
-                        logger.info(
-                            f"Création professeur pour {user.email} avec "
-                            f"{len(sections_list)} sections, active: {section_active}"
-                        )
-                        
-                        # Créer le professeur avec tous les champs
-                        professeur = Professeur.objects.create(
-                            user=user,
-                            date_naissance=form.cleaned_data.get('date_naissance_prof'),
-                            grade=form.cleaned_data.get('grade', ''),
-                            statut=form.cleaned_data.get('statut', ''),
-                            genre=form.cleaned_data.get('genre', ''),
-                            nationalite=form.cleaned_data.get('nationalite', ''),
-                            numero_cni=form.cleaned_data.get('numero_cni', ''),
-                            situation_matrimoniale=form.cleaned_data.get('situation_matrimoniale', ''),
-                            domicile=form.cleaned_data.get('domicile', ''),
-                            specialite=form.cleaned_data.get('specialite', ''),
-                            diplome=form.cleaned_data.get('diplome', ''),
-                            annee_experience=form.cleaned_data.get('annee_experience', 0),
-                            section_active=section_active,
-                            photo=form.cleaned_data.get('photo'),
-                            cni_document=form.cleaned_data.get('cni_document'),
-                            rib_document=form.cleaned_data.get('rib_document'),
-                            cv_document=form.cleaned_data.get('cv_document'),
-                            diplome_document=form.cleaned_data.get('diplome_document'),
-                        )
-                        
-                        logger.info(f"Professeur créé avec matricule: {professeur.matricule}")
-                        
-                        # Assigner les sections d'enseignement (relation ManyToMany)
-                        professeur.sections.set(sections_list)
-                        
-                        logger.info(f"Sections assignées: {[s.nom for s in sections_list]}")
-                        
-                        messages.success(
-                            request,
-                            f"✓ Le professeur {user.get_full_name()} a été créé avec succès. "
-                            f"Matricule: {professeur.matricule}"
-                        )
-                    
-                    elif role == 'COMPTABLE':
-                        comptable = Comptable.objects.create(
-                            user=user,
-                            date_naissance=form.cleaned_data.get('date_naissance_compta')
-                        )
-                        logger.info(f"Comptable créé avec matricule: {comptable.matricule}")
-                        
-                        messages.success(
-                            request,
-                            f"✓ Le comptable {user.get_full_name()} a été créé avec succès. "
-                            f"Matricule: {comptable.matricule}"
-                        )
-                    
-                    else:
-                        # Autres rôles (ADMIN, RESP_PEDA, etc.)
-                        logger.info(f"Utilisateur {role} créé: {user.email}")
-                        
-                        messages.success(
-                            request,
-                            f"✓ L'utilisateur {user.get_full_name()} ({user.get_role_display()}) "
-                            f"a été créé avec succès."
-                        )
-                    
-                    return redirect('user_list')
-                    
-            except ValidationError as ve:
-                # Erreurs de validation
-                logger.error(f"ValidationError lors de la création: {str(ve)}")
-                messages.error(request, f"❌ Erreur de validation : {str(ve)}")
-                
-            except Exception as e:
-                # Autres erreurs avec plus de détails
-                import traceback
-                error_details = traceback.format_exc()
-                
-                logger.error(f"Erreur création utilisateur: {error_details}")
-                
-                messages.error(
-                    request,
-                    f"❌ Une erreur est survenue lors de la création : {str(e)}"
-                )
-        else:
-            # Afficher les erreurs du formulaire de manière plus détaillée
-            logger.warning(f"Formulaire invalide: {form.errors}")
-            
-            # Afficher toutes les erreurs
-            for field, errors in form.errors.items():
-                for error in errors:
-                    if field == '__all__':
-                        messages.error(request, f"❌ {error}")
-                    else:
-                        field_label = form.fields[field].label if field in form.fields else field
-                        messages.error(request, f"❌ {field_label}: {error}")
-            
-            # Debug: logger les données du formulaire
-            logger.warning(f"Données POST: {request.POST}")
-            logger.warning(f"Fichiers: {request.FILES}")
-    else:
-        form = CustomUserCreationWithDocumentsForm()
-    
-    context = {
-        'form': form,
-        'title': 'Créer un utilisateur',
-    }
-    
-    return render(request, 'utilisateurs/creation.html', context)
 
 
 class UserCompleteDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
@@ -1752,41 +1793,6 @@ class ClasseListView(LoginRequiredMixin, ListView):
         
         return context
 
-
-# class ClasseDetailView(LoginRequiredMixin, DetailView):
-#     """Détail d'une classe avec ses maquettes"""
-#     model = Classe
-#     template_name = 'classes/detail.html'
-#     context_object_name = 'classe'
-    
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         classe = self.object
-        
-#         # Maquettes de la classe
-#         context['maquettes'] = classe.maquettes.filter(is_active=True).order_by('niveau_libelle')
-#         context['total_maquettes'] = context['maquettes'].count()
-        
-#         # Statistiques maquettes
-#         maquettes = context['maquettes']
-#         context['stats_maquettes'] = {
-#             'total_ues': sum(m.get_total_ues() for m in maquettes),
-#         }
-        
-#         # Vérifier si sync nécessaire
-#         context['needs_sync'] = classe.needs_sync
-        
-#         # Permissions
-#         context['peut_synchroniser'] = self.request.user.role in [
-#             'ADMIN', 'RESP_PEDA', 'INFORMATICIEN'
-#         ]
-        
-#         return context
-
-"""
-Vue ClasseDetailView modifiée pour afficher les matières des maquettes
-À remplacer dans votre fichier views.py
-"""
 
 class ClasseDetailView(LoginRequiredMixin, DetailView):
     """Détail d'une classe avec ses maquettes et matières"""

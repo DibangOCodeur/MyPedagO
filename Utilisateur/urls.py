@@ -137,6 +137,8 @@ urlpatterns = [
     path('groupes/', views.liste_groupes, name='liste_groupes'),
     path('api/sync/groupes/', views.sync_groupes, name='sync_groupes'),
     path('api/groupes/statut/', views.get_statut_groupes, name='statut_groupes'),
+    path('api/countries/autocomplete/', views.country_autocomplete, name='country_autocomplete'),
+
 
 ]
 

@@ -29,8 +29,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',  # ✅ IMPORTANT pour les fichiers statiques
+    'django.contrib.staticfiles', 
     'django.contrib.humanize',
+    'django_countries',
 
     
     # Votre application
@@ -62,7 +63,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                # ✅ AJOUTEZ CECI pour accéder à MEDIA_URL et STATIC_URL dans les templates
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
             ],

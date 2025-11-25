@@ -1,0 +1,243 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/suivi/suivi.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">{{ title }}</h4>
+                    <div class="d-flex gap-2">
+                        <select id="anneeFilter" class="form-select form-select-sm" style="width: auto;">
+                            {% for annee in annees_disponibles %}
+                                <option value="{{ annee }}" {% if annee == annee_academique %}selected{% endif %}>
+                                    {{ annee }}-{{ annee|add:1 }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-sm btn-outline-primary" onclick="exporterDonnees()">
+                            <i class="fas fa-download me-1"></i>Exporter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques globales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start-4 border-start-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted fw-normal">Progression Globale</h6>
+                            <h2 class="fw-bold">{{ stats_globales.progression_globale }}%</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            {{ stats_globales.total_modules_demarres }}/{{ stats_globales.total_modules_planifies }} modules démarrés
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start-4 border-start-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted fw-normal">Classes Actives</h6>
+                            <h2 class="fw-bold">{{ stats_globales.total_classes }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-school fa-2x text-info"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Total des classes</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start-4 border-start-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted fw-normal">Contrats en Cours</h6>
+                            <h2 class="fw-bold">{{ stats_globales.contrats_en_cours }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-tasks fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Contrats actifs</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start-4 border-start-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted fw-normal">Contrats Terminés</h6>
+                            <h2 class="fw-bold">{{ stats_globales.contrats_termines }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Contrats finalisés</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des classes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Liste des Classes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tableClasses">
+                            <thead>
+                                <tr>
+                                    <th>Classe</th>
+                                    <th>Niveau</th>
+                                    <th>Modules Planifiés</th>
+                                    <th>Modules Démarrés</th>
+                                    <th>Modules Restants</th>
+                                    <th>Progression</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for classe in classes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ classe.nom }}</strong>
+                                        {% if classe.filiere %}
+                                        <br><small class="text-muted">{{ classe.filiere.nom }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ classe.get_niveau_display }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold">{{ classe.total_modules|default:0 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-success fw-bold">{{ classe.modules_demarres|default:0 }}</span>
+                                    </td>
+                                   
+                                    <td>
+                                        <span class="text-warning fw-bold">{{ classe.modules_restants }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                <div class="progress-bar 
+                                                    {% if classe.progression_pourcentage >= 80 %}bg-success
+                                                    {% elif classe.progression_pourcentage >= 50 %}bg-info
+                                                    {% elif classe.progression_pourcentage >= 25 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}" 
+                                                    role="progressbar" 
+                                                    style="width: {{ classe.progression_pourcentage }}%"
+                                                    aria-valuenow="{{ classe.progression_pourcentage }}" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <small class="fw-bold">{{ classe.progression_pourcentage }}%</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if classe.progression_pourcentage == 100 %}
+                                            <span class="badge bg-success">Complété</span>
+                                        {% elif classe.progression_pourcentage >= 50 %}
+                                            <span class="badge bg-info">En bonne voie</span>
+                                        {% elif classe.progression_pourcentage > 0 %}
+                                            <span class="badge bg-warning">En cours</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Non démarré</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'classe_detail_suivi' classe.id %}?annee={{ annee_academique }}" 
+                                               class="btn btn-outline-primary" 
+                                               title="Voir le détail">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'progression_annuelle' %}?annee={{ annee_academique }}" 
+                                               class="btn btn-outline-info" 
+                                               title="Voir progression">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                                            <p>Aucune classe trouvée</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filtrer par année académique
+document.getElementById('anneeFilter').addEventListener('change', function() {
+    const annee = this.value;
+    window.location.href = `?annee=${annee}`;
+});
+
+// Fonction d'export des données
+function exporterDonnees() {
+    // Implémentation de l'export Excel/PDF
+    alert('Fonction d\'export à implémenter');
+}
+
+// Auto-refresh toutes les 2 minutes
+setTimeout(() => {
+    window.location.reload();
+}, 120000);
+</script>
+{% endblock %}

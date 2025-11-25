@@ -220,186 +220,266 @@ class PaiementContratInline(admin.TabularInline):
 # ADMIN PRÉCONTRAT
 # ==========================================
 
+# admin.py - VERSION COMPLÈTEMENT CORRIGÉE
+from django.contrib import admin
+from django.utils.html import format_html
+from django.urls import reverse
+from django.contrib import messages
+from django.http import HttpResponseRedirect
+from .models import PreContrat
+from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
+from django.contrib import messages
+
 @admin.register(PreContrat)
 class PreContratAdmin(admin.ModelAdmin):
+    """
+    Interface d'administration simplifiée pour les Précontrats
+    Avec fonctionnalité de suppression activée
+    """
+    
+    # Configuration de base
     list_display = [
-        'reference', 'professeur', 'classe_display', 'status_badge',
-        'modules_count', 'modules_valides_count',
-        'date_creation', 'cree_par'
+        'reference',
+        'professeur_display',
+        'classe_display', 
+        'statut_badge',
+        'date_creation_format',
+        'actions_simplifiees'  # Inclut la suppression
     ]
+    
     list_filter = [
-        'status', 'date_creation', 'date_soumission'
+        'status',
+        'annee_academique',
+        'date_creation'
     ]
+    
     search_fields = [
         'reference',
-        'professeur__first_name', 'professeur__last_name',
-        'professeur__email',
-        'classe__nom', 'classe_nom'
+        'professeur__first_name',
+        'professeur__last_name',
+        'classe__nom'
     ]
-    readonly_fields = [
-        'id', 'reference',
-        'classe_nom', 'classe_niveau', 'classe_filiere',
-        'date_creation', 'date_soumission', 'date_validation', 'date_modification',
-        'modules_count', 'modules_valides_count', 'progression_bar',
-        'volume_total_display', 'montant_total_display'
-    ]
-    inlines = [ModuleProposeInline]
     
+    # ✅ ACTIONS AUTORISÉES - Ajout de la suppression
+    actions = ['supprimer_selection', 'soumettre_selection', 'valider_selection']
+    
+    # ✅ CHAMPS SIMPLIFIÉS
+    readonly_fields = [
+        'reference',
+        'date_creation',
+        'date_soumission',
+        'date_validation'
+    ]
+    
+    # ✅ FIELDSETS SIMPLIFIÉS
     fieldsets = (
-        ('Informations principales', {
+        ('Informations Générales', {
             'fields': (
-                'id', 'reference', 'status', 'annee_academique'
+                'reference',
+                'statut_badge_display',
+                'annee_academique'
             )
         }),
-        ('Professeur et Classe', {
+        ('Acteurs', {
             'fields': (
-                'professeur', 'classe',
-                ('classe_nom', 'classe_niveau', 'classe_filiere')
+                'professeur',
+                'classe',
             )
         }),
-        ('Résumé', {
+        ('Workflow', {
             'fields': (
-                'modules_count', 'modules_valides_count',
-                'progression_bar',
-                'volume_total_display',
-                'montant_total_display'
+                'status',
+                'notes_validation',
+                'raison_rejet'
             )
         }),
-        ('Traçabilité', {
+        ('Dates (Lecture seule)', {
             'fields': (
-                'cree_par', 'valide_par',
-                'date_creation', 'date_soumission', 
-                'date_validation', 'date_modification'
-            )
-        }),
+                'date_creation',
+                'date_soumission',
+                'date_validation',
+            ),
+            'classes': ('collapse',)
+        })
     )
     
-    actions = ['soumettre_precontrats', 'valider_precontrats']
+    # ==========================================
+    # MÉTHODES D'AFFICHAGE SIMPLIFIÉES
+    # ==========================================
+    
+    def professeur_display(self, obj):
+        if obj.professeur:
+            return f"{obj.professeur.get_full_name()}"
+        return "Non assigné"
+    professeur_display.short_description = 'Professeur'
     
     def classe_display(self, obj):
-        """Affiche les informations de la classe"""
-        return format_html(
-            '<strong>{}</strong><br><small>{} - {}</small>',
-            obj.classe_nom or obj.classe.nom,
-            obj.classe_niveau or '',
-            obj.classe_filiere or ''
-        )
+        if obj.classe:
+            return f"{obj.classe.nom}"
+        return "Non assigné"
     classe_display.short_description = 'Classe'
     
-    def status_badge(self, obj):
-        """Badge coloré pour le statut"""
-        colors = {
-            'DRAFT': '#6c757d',
-            'SUBMITTED': '#0dcaf0',
-            'UNDER_REVIEW': '#ffc107',
-            'VALIDATED': '#198754',
-            'REJECTED': '#dc3545',
-            'CANCELLED': '#343a40',
+    def statut_badge(self, obj):
+        status_classes = {
+            'DRAFT': 'secondary',
+            'SUBMITTED': 'info', 
+            'UNDER_REVIEW': 'warning',
+            'VALIDATED': 'success',
+            'REJECTED': 'danger',
+            'CANCELLED': 'dark',
         }
+        couleur = status_classes.get(obj.status, 'secondary')
         return format_html(
-            '<span style="background: {}; color: white; padding: 4px 10px; '
-            'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
-            colors.get(obj.status, '#6c757d'),
+            '<span class="badge bg-{}">{}</span>',
+            couleur,
             obj.get_status_display()
         )
-    status_badge.short_description = 'Statut'
+    statut_badge.short_description = 'Statut'
     
-    def modules_count(self, obj):
-        """Nombre total de modules"""
-        return obj.nombre_modules
-    modules_count.short_description = 'Modules'
+    def date_creation_format(self, obj):
+        return obj.date_creation.strftime('%d/%m/%Y')
+    date_creation_format.short_description = 'Créé le'
     
-    def modules_valides_count(self, obj):
-        """Nombre de modules validés"""
-        count = obj.modules_valides_count
-        total = obj.nombre_modules
-        if count == total and total > 0:
-            return format_html('<span style="color: green;">✓ {}/{}</span>', count, total)
-        return f'{count}/{total}'
-    modules_valides_count.short_description = 'Validés'
-    
-    def progression_bar(self, obj):
-        """Barre de progression"""
-        total = obj.nombre_modules
-        if total == 0:
-            return "Aucun module"
-        
-        valides = obj.modules_valides_count
-        percentage = (valides / total) * 100
-        
-        color = '#198754' if percentage == 100 else '#ffc107' if percentage > 0 else '#dc3545'
+    def actions_simplifiees(self, obj):
+        """Actions incluant la suppression"""
+        detail_url = reverse('admin:Gestion_precontrat_change', args=[obj.id])
+        delete_url = reverse('admin:Gestion_precontrat_delete', args=[obj.id])
         
         return format_html(
-            '<div style="width: 200px; background: #e9ecef; border-radius: 10px;">'
-            '<div style="width: {}%; background: {}; height: 20px; border-radius: 10px; '
-            'text-align: center; color: white; line-height: 20px;">'
-            '{}%'
-            '</div>'
-            '</div>',
-            percentage, color, int(percentage)
+            '''
+            <a href="{}" class="button" title="Voir/modifier">👁️</a>
+            <a href="{}" class="button" style="background: #dc3545; color: white; margin-left: 5px;" 
+               title="Supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce précontrat?')">🗑️</a>
+            ''',
+            detail_url,
+            delete_url
         )
-    progression_bar.short_description = 'Progression'
+    actions_simplifiees.short_description = 'Actions'
+    actions_simplifiees.allow_tags = True
     
-    def volume_total_display(self, obj):
-        """Affiche le volume horaire total"""
-        volumes = obj.get_volume_total()
-        return format_html(
-            '<strong>Total: {}h</strong><br>'
-            '<small>CM: {}h | TD: {}h</small>',
-            volumes['total'],
-            volumes['cours'],
-            volumes['td'],
-        )
-    volume_total_display.short_description = 'Volumes'
+    # ==========================================
+    # ✅ ACTION DE SUPPRESSION - SIMPLE ET FONCTIONNELLE
+    # ==========================================
     
-    def montant_total_display(self, obj):
-        """Affiche le montant total"""
-        montant = obj.get_montant_total()
-        return format_html(
-            '<strong style="color: #198754; font-size: 14px;">{:,.0f} FCFA</strong>',
-            montant
-        )
-    montant_total_display.short_description = 'Montant'
-    
-    def soumettre_precontrats(self, request, queryset):
-        """Action pour soumettre plusieurs précontrats"""
-        count = 0
-        for precontrat in queryset:
-            if precontrat.peut_etre_soumis:
-                try:
-                    precontrat.soumettre(user=request.user)
-                    count += 1
-                except Exception as e:
-                    self.message_user(request, f'Erreur: {str(e)}', level='error')
+    def supprimer_selection(self, request, queryset):
+        """Supprime les précontrats sélectionnés"""
+        count = queryset.count()
         
-        if count > 0:
-            self.message_user(request, f'{count} précontrat(s) soumis.')
-    soumettre_precontrats.short_description = 'Soumettre les précontrats sélectionnés'
-    
-    def valider_precontrats(self, request, queryset):
-        """Action pour valider plusieurs précontrats"""
-        if not request.user.role in ['RESP_RH', 'ADMIN']:
-            self.message_user(request, "Permission refusée", level='error')
+        # Vérification simple des permissions
+        if not request.user.has_perm('Gestion.delete_precontrat'):
+            self.message_user(
+                request, 
+                "❌ Vous n'avez pas la permission de supprimer des précontrats", 
+                messages.ERROR
+            )
             return
         
+        try:
+            # Suppression directe et simple
+            for precontrat in queryset:
+                precontrat.delete()
+            
+            self.message_user(
+                request, 
+                f"✅ {count} précontrat(s) supprimé(s) avec succès", 
+                messages.SUCCESS
+            )
+            
+        except Exception as e:
+            self.message_user(
+                request, 
+                f"❌ Erreur lors de la suppression: {str(e)}", 
+                messages.ERROR
+            )
+    
+    supprimer_selection.short_description = "🗑️ Supprimer la sélection"
+    
+    # ==========================================
+    # AUTRES ACTIONS UTILES
+    # ==========================================
+    
+    def soumettre_selection(self, request, queryset):
+        """Soumet les précontrats sélectionnés"""
         count = 0
         for precontrat in queryset:
-            if precontrat.peut_etre_valide:
-                try:
-                    precontrat.valider(user=request.user)
-                    count += 1
-                except Exception as e:
-                    self.message_user(request, f'Erreur: {str(e)}', level='error')
+            try:
+                if hasattr(precontrat, 'soumettre'):
+                    precontrat.soumettre(user=request.user)
+                precontrat.status = 'SUBMITTED'
+                precontrat.save()
+                count += 1
+            except Exception as e:
+                self.message_user(
+                    request, 
+                    f"Erreur avec {precontrat.reference}: {str(e)}", 
+                    messages.ERROR
+                )
         
         if count > 0:
-            self.message_user(request, f'{count} précontrat(s) validé(s).')
-    valider_precontrats.short_description = 'Valider les précontrats sélectionnés'
+            self.message_user(
+                request, 
+                f"📨 {count} précontrat(s) soumis avec succès", 
+                messages.SUCCESS
+            )
+    soumettre_selection.short_description = "📨 Soumettre la sélection"
+    
+    def valider_selection(self, request, queryset):
+        """Valide les précontrats sélectionnés"""
+        count = 0
+        for precontrat in queryset:
+            try:
+                if hasattr(precontrat, 'valider'):
+                    precontrat.valider(user=request.user)
+                precontrat.status = 'VALIDATED'
+                precontrat.save()
+                count += 1
+            except Exception as e:
+                self.message_user(
+                    request, 
+                    f"Erreur avec {precontrat.reference}: {str(e)}", 
+                    messages.ERROR
+                )
+        
+        if count > 0:
+            self.message_user(
+                request, 
+                f"✅ {count} précontrat(s) validés avec succès", 
+                messages.SUCCESS
+            )
+    valider_selection.short_description = "✅ Valider la sélection"
+    
+    # ==========================================
+    # ✅ AUTORISATION DE SUPPRESSION
+    # ==========================================
+    
+    def has_delete_permission(self, request, obj=None):
+        """Autorise la suppression"""
+        return True
+    
+    def get_actions(self, request):
+        """S'assure que l'action de suppression est disponible"""
+        actions = super().get_actions(request)
+        actions['supprimer_selection'] = (
+            PreContratAdmin.supprimer_selection,
+            'supprimer_selection',
+            PreContratAdmin.supprimer_selection.short_description
+        )
+        return actions
+    
+    # ==========================================
+    # MÉTHODES UTILITAIRES SIMPLES
+    # ==========================================
+    
+    def statut_badge_display(self, obj):
+        """Pour l'affichage dans le détail"""
+        return self.statut_badge(obj)
+    statut_badge_display.short_description = 'Statut actuel'
     
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('professeur', 'classe', 'cree_par', 'valide_par')\
-                .prefetch_related('modules_proposes')  # ⭐ AJOUT pour optimiser les requêtes
-
+        """Optimisation simple des requêtes"""
+        return super().get_queryset(request).select_related('professeur', 'classe')
 
 # ==========================================
 # ADMIN MODULE PROPOSÉ
@@ -510,7 +590,7 @@ class ModuleProposeAdmin(admin.ModelAdmin):
 @admin.register(Contrat)
 class ContratAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'professeur', 'classe', 'maquette',
+        'reference', 'professeur', 'classe', 'maquette',
         'status_badge', 'type_enseignement',
         'volumes_display', 'date_validation'
     ]
@@ -597,16 +677,8 @@ class ContratAdmin(admin.ModelAdmin):
     status_badge.short_description = 'Statut'
     
     def volumes_display(self, obj):
-        """Affiche les volumes"""
-        total = obj.volume_heure_cours + obj.volume_heure_td
-        return format_html(
-            '<strong>Total: {}h</strong><br>'
-            '<small>CM: {}h | TD: {}h</small>',
-            total,
-            obj.volume_heure_cours,
-            obj.volume_heure_td,
-        )
-    volumes_display.short_description = 'Volumes'
+        return obj.volume_cours  # Utilise la propriété
+    volumes_display.short_description = "Volume de cours"
     
     def montant_contractuel_display(self, obj):
         """Affiche le montant contractuel"""

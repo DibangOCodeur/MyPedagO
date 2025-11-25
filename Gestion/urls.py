@@ -26,6 +26,8 @@ urlpatterns = [
     path('precontrats/<uuid:pk>/',
          views.precontrat_detail,
          name='precontrat_detail'),
+         
+path('contrats/<int:pk>/imprimable/', views.contrat_imprimable, name='contrat_imprimable'),  # ⭐ AJOUT
 
     path('precontrat/<uuid:pk>/recapitulatif/',
          views.precontrat_recapitulatif,
@@ -74,7 +76,7 @@ urlpatterns = [
     path('contrats/<int:contrat_id>/documents/upload/',
          login_required(views.document_upload),
          name='document_upload'),
-     
+     # path('contrats/<int:pk>/imprimable/', views.contrat_imprimable, name='contrat_imprimable'),
      path('contrats/', views.contrat_list, name='contrat_list'),
      path('contrat/<int:pk>/', views.contrat_detail, name='contrat_detail'),
      path('contrat/demarage/<int:pk>/', views.contrat_start, name='contrat_start'),
@@ -114,21 +116,12 @@ urlpatterns = [
          name='api_get_maquettes'),
      
      # Endpoints pour les modules dans le précontrat
-     path('precontrat/classes/<int:classe_id>/modules/', views.get_modules_par_classe, name='get_modules_par_classe')
+     path('precontrat/classes/<int:classe_id>/modules/', views.get_modules_par_classe, name='get_modules_par_classe'),
+
+
+    path('suivi/classes/', views.classe_suivi_annuel, name='classe_suivi_annuel'),
+    path('suivi/classes/<int:classe_id>/', views.classe_detail_suivi, name='classe_detail_suivi'),
+    path('suivi/progression-annuelle/', views.progression_annuelle, name='progression_annuelle'),
+    path('api/progression-classes/', views.api_progression_classes, name='api_progression_classes'),
 ]
-                           
-#  # Précontrats
-#     path('precontrats/', views.precontrat_list, name='precontrat_list'),
-#     path('precontrats/creer/', views.precontrat_create, name='precontrat_create'),
-#     path('precontrats/<uuid:pk>/', views.precontrat_detail, name='precontrat_detail'),
-#     path('precontrats/<uuid:pk>/modifier/', views.precontrat_edit, name='precontrat_edit'),
-#     path('precontrats/<uuid:pk>/supprimer/', views.precontrat_delete, name='precontrat_delete'),
-#     path('precontrats/<uuid:pk>/recapitulatif/', views.precontrat_recapitulatif, name='precontrat_recapitulatif'),
     
-#     path('precontrats/<uuid:pk>/soumettre/', views.precontrat_soumettre, name='precontrat_soumettre'),
-#     path('precontrats/<uuid:pk>/valider/', views.precontrat_valider, name='precontrat_valider'),
-#     path('precontrats/<uuid:pk>/rejeter/', views.precontrat_rejeter, name='precontrat_rejeter'),
-    
-#     # API
-#     path('api/classes/<int:classe_id>/modules/', views.api_get_classe_modules, name='api_get_classe_modules'),
-#     path('api/modules/classe/<int:classe_id>/', views.get_modules_par_classe, name='get_modules_par_classe'),

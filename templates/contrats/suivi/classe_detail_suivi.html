@@ -1,0 +1,267 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête avec navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'classe_suivi_annuel' %}?annee={{ annee_academique }}">Suivi des Classes</a>
+                    </li>
+                    <li class="breadcrumb-item active">{{ classe.nom }}</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0">{{ classe.nom }} - Suivi Détaillé</h4>
+                        <small class="text-muted">Année académique {{ annee_academique }}-{{ annee_academique|add:1 }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'classe_suivi_annuel' %}?annee={{ annee_academique }}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques de la classe -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h2 class="fw-bold">{{ stats_classe.total_modules }}</h2>
+                    <p class="mb-0">Modules Planifiés</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h2 class="fw-bold">{{ stats_classe.modules_demarres }}</h2>
+                    <p class="mb-0">Modules Démarrés</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h2 class="fw-bold">{{ stats_classe.modules_non_demarres }}</h2>
+                    <p class="mb-0">Modules Restants</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h2 class="fw-bold">{{ stats_classe.progression_globale }}%</h2>
+                    <p class="mb-0">Progression Globale</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progression par UE -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Progression par Unité d'Enseignement</h5>
+                </div>
+                <div class="card-body">
+                    {% for ue_nom, data in progression_par_ue.items %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold">{{ ue_nom }}</span>
+                            <span class="text-muted">{{ data.modules_demarres }}/{{ data.total_modules }} modules</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar 
+                                {% if data.progression >= 80 %}bg-success
+                                {% elif data.progression >= 50 %}bg-info
+                                {% elif data.progression >= 25 %}bg-warning
+                                {% else %}bg-danger{% endif %}" 
+                                role="progressbar" 
+                                style="width: {{ data.progression }}%"
+                                aria-valuenow="{{ data.progression }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ data.progression }}% complété</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modules démarrés -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-play-circle me-2"></i>
+                        Modules Démarrés ({{ modules_demarres|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for module in modules_demarres %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100 border-success">
+                                <div class="card-header bg-success text-white py-2">
+                                    <h6 class="mb-0">{{ module.nom }}</h6>
+                                    <small>{{ module.ue_nom }}</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small class="text-muted">Code: {{ module.code }}</small>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Professeur:</strong> 
+                                        <span class="text-primary">{{ module.professeur }}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Statut:</strong>
+                                        <span class="badge 
+                                            {% if module.statut_contrat == 'En cours' %}bg-warning
+                                            {% elif module.statut_contrat == 'Terminé' %}bg-success
+                                            {% else %}bg-info{% endif %}">
+                                            {{ module.statut_contrat }}
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Progression:</strong>
+                                        <div class="progress mt-1" style="height: 6px;">
+                                            <div class="progress-bar bg-success" 
+                                                 style="width: {{ module.progression }}%">
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">{{ module.progression }}%</small>
+                                    </div>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <small class="text-muted">CM</small>
+                                            <br>
+                                            <strong>{{ module.volume_cm }}h</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">TD</small>
+                                            <br>
+                                            <strong>{{ module.volume_td }}h</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <small class="text-muted">
+                                        Contrat #{{ module.contrat.id }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center py-4">
+                            <div class="text-muted">
+                                <i class="fas fa-clock fa-3x mb-3"></i>
+                                <p>Aucun module démarré pour cette classe</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modules non démarrés -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Modules à Démarrer ({{ modules_non_demarres|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Module</th>
+                                    <th>Code</th>
+                                    <th>UE</th>
+                                    <th>Volume Horaire</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for module in modules_non_demarres %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ module.nom }}</strong>
+                                    </td>
+                                    <td>
+                                        <code>{{ module.code }}</code>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ module.ue_nom }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">CM: {{ module.volume_cm }}h</span>
+                                        <span class="badge bg-secondary">TD: {{ module.volume_td }}h</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                onclick="creerPrecontrat('{{ module.id }}', '{{ classe.id }}')"
+                                                title="Créer un précontrat">
+                                            <i class="fas fa-plus"></i> Précontrat
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4">
+                                        <div class="text-success">
+                                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                                            <p>Tous les modules sont démarrés !</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function creerPrecontrat(moduleId, classeId) {
+    if (confirm('Voulez-vous créer un précontrat pour ce module ?')) {
+        // Redirection vers la création de précontrat
+        window.location.href = `/contrats/precontrats/creer/?classe=${classeId}&module=${moduleId}`;
+    }
+}
+
+// Mettre à jour la page toutes les 3 minutes
+setTimeout(() => {
+    window.location.reload();
+}, 180000);
+</script>
+{% endblock %}

@@ -11,11 +11,10 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage  # ⭐ 
 from .forms import PreContratCreateForm, ContratStartForm, PointageForm
 import json
 import logging
-from .forms import PreContratCreateForm
 
 from .models import (
     PreContrat, ModulePropose, Contrat, Pointage,
-    PaiementContrat, ActionLog, Classe, Maquette
+    PaiementContrat, ActionLog, Classe, Maquette, Groupe  
 )
 from .permissions import (
     role_required,
@@ -27,25 +26,27 @@ from django.views.decorators.http import require_http_methods
 logger = logging.getLogger(__name__)                                                    
 
 # ==========================================
-# VUES POUR LES PRÉCONTRATS
-# ==========================================
-
-
-# ==========================================
 # FONCTION UTILITAIRE POUR EXTRAIRE LES MODULES
+# ==========================================
+
+# ==========================================
+# FONCTION UNIFIÉE POUR EXTRAIRE LES MODULES
 # ==========================================
 
 def find_module_in_maquettes(maquettes, module_id):
     """
-    Trouve un module dans les données des maquettes
+    ⭐ FONCTION UNIFIÉE ET CORRIGÉE ⭐
+    Trouve un module dans les données des maquettes avec gestion robuste des données
     
     Args:
         maquettes: QuerySet de Maquette
-        module_id: ID du module à rechercher
+        module_id: ID du module à rechercher (string ou int)
         
     Returns:
         dict: Données du module ou None si non trouvé
     """
+    logger.debug(f"🔍 Recherche du module {module_id} dans {maquettes.count()} maquette(s)")
+    
     for maquette in maquettes:
         # Les UE sont stockées dans le champ JSON unites_enseignement
         ues = maquette.unites_enseignement or []
@@ -55,22 +56,63 @@ def find_module_in_maquettes(maquettes, module_id):
             matieres = ue.get('matieres', [])
             
             for matiere in matieres:
-                # Vérifier si c'est le bon module
-                if str(matiere.get('id')) == str(module_id):
-                    # Retourner les données du module
-                    return {
+                # ⭐ CORRECTION : Comparaison robuste des IDs (string vs int)
+                matiere_id = str(matiere.get('id', ''))
+                module_id_str = str(module_id)
+                
+                if matiere_id == module_id_str:
+                    logger.info(f"✅ Module trouvé: {matiere.get('nom', 'Sans nom')}")
+                    
+                    # ⭐ GESTION ROBUSTE DES VOLUMES HORAIRES
+                    def safe_float(value, default=0.0):
+                        """Convertit en float de manière sécurisée"""
+                        try:
+                            if value is None or value == '':
+                                return default
+                            return float(value)
+                        except (TypeError, ValueError):
+                            return default
+                    
+                    # Récupération des volumes avec valeurs par défaut intelligentes
+                    volume_cm = safe_float(matiere.get('volume_horaire_cm'), 20.0)
+                    volume_td = safe_float(matiere.get('volume_horaire_td'), 20.0)
+                    
+                    # ⭐ CORRECTION CRITIQUE : Si tous les volumes sont à 0, on met des valeurs par défaut
+                    if volume_cm <= 0 and volume_td <= 0:
+                        logger.warning(f"⚠️ Module {module_id} a tous les volumes à 0, utilisation de valeurs par défaut")
+                        volume_cm = 20.0
+                        volume_td = 20.0
+                    
+                    # ⭐ GESTION ROBUSTE DES TAUX HORAIRES
+                    taux_cm = safe_float(matiere.get('taux_horaire_cm'), 5000.0)
+                    taux_td = safe_float(matiere.get('taux_horaire_td'), 5000.0)
+                    
+                    # ⭐ VÉRIFICATION : Si volume > 0 mais taux = 0, on corrige
+                    if volume_cm > 0 and taux_cm <= 0:
+                        logger.warning(f"⚠️ Module {module_id}: Volume CM > 0 mais taux CM = 0, correction à 5000")
+                        taux_cm = 5000.0
+                    
+                    if volume_td > 0 and taux_td <= 0:
+                        logger.warning(f"⚠️ Module {module_id}: Volume TD > 0 mais taux TD = 0, correction à 5000")
+                        taux_td = 5000.0
+                    
+                    # Données du module trouvé
+                    module_data = {
                         'id': matiere.get('id'),
-                        'code': matiere.get('code', ''),
-                        'nom': matiere.get('nom', ''),
-                        'ue_nom': ue.get('libelle', ''),
-                        'volume_cm': float(matiere.get('volume_horaire_cm', 5)),
-                        'volume_td': float(matiere.get('volume_horaire_td', 5)),
-                        'taux_cm': float(matiere.get('taux_horaire_cm', 5000)),
-                        'taux_td': float(matiere.get('taux_horaire_td', 5000)),
+                        'code': matiere.get('code', f'MOD_{module_id}'),
+                        'nom': matiere.get('nom', 'Module sans nom'),
+                        'ue_nom': ue.get('libelle', 'UE non spécifiée'),
+                        'volume_horaire_cm': volume_cm,
+                        'volume_horaire_td': volume_td,
+                        'taux_horaire_cm': taux_cm,
+                        'taux_horaire_td': taux_td,
                     }
+                    
+                    logger.debug(f"📊 Données module: {module_data}")
+                    return module_data
     
+    logger.warning(f"❌ Module {module_id} non trouvé dans les maquettes")
     return None
-
 
 # ==========================================
 # NOUVEL ENDPOINT API - RÉCUPÉRATION DES MODULES
@@ -335,9 +377,6 @@ def precontrat_create(request):
     
     return render(request, 'contrats/precontrats/creation.html', context)
 
-
-# Vue auxiliaire pour récupérer les modules d'une classe
-
 @login_required
 @require_http_methods(["GET"])
 def get_modules_par_classe(request, classe_id):
@@ -408,53 +447,6 @@ def get_modules_par_classe(request, classe_id):
         }, status=500)
 
 
-def find_module_in_maquettes(maquettes, module_id):
-    """
-    Fonction utilitaire pour trouver un module dans les maquettes
-    Utilise le champ JSON unites_enseignement
-    """
-    for maquette in maquettes:
-        # Accès au champ JSON
-        ues = maquette.unites_enseignement or []
-        
-        for ue in ues:
-            matieres = ue.get('matieres', [])
-            
-            for matiere in matieres:
-                if str(matiere.get('id')) == str(module_id):
-                    # ⭐ CORRECTION : Assurer que les volumes horaires ont des valeurs par défaut
-                    volume_cm = float(matiere.get('volume_horaire_cm', 0) or 20)  # Minimum 20h si vide
-                    volume_td = float(matiere.get('volume_horaire_td', 0) or 20)  # Minimum 20h si vide
-                    
-                    # ⭐ CORRECTION CRITIQUE : Assurer que les TAUX horaires ont des valeurs par défaut
-                    taux_cm = float(matiere.get('taux_horaire_cm', 0) or 5000)  # Minimum 5000 si vide ou 0
-                    taux_td = float(matiere.get('taux_horaire_td', 0) or 5000)  # Minimum 5000 si vide ou 0
-                    
-                    # ⭐ VÉRIFICATION CRITIQUE : S'assurer qu'au moins un volume > 0
-                    if volume_cm <= 0 and volume_td <= 0:
-                        # Si tous sont à 0, on met des valeurs par défaut
-                        volume_cm = 20
-                        volume_td = 20
-                    
-                    # ⭐ VÉRIFICATION : Si volume > 0, alors taux doit être > 0
-                    if volume_td > 0 and taux_td <= 0:
-                        taux_td = 5000  # Valeur par défaut
-                    
-                    if volume_cm > 0 and taux_cm <= 0:
-                        taux_cm = 5000  # Valeur par défaut
-                    
-                    return {
-                        'id': matiere.get('id'),
-                        'code': matiere.get('code', ''),
-                        'nom': matiere.get('nom', ''),
-                        'ue_nom': ue.get('libelle', ''),
-                        'volume_horaire_cm': volume_cm,
-                        'volume_horaire_td': volume_td,
-                        'taux_horaire_cm': taux_cm,
-                        'taux_horaire_td': taux_td,
-                    }
-    return None
-
 # ==========================================
 # VUE DE DÉTAIL D'UN PRÉCONTRAT
 # ==========================================
@@ -505,43 +497,36 @@ def precontrat_detail(request, pk):
     
     return render(request, 'contrats/precontrats/detail.html', context)
 
-
-# ==========================================
-# VUE DE RÉCAPITULATIF AVANT VALIDATION
-# ==========================================
-
 # ==========================================
 # VUE DE RÉCAPITULATIF AVANT VALIDATION (MODIFIÉE)
 # ==========================================
-
 @login_required
 @require_http_methods(["GET", "POST"])
 def precontrat_recapitulatif(request, pk):
     """
-    Vue pour afficher un récapitulatif complet avant la soumission du précontrat.
-    Permet de valider individuellement chaque module et créer automatiquement des contrats.
+    ⭐ VERSION AVEC LOGGING DÉTAILLÉ ⭐
     """
     precontrat = get_object_or_404(
         PreContrat.objects.select_related('professeur', 'classe'),
         pk=pk
     )
     
-    # Vérifier que l'utilisateur a le droit de soumettre
-    if request.user != precontrat.cree_par and request.user.role not in ['RESP_RH', 'ADMIN']:
-        messages.error(request, "❌ Vous n'avez pas la permission de soumettre ce précontrat.")
-        return redirect('precontrat_detail', pk=pk)
+    logger.info(f"🔍 Accès récapitulatif précontrat {precontrat.reference} par {request.user}")
     
-    # Vérifier que le précontrat peut être soumis
-    if not precontrat.peut_etre_soumis:
-        messages.error(request, "❌ Ce précontrat ne peut pas être soumis dans son état actuel.")
+    # Vérifier les permissions
+    if request.user != precontrat.cree_par and request.user.role not in ['RESP_RH', 'ADMIN']:
+        messages.error(request, "❌ Vous n'avez pas la permission d'accéder à cette page.")
         return redirect('precontrat_detail', pk=pk)
     
     if request.method == 'POST':
         action = request.POST.get('action')
+        logger.info(f"🔄 Action reçue: {action} pour le précontrat {precontrat.reference} par {request.user}")
         
         if action == 'validate_module':
             # Validation individuelle d'un module
             module_id = request.POST.get('module_id')
+            logger.info(f"🔄 Validation module individuel: {module_id}")
+            
             try:
                 module = ModulePropose.objects.get(pk=module_id, pre_contrat=precontrat)
                 
@@ -551,31 +536,80 @@ def precontrat_recapitulatif(request, pk):
                 module.date_validation = timezone.now()
                 module.save()
                 
-                # Créer automatiquement le contrat pour ce module
-                contrat = create_contrat_from_module(module, request.user)
+                logger.info(f"✅ Module {module.nom_module} validé, création contrat...")
                 
-                messages.success(
-                    request, 
-                    f"✅ Module {module.nom_module} validé et contrat #{contrat.id} créé avec succès !"
-                )
+                # Créer automatiquement le contrat
+                from .utils import create_contrat_from_module
+                create_contrat_from_module(module, request.user)
+                
+                # Mettre à jour le statut du précontrat
+                precontrat.update_status()
+                
+                messages.success(request, f"✅ Module {module.nom_module} validé et contrat créé avec succès !")
                 
             except ModulePropose.DoesNotExist:
+                logger.error(f"❌ Module {module_id} non trouvé")
                 messages.error(request, "❌ Module non trouvé.")
             except Exception as e:
-                logger.error(f"Erreur validation module: {str(e)}")
+                logger.error(f"❌ Erreur validation module: {str(e)}", exc_info=True)
                 messages.error(request, f"❌ Erreur lors de la validation du module: {str(e)}")
         
-        elif action == 'submit_all':
-            # Soumettre le précontrat complet
+        elif action == 'validate_all_modules':
+            # Valider tous les modules en une fois
+            logger.info("🔄 Validation de tous les modules")
             try:
-                precontrat.soumettre(user=request.user)
-                messages.success(
-                    request,
-                    f"✅ Le précontrat {precontrat.reference} a été soumis avec succès pour validation !"
-                )
+                modules_valides = 0
+                for module in precontrat.modules_proposes.all():
+                    if not module.est_valide:
+                        module.est_valide = True
+                        module.valide_par = request.user
+                        module.date_validation = timezone.now()
+                        module.save()
+                        
+                        logger.info(f"🔄 Création contrat pour module: {module.nom_module}")
+                        
+                        # Créer le contrat
+                        from .utils import create_contrat_from_module
+                        create_contrat_from_module(module, request.user)
+                        
+                        modules_valides += 1
+                
+                # Mettre à jour le statut du précontrat
+                precontrat.update_status()
+                
+                if modules_valides > 0:
+                    messages.success(request, f"✅ {modules_valides} module(s) validé(s) et contrat(s) créé(s) avec succès !")
+                else:
+                    messages.info(request, "ℹ️ Tous les modules étaient déjà validés.")
+                    
+            except Exception as e:
+                logger.error(f"❌ Erreur validation globale: {str(e)}", exc_info=True)
+                messages.error(request, f"❌ Erreur lors de la validation: {str(e)}")
+        
+        elif action == 'submit_precontrat':
+            # Soumettre ou valider le précontrat complet
+            logger.info("🔄 Soumission/Validation du précontrat complet")
+            try:
+                if request.user.role in ['RESP_RH', 'ADMIN']:
+                    # Si c'est un RH, valider directement
+                    notes = request.POST.get('notes', '')
+                    logger.info(f"🔄 Validation RH du précontrat {precontrat.reference}")
+                    precontrat.valider(user=request.user, notes=notes)
+                    messages.success(request, f"✅ Le précontrat {precontrat.reference} a été validé avec succès ! Les contrats ont été créés automatiquement.")
+                else:
+                    # Si c'est le créateur, soumettre pour validation
+                    logger.info(f"🔄 Soumission du précontrat {precontrat.reference} pour validation RH")
+                    precontrat.soumettre(user=request.user)
+                    messages.success(request, f"✅ Le précontrat {precontrat.reference} a été soumis pour validation RH !")
+                
                 return redirect('precontrat_detail', pk=pk)
+                
             except ValidationError as e:
-                messages.error(request, f"❌ Erreur : {str(e)}")
+                logger.error(f"❌ Erreur validation précontrat: {str(e)}")
+                messages.error(request, f"❌ Erreur de validation : {str(e)}")
+            except Exception as e:
+                logger.error(f"❌ Erreur inattendue: {str(e)}", exc_info=True)
+                messages.error(request, f"❌ Erreur inattendue : {str(e)}")
         
         elif action == 'back':
             return redirect('precontrat_detail', pk=pk)
@@ -609,6 +643,8 @@ def precontrat_recapitulatif(request, pk):
         'montant_total': montant_total,
         'title': f'Récapitulatif - {precontrat.reference}',
         'can_validate_modules': request.user.role in ['RESP_RH', 'ADMIN'],
+        'can_submit_precontrat': request.user == precontrat.cree_par,
+        'is_rh': request.user.role in ['RESP_RH', 'ADMIN'],
     }
     
     return render(request, 'contrats/precontrats/recapitulatif.html', context)
@@ -620,15 +656,21 @@ def precontrat_recapitulatif(request, pk):
 
 def create_contrat_from_module(module, user):
     """
+    ⭐ VERSION CORRIGÉE ⭐
     Crée automatiquement un contrat à partir d'un module validé
     """
     with transaction.atomic():
         # Vérifier si un contrat existe déjà pour ce module
         if hasattr(module, 'contrat'):
+            logger.info(f"✅ Contrat existe déjà pour le module {module.id}")
             return module.contrat
         
-        # Récupérer la maquette associée
+        # Vérifier que le module est bien validé
+        if not module.est_valide:
+            raise ValidationError(f"Le module {module.nom_module} doit être validé avant de créer un contrat")
+        
         try:
+            # Récupérer la maquette associée
             maquette = Maquette.objects.filter(
                 classe=module.pre_contrat.classe,
                 is_active=True
@@ -637,10 +679,28 @@ def create_contrat_from_module(module, user):
             if not maquette:
                 raise ValidationError("Aucune maquette active trouvée pour cette classe")
             
-            # Créer le contrat
+            # ⭐ GESTION SÉCURISÉE DE LA RELATION PROFESSEUR
+            from Utilisateur.models import Professeur
+            
+            # Vérifier si l'utilisateur a déjà un profil professeur
+            try:
+                professeur_instance = module.pre_contrat.professeur.professeur
+                logger.info(f"✅ Profil professeur trouvé: {professeur_instance}")
+            except Professeur.DoesNotExist:
+                # Créer un profil professeur si inexistant
+                logger.warning(f"⚠️ Création du profil professeur pour {module.pre_contrat.professeur}")
+                professeur_instance = Professeur.objects.create(
+                    user=module.pre_contrat.professeur,
+                    grade='AUTRE',  # Valeur par défaut
+                    specialite='Non spécifiée',
+                    est_actif=True
+                )
+                logger.info(f"✅ Profil professeur créé: {professeur_instance}")
+            
+            # ⭐ CRÉATION DU CONTRAT
             contrat = Contrat.objects.create(
                 module_propose=module,
-                professeur=module.pre_contrat.professeur.professeur,  # Relation OneToOne
+                professeur=professeur_instance,
                 classe=module.pre_contrat.classe,
                 maquette=maquette,
                 volume_heure_cours=module.volume_heure_cours,
@@ -651,6 +711,8 @@ def create_contrat_from_module(module, user):
                 date_validation=timezone.now(),
                 status='VALIDATED'
             )
+            
+            logger.info(f"✅ Contrat #{contrat.id} créé avec succès pour le module {module.nom_module}")
             
             # Log de l'action
             ActionLog.objects.create(
@@ -663,17 +725,21 @@ def create_contrat_from_module(module, user):
             return contrat
             
         except Exception as e:
-            logger.error(f"Erreur création contrat: {str(e)}")
+            logger.error(f"❌ Erreur création contrat: {str(e)}", exc_info=True)
             raise ValidationError(f"Erreur lors de la création du contrat: {str(e)}")
-
+            
 # ==========================================
 # ACTIONS SUR LES PRÉCONTRATS
+# ==========================================
+
+# ==========================================
+# VUES CORRIGÉES - VERSION FONCTIONNELLE
 # ==========================================
 
 @login_required
 @require_http_methods(["POST"])
 def precontrat_soumettre(request, pk):
-    """Soumet un précontrat pour validation"""
+    """Soumet un précontrat pour validation - VERSION CORRIGÉE"""
     precontrat = get_object_or_404(PreContrat, pk=pk)
     
     # Vérifier les permissions
@@ -684,6 +750,7 @@ def precontrat_soumettre(request, pk):
         }, status=403)
     
     try:
+        # ✅ CORRECTION : Utiliser la bonne méthode
         precontrat.soumettre(user=request.user)
         return JsonResponse({
             'success': True,
@@ -696,11 +763,10 @@ def precontrat_soumettre(request, pk):
             'error': str(e)
         }, status=400)
 
-
 @login_required
 @require_http_methods(["POST"])
 def precontrat_valider(request, pk):
-    """Valide un précontrat (RH uniquement)"""
+    """Valide un précontrat (RH uniquement) - VERSION CORRIGÉE"""
     precontrat = get_object_or_404(PreContrat, pk=pk)
     
     # Vérifier les permissions
@@ -712,6 +778,7 @@ def precontrat_valider(request, pk):
     
     try:
         notes = request.POST.get('notes', '')
+        # ✅ CORRECTION : Utiliser la bonne méthode
         precontrat.valider(user=request.user, notes=notes)
         
         return JsonResponse({
@@ -1041,43 +1108,6 @@ def generate_precontrat_pdf(precontrat, modules, volumes, montant_total):
     buffer.close()
     return pdf
 
-
-# ==========================================
-# VUE POUR LA SUPPRESSION D'UN PRÉCONTRAT
-# ==========================================
-
-@login_required
-@require_http_methods(["POST"])
-def precontrat_delete(request, pk):
-    """
-    Vue pour supprimer un précontrat
-    """
-    precontrat = get_object_or_404(PreContrat, pk=pk)
-    
-    # Vérifier les permissions
-    if not (request.user == precontrat.cree_par or request.user.role in ['RESP_RH', 'ADMIN']):
-        messages.error(request, "❌ Vous n'avez pas la permission de supprimer ce précontrat.")
-        return redirect('precontrat_list')
-    
-    # Vérifier que le précontrat peut être supprimé
-    if precontrat.status != 'DRAFT':
-        messages.error(request, "❌ Seuls les précontrats en brouillon peuvent être supprimés.")
-        return redirect('precontrat_list')
-    
-    try:
-        reference = precontrat.reference
-        precontrat.delete()
-        messages.success(request, f"✅ Précontrat {reference} supprimé avec succès.")
-        
-    except Exception as e:
-        logger.error(f"❌ Erreur suppression précontrat: {str(e)}", exc_info=True)
-        messages.error(request, "❌ Erreur lors de la suppression du précontrat.")
-    
-    return redirect('precontrat_list')
-
-
-
-
 # ============================================================================
 # VUE DE VALIDATION D'UN MODULE
 # ============================================================================
@@ -1133,56 +1163,131 @@ def module_validate(request, pk):
 # VUE DE SOUMISSION D'UN PRÉCONTRAT
 # ============================================================================
 
+# Dans views.py - CORRIGEZ cette vue
 @login_required
 @role_required(['RESP_RH', 'ADMIN'])
 def precontrat_submit(request, pk):
     """
-    Soumettre un précontrat pour validation.
+    ✅ VERSION CORRIGÉE - Utilise la bonne méthode
     """
     precontrat = get_object_or_404(PreContrat, pk=pk)
     
     if request.method == 'POST':
         try:
-            precontrat.submit(request.user)
+            # ✅ CORRECTION : Utiliser soumettre() au lieu de submit()
+            precontrat.soumettre(user=request.user)
             messages.success(request, "📨 Précontrat soumis pour validation")
-        except Exception as e:
+        except ValidationError as e:
             messages.error(request, f"❌ Erreur : {str(e)}")
-        
-        return redirect('precontrat_detail', pk=pk)
+        except Exception as e:
+            messages.error(request, f"❌ Erreur inattendue : {str(e)}")
     
     return redirect('precontrat_detail', pk=pk)
 
-
-# ============================================================================
-# VUE DE SUPPRESSION D'UN PRÉCONTRAT
-# ============================================================================
+# ==========================================
+# VUE POUR LA SUPPRESSION D'UN PRÉCONTRAT (CORRIGÉE)
+# ==========================================
 
 @login_required
-@role_required(['RESP_RH', 'ADMIN'])
+@require_http_methods(["POST"])
+@role_required(['RESP_RH', 'ADMIN'])  # ⭐ AJOUT DU DÉCORATEUR ROLE_REQUIRED
 def precontrat_delete(request, pk):
     """
-    Supprimer un précontrat (seulement si DRAFT).
+    Vue pour supprimer un précontrat
     """
     precontrat = get_object_or_404(PreContrat, pk=pk)
     
-    if precontrat.status != 'DRAFT':
-        messages.error(request, "❌ Seuls les précontrats en brouillon peuvent être supprimés")
-        return redirect('precontrat_detail', pk=pk)
-    
-    if request.method == 'POST':
-        precontrat.delete()
-        messages.success(request, "🗑️ Précontrat supprimé")
+    # Vérifier les permissions (déjà fait par le décorateur, mais double sécurité)
+    if not (request.user == precontrat.cree_par or request.user.role in ['RESP_RH', 'ADMIN']):
+        messages.error(request, "❌ Vous n'avez pas la permission de supprimer ce précontrat.")
         return redirect('precontrat_list')
     
-    return render(request, 'contrats/precontrat_confirm_delete.html', {
-        'precontrat': precontrat
-    })
-
+    # Vérifier que le précontrat peut être supprimé
+    if precontrat.status != 'DRAFT':
+        messages.error(request, "❌ Seuls les précontrats en brouillon peuvent être supprimés.")
+        return redirect('precontrat_list')
+    
+    try:
+        reference = precontrat.reference
+        precontrat.delete()
+        messages.success(request, f"✅ Précontrat {reference} supprimé avec succès.")
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur suppression précontrat: {str(e)}", exc_info=True)
+        messages.error(request, "❌ Erreur lors de la suppression du précontrat.")
+    
+    return redirect('precontrat_list')
 
 
 # ==========================================
 # VUES POUR LES CONTRATS
-# ==========================================*
+# ==========================================
+# ==========================================
+# VUE POUR L'AFFICHAGE IMPRIMABLE D'UN CONTRAT
+# ==========================================
+
+@login_required
+def contrat_imprimable(request, pk):
+    """
+    Vue pour afficher un contrat dans un format optimisé pour l'impression
+    """
+    contrat = get_object_or_404(
+        Contrat.objects.select_related(
+            'professeur',
+            'professeur__user',
+            'classe',
+            'maquette',
+            'valide_par',
+            'demarre_par'
+        ).prefetch_related(
+            'groupes_selectionnes',
+            'classes_tronc_commun',
+            'pointages'
+        ),
+        pk=pk
+    )
+    
+    # Récupérer les données calculées
+    heures_effectuees = contrat.get_heures_effectuees()
+    montant_total_contractuel = contrat.montant_total_contractuel
+    montant_a_payer = contrat.calculate_montant_a_payer()
+    
+    # Récupérer les groupes et classes
+    groupes = contrat.groupes_selectionnes.all()
+    classes_tronc_commun = contrat.classes_tronc_commun.all()
+    
+    # Récupérer les pointages triés par date
+    pointages = contrat.pointages.all().order_by('date_seance')
+    
+    # Calculer les statistiques de pointage
+    total_pointages = pointages.count()
+    total_heures_pointages = sum([p.total_heures for p in pointages])
+    
+    # Informations de l'établissement (à adapter selon votre configuration)
+    infos_etablissement = {
+        'nom': "Institut International Polytechnique des Élites d'Abidjan (IIPEA)",
+        'adresse': "Cocody Riviera 2, Route d'Attoban / Riviera Triangle / Yamoussoukro",
+        'telephone': "+225 05 44 02 60 60 / +225 07 08 08 87 87",
+        'email': "secretariat@iipea.com",
+        'site_web': "www.iipea.com",
+    }
+    
+    context = {
+        'contrat': contrat,
+        'heures_effectuees': heures_effectuees,
+        'montant_total_contractuel': montant_total_contractuel,
+        'montant_a_payer': montant_a_payer,
+        'groupes': groupes,
+        'classes_tronc_commun': classes_tronc_commun,
+        'pointages': pointages,
+        'total_pointages': total_pointages,
+        'total_heures_pointages': total_heures_pointages,
+        'infos_etablissement': infos_etablissement,
+        'today': timezone.now().date(),
+        'title': f'CONTRAT #{contrat.id} - {contrat.professeur.user.get_full_name().upper()}',  # ⭐ MAJUSCULES
+    }
+    
+    return render(request, 'contrats/contrat_imprimable.html', context)
 
 # ==========================================
 # VUE POUR LA LISTE DES CONTRATS
@@ -1234,9 +1339,6 @@ def contrat_list(request):
     }
     
     return render(request, 'contrats/liste.html', context)
-
-
-
 
 
 @login_required
@@ -1300,7 +1402,7 @@ def contrat_start(request, pk):
 
 
 @login_required
-@role_required(['RESP_PEDA', 'ADMIN'])
+@role_required(['RESP_PEDA','RESP_RH', 'ADMIN'])
 def contrat_detail(request, pk):
     """
     Détail d'un contrat avec suivi de progression
@@ -1469,6 +1571,9 @@ def contrat_complete(request, pk):
     return render(request, 'contrats/contrat_complete.html', context)
 
 
+
+from .forms import DocumentContratForm  # ✅ Correction ici
+
 @login_required
 @role_required(['RESP_PEDA', 'ADMIN'])
 def document_upload(request, contrat_id):
@@ -1478,31 +1583,36 @@ def document_upload(request, contrat_id):
     contrat = get_object_or_404(Contrat, pk=contrat_id)
     
     if request.method == 'POST':
-        form = DocumentForm(request.POST, request.FILES)
+        form = DocumentContratForm(request.POST, request.FILES)  # ✅ Correction ici
         
         if form.is_valid():
-            document = form.save(commit=False)
-            document.contrat = contrat
-            document.charge_par = request.user
-            
-            # Auto-valider si l'utilisateur a les permissions
-            if request.user.role in ['ADMIN', 'RESP_PEDA']:
-                document.est_valide = True
-                document.valide_par = request.user
-                document.date_validation = timezone.now()
-            
-            document.save()
-            
-            messages.success(request, f"{document.get_type_document_display()} chargé avec succès")
-            return redirect('contrat_detail', pk=contrat.pk)
+            try:
+                document = form.save(commit=False)
+                document.contrat = contrat
+                document.charge_par = request.user
+                
+                # Auto-valider si l'utilisateur a les permissions
+                if request.user.role in ['ADMIN', 'RESP_PEDA']:
+                    document.est_valide = True
+                    document.valide_par = request.user
+                    document.date_validation = timezone.now()
+                
+                document.save()
+                
+                messages.success(request, f"{document.get_type_document_display()} chargé avec succès")
+                return redirect('contrat_detail', pk=contrat.pk)
+                
+            except Exception as e:
+                messages.error(request, f"Erreur lors de l'upload: {str(e)}")
     else:
-        form = DocumentForm()
+        form = DocumentContratForm()  # ✅ Correction ici
     
     context = {
         'contrat': contrat,
         'form': form,
+        'title': f'Upload Document - {contrat.reference}'
     }
-    return render(request, 'contrats/document_upload.html', context)
+    return render(request, 'documents/document_upload.html', context)
 
 
 # ==========================================
@@ -1778,8 +1888,6 @@ def get_taux_from_grille(professeur, classe):
         return None
 
 
-
-
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
@@ -1807,3 +1915,405 @@ def api_groupes_by_classes(request):
     ]
     
     return JsonResponse(data, safe=False)
+
+
+
+# ============================================
+# VUES DE SUIVI DES CLASSES
+# ============================================
+# ==========================================
+# VUE POUR LE SUIVI DES CLASSES ET MODULES
+# ==========================================
+
+from django.db.models import Count, Q, F, ExpressionWrapper, DecimalField
+from django.utils import timezone
+from datetime import datetime
+# ==========================================
+# VUES CORRIGÉES POUR LE SUIVI DES CLASSES
+# ==========================================
+
+@login_required
+def classe_suivi_annuel(request):
+    """
+    Vue principale pour le suivi annuel des classes et modules - CORRIGÉE
+    """
+    # Récupérer l'année académique (paramètre ou année courante)
+    annee_academique = request.GET.get('annee', timezone.now().year)
+    
+    # Récupérer toutes les classes actives avec statistiques
+    classes = Classe.objects.filter(
+        is_active=True
+    ).prefetch_related(
+        'maquettes',
+        'contrats'
+    ).annotate(
+        # Nombre total de modules dans les maquettes actives
+        total_modules=Count(
+            'maquettes__unites_enseignement',
+            filter=Q(maquettes__is_active=True)
+        ),
+        # Modules avec contrats démarrés
+        modules_demarres=Count(
+            'contrats',
+            filter=Q(
+                contrats__status__in=['IN_PROGRESS', 'COMPLETED', 'READY_FOR_PAYMENT'],
+                contrats__date_validation__year=annee_academique
+            ),
+            distinct=True
+        ),
+        # Contrats en cours
+        contrats_en_cours=Count(
+            'contrats',
+            filter=Q(
+                contrats__status='IN_PROGRESS',
+                contrats__date_validation__year=annee_academique
+            )
+        ),
+        # Contrats terminés
+        contrats_termines=Count(
+            'contrats',
+            filter=Q(
+                contrats__status__in=['COMPLETED', 'READY_FOR_PAYMENT'],
+                contrats__date_validation__year=annee_academique
+            )
+        )
+    ).order_by('niveau', 'nom')
+
+    # Calculer le pourcentage de progression et modules restants pour chaque classe
+    for classe in classes:
+        total_mods = classe.total_modules or 0
+        modules_dems = classe.modules_demarres or 0
+        
+        # Calculer les modules restants
+        classe.modules_restants = max(total_mods - modules_dems, 0)
+        
+        if total_mods > 0:
+            classe.progression_pourcentage = round((modules_dems / total_mods) * 100, 1)
+        else:
+            classe.progression_pourcentage = 0
+
+    # Statistiques globales
+    stats_globales = {
+        'total_classes': classes.count(),
+        'total_modules_demarres': sum((c.modules_demarres or 0) for c in classes),
+        'total_modules_planifies': sum((c.total_modules or 0) for c in classes),
+        'contrats_en_cours': sum((c.contrats_en_cours or 0) for c in classes),
+        'contrats_termines': sum((c.contrats_termines or 0) for c in classes),
+    }
+
+    if stats_globales['total_modules_planifies'] > 0:
+        stats_globales['progression_globale'] = round(
+            (stats_globales['total_modules_demarres'] / stats_globales['total_modules_planifies']) * 100, 1
+        )
+    else:
+        stats_globales['progression_globale'] = 0
+
+    # Récupérer les années académiques disponibles pour le filtre
+    annees_disponibles = Contrat.objects.exclude(
+        date_validation__isnull=True
+    ).dates('date_validation', 'year').order_by('-date_validation')
+
+    context = {
+        'title': 'Suivi Annuel des Classes et Modules',
+        'active_page': 'suivi_classes',
+        'classes': classes,
+        'stats_globales': stats_globales,
+        'annee_academique': annee_academique,
+        'annees_disponibles': [date.year for date in annees_disponibles],
+    }
+
+    return render(request, 'contrats/suivi/classe_suivi_annuel.html', context)
+
+
+@login_required
+def classe_detail_suivi(request, classe_id):
+    """
+    Vue détaillée du suivi pour une classe spécifique - CORRIGÉE
+    """
+    classe = get_object_or_404(Classe, pk=classe_id, is_active=True)
+    annee_academique = request.GET.get('annee', timezone.now().year)
+
+    # Récupérer la maquette active de la classe
+    maquette = Maquette.objects.filter(
+        classe=classe,
+        is_active=True
+    ).first()
+
+    if not maquette:
+        messages.error(request, f"Aucune maquette active trouvée pour la classe {classe.nom}")
+        return redirect('classe_suivi_annuel')
+
+    # Extraire tous les modules de la maquette
+    tous_les_modules = []
+    ues = maquette.unites_enseignement or []
+    
+    for ue in ues:
+        for matiere in ue.get('matieres', []):
+            module_data = {
+                'id': matiere.get('id'),
+                'code': matiere.get('code', ''),
+                'nom': matiere.get('nom', 'Module sans nom'),
+                'ue_nom': ue.get('libelle', 'UE non spécifiée'),
+                'volume_cm': float(matiere.get('volume_horaire_cm', 0)),
+                'volume_td': float(matiere.get('volume_horaire_td', 0)),
+                'taux_cm': float(matiere.get('taux_horaire_cm', 5000)),
+                'taux_td': float(matiere.get('taux_horaire_td', 5000)),
+                'est_demarre': False,
+                'contrat': None,
+                'statut_contrat': None,
+                'progression': 0,
+            }
+            tous_les_modules.append(module_data)
+
+    # Récupérer les contrats existants pour cette classe - CORRECTION: utilisation de date_validation
+    contrats = Contrat.objects.filter(
+        classe=classe,
+        date_validation__year=annee_academique
+    ).select_related('professeur', 'professeur__user', 'valide_par', 'module_propose')
+
+    # Marquer les modules démarrés
+    modules_demarres = []
+    modules_ids_demarres = set()
+    
+    for contrat in contrats:
+        module_propose = contrat.module_propose
+        if module_propose:
+            # Trouver le module correspondant dans la liste
+            for module in tous_les_modules:
+                if str(module['id']) == str(module_propose.code_module):
+                    module['est_demarre'] = True
+                    module['contrat'] = contrat
+                    module['statut_contrat'] = contrat.get_status_display()
+                    module['professeur'] = contrat.professeur.user.get_full_name()
+                    
+                    # Calculer la progression du module
+                    heures_effectuees = contrat.get_heures_effectuees()
+                    volume_total = contrat.volume_total_contractuel
+                    
+                    if volume_total > 0:
+                        module['progression'] = round(
+                            (contrat.volume_total_effectue / volume_total) * 100, 1
+                        )
+                    else:
+                        module['progression'] = 0
+                    
+                    modules_demarres.append(module)
+                    modules_ids_demarres.add(module['id'])
+                    break
+
+    # Séparer les modules démarrés et non démarrés
+    modules_non_demarres = [m for m in tous_les_modules if m['id'] not in modules_ids_demarres]
+
+    # Statistiques de la classe
+    stats_classe = {
+        'total_modules': len(tous_les_modules),
+        'modules_demarres': len(modules_demarres),
+        'modules_non_demarres': len(modules_non_demarres),
+        'contrats_total': contrats.count(),
+        'contrats_en_cours': contrats.filter(status='IN_PROGRESS').count(),
+        'contrats_termines': contrats.filter(status__in=['COMPLETED', 'READY_FOR_PAYMENT']).count(),
+        'volume_total_prevue': sum(m['volume_cm'] + m['volume_td'] for m in tous_les_modules),
+        'volume_total_effectue': sum(float(c.volume_total_effectue) for c in contrats),
+    }
+
+    if stats_classe['total_modules'] > 0:
+        stats_classe['progression_globale'] = round(
+            (stats_classe['modules_demarres'] / stats_classe['total_modules']) * 100, 1
+        )
+    else:
+        stats_classe['progression_globale'] = 0
+
+    # Progression par UE
+    progression_par_ue = {}
+    for module in tous_les_modules:
+        ue_nom = module['ue_nom']
+        if ue_nom not in progression_par_ue:
+            progression_par_ue[ue_nom] = {
+                'total_modules': 0,
+                'modules_demarres': 0,
+                'progression': 0
+            }
+        
+        progression_par_ue[ue_nom]['total_modules'] += 1
+        if module['est_demarre']:
+            progression_par_ue[ue_nom]['modules_demarres'] += 1
+    
+    # Calculer le pourcentage par UE
+    for ue_nom, data in progression_par_ue.items():
+        if data['total_modules'] > 0:
+            data['progression'] = round((data['modules_demarres'] / data['total_modules']) * 100, 1)
+
+    context = {
+        'title': f'Suivi détaillé - {classe.nom}',
+        'active_page': 'suivi_classes',
+        'classe': classe,
+        'maquette': maquette,
+        'modules_demarres': modules_demarres,
+        'modules_non_demarres': modules_non_demarres,
+        'stats_classe': stats_classe,
+        'progression_par_ue': progression_par_ue,
+        'contrats': contrats,
+        'annee_academique': annee_academique,
+    }
+
+    return render(request, 'contrats/suivi/classe_detail_suivi.html', context)
+
+
+@login_required
+def progression_annuelle(request):
+    """
+    Vue globale de la progression annuelle avec graphiques - CORRIGÉE
+    """
+    annee_academique = request.GET.get('annee', timezone.now().year)
+    
+    # Récupérer toutes les classes avec leurs statistiques
+    classes = Classe.objects.filter(is_active=True).order_by('niveau', 'nom')
+    
+    donnees_progression = []
+    donnees_graphique = {
+        'labels': [],
+        'modules_demarres': [],
+        'modules_restants': [],
+        'progression_pourcent': []
+    }
+    
+    for classe in classes:
+        # Calculer les statistiques pour chaque classe
+        total_modules = 0
+        # Compter les modules via les maquettes actives
+        maquettes_actives = Maquette.objects.filter(classe=classe, is_active=True)
+        for maquette in maquettes_actives:
+            ues = maquette.unites_enseignement or []
+            for ue in ues:
+                total_modules += len(ue.get('matieres', []))
+        
+        # Modules démarrés via les contrats
+        modules_demarres = Contrat.objects.filter(
+            classe=classe,
+            date_validation__year=annee_academique,
+            status__in=['IN_PROGRESS', 'COMPLETED', 'READY_FOR_PAYMENT']
+        ).count()
+        
+        modules_restants = max(total_modules - modules_demarres, 0)
+        
+        if total_modules > 0:
+            progression_pourcent = round((modules_demarres / total_modules) * 100, 1)
+        else:
+            progression_pourcent = 0
+        
+        # Données pour le graphique
+        donnees_graphique['labels'].append(classe.nom)
+        donnees_graphique['modules_demarres'].append(modules_demarres)
+        donnees_graphique['modules_restants'].append(modules_restants)
+        donnees_graphique['progression_pourcent'].append(progression_pourcent)
+        
+        # Données détaillées
+        donnees_progression.append({
+            'classe': classe,
+            'total_modules': total_modules,
+            'modules_demarres': modules_demarres,
+            'modules_restants': modules_restants,
+            'progression_pourcent': progression_pourcent,
+            'contrats_en_cours': Contrat.objects.filter(
+                classe=classe,
+                date_validation__year=annee_academique,
+                status='IN_PROGRESS'
+            ).count(),
+            'contrats_termines': Contrat.objects.filter(
+                classe=classe,
+                date_validation__year=annee_academique,
+                status__in=['COMPLETED', 'READY_FOR_PAYMENT']
+            ).count(),
+        })
+    
+    # Statistiques globales
+    total_modules_global = sum(item['total_modules'] for item in donnees_progression)
+    total_demarres_global = sum(item['modules_demarres'] for item in donnees_progression)
+    
+    if total_modules_global > 0:
+        progression_globale = round((total_demarres_global / total_modules_global) * 100, 1)
+    else:
+        progression_globale = 0
+    
+    # Utilisation de date_validation pour les statistiques globales
+    contrats_globaux = Contrat.objects.filter(date_validation__year=annee_academique)
+    
+    stats_globales = {
+        'total_classes': len(classes),
+        'total_modules': total_modules_global,
+        'modules_demarres': total_demarres_global,
+        'modules_restants': total_modules_global - total_demarres_global,
+        'progression_globale': progression_globale,
+        'contrats_total': contrats_globaux.count(),
+        'contrats_en_cours': contrats_globaux.filter(status='IN_PROGRESS').count(),
+        'contrats_termines': contrats_globaux.filter(status__in=['COMPLETED', 'READY_FOR_PAYMENT']).count(),
+    }
+    
+    # Récupérer les années académiques disponibles
+    annees_disponibles = Contrat.objects.exclude(
+        date_validation__isnull=True
+    ).dates('date_validation', 'year').order_by('-date_validation')
+    
+    # CORRECTION : Utiliser des clés sans espaces pour le dictionnaire
+    statuts_contrats = {
+        'en_cours': stats_globales['contrats_en_cours'],
+        'termines': stats_globales['contrats_termines'],
+        'en_attente': stats_globales['contrats_total'] - 
+                     stats_globales['contrats_en_cours'] - 
+                     stats_globales['contrats_termines']
+    }
+    
+    context = {
+        'title': 'Progression Annuelle Globale',
+        'active_page': 'progression_annuelle',
+        'donnees_progression': donnees_progression,
+        'stats_globales': stats_globales,
+        'donnees_graphique': donnees_graphique,
+        'statuts_contrats': statuts_contrats,
+        'annee_academique': annee_academique,
+        'annees_disponibles': [date.year for date in annees_disponibles],
+    }
+    
+    return render(request, 'contrats/suivi/progression_annuelle.html', context)
+
+@login_required
+@require_http_methods(["GET"])
+def api_progression_classes(request):
+    """
+    API pour récupérer les données de progression des classes (AJAX) - CORRIGÉE
+    """
+    annee_academique = request.GET.get('annee', timezone.now().year)
+    
+    classes = Classe.objects.filter(is_active=True).order_by('niveau', 'nom')
+    
+    data = []
+    for classe in classes:
+        # CORRECTION: Calcul correct des modules
+        total_modules = 0
+        maquettes_actives = Maquette.objects.filter(classe=classe, is_active=True)
+        for maquette in maquettes_actives:
+            ues = maquette.unites_enseignement or []
+            for ue in ues:
+                total_modules += len(ue.get('matieres', []))
+        
+        modules_demarres = Contrat.objects.filter(
+            classe=classe,
+            date_validation__year=annee_academique,
+            status__in=['IN_PROGRESS', 'COMPLETED', 'READY_FOR_PAYMENT']
+        ).count()
+        
+        data.append({
+            'id': classe.id,
+            'nom': classe.nom,
+            'niveau': classe.niveau,
+            'total_modules': total_modules,
+            'modules_demarres': modules_demarres,
+            'modules_restants': max(total_modules - modules_demarres, 0),
+            'progression_pourcent': round((modules_demarres / total_modules * 100), 1) if total_modules > 0 else 0,
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'annee_academique': annee_academique,
+        'classes': data,
+    })

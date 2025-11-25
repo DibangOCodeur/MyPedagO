@@ -1,0 +1,321 @@
+{% extends 'bases/base_users.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">{{ title }}</h4>
+                    <div class="d-flex gap-2">
+                        <select id="anneeFilter" class="form-select form-select-sm" style="width: auto;">
+                            {% for annee in annees_disponibles %}
+                                <option value="{{ annee }}" {% if annee == annee_academique %}selected{% endif %}>
+                                    {{ annee }}-{{ annee|add:1 }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-sm btn-success" onclick="genererRapport()">
+                            <i class="fas fa-file-pdf me-1"></i>Rapport PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques globales -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Progression Globale</h6>
+                            <h2 class="fw-bold">{{ stats_globales.progression_globale }}%</h2>
+                            <p class="mb-0">
+                                {{ stats_globales.modules_demarres }}/{{ stats_globales.total_modules }} modules
+                            </p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-pie fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card bg-gradient-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Contrats Actifs</h6>
+                            <h2 class="fw-bold">{{ stats_globales.contrats_total }}</h2>
+                            <p class="mb-0">
+                                {{ stats_globales.contrats_en_cours }} en cours
+                            </p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-tasks fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card bg-gradient-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Taux de Réalisation</h6>
+                            <h2 class="fw-bold">
+                                {% if stats_globales.contrats_total > 0 %}
+                                    {% widthratio stats_globales.contrats_termines stats_globales.contrats_total 100 %}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </h2>
+                            <p class="mb-0">
+                                {{ stats_globales.contrats_termines }} contrats terminés
+                            </p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Progression par Classe</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="progressionChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Répartition des Contrats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="statutsChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau détaillé -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Détail par Classe</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="tableProgression">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Classe</th>
+                                    <th>Niveau</th>
+                                    <th>Modules Planifiés</th>
+                                    <th>Modules Démarrés</th>
+                                    <th>Modules Restants</th>
+                                    <th>Progression</th>
+                                    <th>Contrats En Cours</th>
+                                    <th>Contrats Terminés</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in donnees_progression %}
+                                <tr id="class-{{ data.classe.id }}">
+                                    <td>
+                                        <strong>{{ data.classe.nom }}</strong>
+                                        {% if data.classe.filiere %}
+                                        <br><small class="text-muted">{{ data.classe.filiere.nom }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ data.classe.get_niveau_display }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold">{{ data.total_modules }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="text-success fw-bold">{{ data.modules_demarres }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="text-warning fw-bold">{{ data.modules_restants }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                <div class="progress-bar 
+                                                    {% if data.progression_pourcent >= 80 %}bg-success
+                                                    {% elif data.progression_pourcent >= 50 %}bg-info
+                                                    {% elif data.progression_pourcent >= 25 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}" 
+                                                    role="progressbar" 
+                                                    style="width: {{ data.progression_pourcent }}%">
+                                                </div>
+                                            </div>
+                                            <small class="fw-bold" style="min-width: 40px;">
+                                                {{ data.progression_pourcent }}%
+                                            </small>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning">{{ data.contrats_en_cours }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success">{{ data.contrats_termines }}</span>
+                                    </td>
+                                    <td>
+                                        {% if data.progression_pourcent == 100 %}
+                                            <span class="badge bg-success">Complété</span>
+                                        {% elif data.progression_pourcent >= 75 %}
+                                            <span class="badge bg-info">Avancé</span>
+                                        {% elif data.progression_pourcent >= 50 %}
+                                            <span class="badge bg-primary">En cours</span>
+                                        {% elif data.progression_pourcent > 0 %}
+                                            <span class="badge bg-warning">Débuté</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">En attente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Données pour les graphiques
+const progressionData = {
+    labels: [{% for label in donnees_graphique.labels %}"{{ label }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
+    datasets: [
+        {
+            label: 'Modules Démarrés',
+            data: [{% for data in donnees_graphique.modules_demarres %}{{ data }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+            borderColor: 'rgba(40, 167, 69, 1)',
+            borderWidth: 1
+        },
+        {
+            label: 'Modules Restants',
+            data: [{% for data in donnees_graphique.modules_restants %}{{ data }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: 'rgba(255, 193, 7, 0.8)',
+            borderColor: 'rgba(255, 193, 7, 1)',
+            borderWidth: 1
+        }
+    ]
+};
+
+const statutsData = {
+    labels: ['En cours', 'Terminés', 'En attente'],
+    datasets: [{
+        data: [
+            {{ statuts_contrats.en_cours }},
+            {{ statuts_contrats.termines }}, 
+            {{ statuts_contrats.en_attente }}
+        ],
+        backgroundColor: [
+            'rgba(255, 193, 7, 0.8)',
+            'rgba(40, 167, 69, 0.8)',
+            'rgba(108, 117, 125, 0.8)'
+        ],
+        borderColor: [
+            'rgba(255, 193, 7, 1)',
+            'rgba(40, 167, 69, 1)',
+            'rgba(108, 117, 125, 1)'
+        ],
+        borderWidth: 1
+    }]
+};
+
+// Initialisation des graphiques
+document.addEventListener('DOMContentLoaded', function() {
+    // Graphique de progression
+    const progressionCtx = document.getElementById('progressionChart').getContext('2d');
+    new Chart(progressionCtx, {
+        type: 'bar',
+        data: progressionData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Modules Démarrés vs Restants par Classe'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Nombre de Modules'
+                    }
+                }
+            }
+        }
+    });
+
+    // Graphique des statuts
+    const statutsCtx = document.getElementById('statutsChart').getContext('2d');
+    new Chart(statutsCtx, {
+        type: 'doughnut',
+        data: statutsData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+});
+
+// Filtre par année
+document.getElementById('anneeFilter').addEventListener('change', function() {
+    const annee = this.value;
+    window.location.href = `?annee=${annee}`;
+});
+
+function genererRapport() {
+    // Implémentation de la génération de rapport PDF
+    alert('Génération du rapport PDF pour {{ annee_academique }}-{{ annee_academique|add:1 }}');
+}
+</script>
+{% endblock %}

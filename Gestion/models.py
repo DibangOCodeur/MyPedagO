@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.core.validators import MaxValueValidator
 from django.core.exceptions import ValidationError
+
 #============================================
 # MODELS POUR LES APIS
 #============================================
@@ -338,6 +339,19 @@ from Gestion.models import Classe, Maquette
 # MODÈLE PRÉCONTRAT
 # ==========================================
 
+# ==========================================
+# MODÈLE PRÉCONTRAT - VERSION COMPLÈTE CORRIGÉE
+# ==========================================
+from django.db import models
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from django.urls import reverse
+from decimal import Decimal
+import uuid
+import logging
+
+logger = logging.getLogger(__name__)
+
 class PreContrat(models.Model):
     """
     Modèle pour la création d'un précontrat avant validation RH.
@@ -413,6 +427,11 @@ class PreContrat(models.Model):
     )
     
     # Notes et commentaires
+    notes_validation = models.TextField(
+        blank=True,
+        verbose_name="Notes de validation",
+        help_text="Notes laissées par le validateur RH"
+    )
     
     raison_rejet = models.TextField(
         blank=True,
@@ -538,6 +557,32 @@ class PreContrat(models.Model):
         """URL de détail du précontrat"""
         return reverse('precontrat_detail', kwargs={'pk': self.pk})
     
+    def delete(self, *args, **kwargs):
+        """
+        Suppression personnalisée qui gère les relations
+        """
+        # D'abord, dissocier les logs d'action
+        self.logs.update(pre_contrat=None)
+        
+        # Ensuite, supprimer les modules proposés (cascade normale)
+        self.modules_proposes.all().delete()
+        
+        # Enfin, supprimer le précontrat lui-même
+        super().delete(*args, **kwargs)
+    
+    def hard_delete(self, *args, **kwargs):
+        """
+        Suppression complète avec tous les logs
+        """
+        # Supprimer tous les logs associés
+        self.logs.all().delete()
+        
+        # Supprimer les modules
+        self.modules_proposes.all().delete()
+        
+        # Supprimer le précontrat
+        super().delete(*args, **kwargs)
+    
     # ==========================================
     # PROPRIÉTÉS CALCULÉES
     # ==========================================
@@ -611,82 +656,200 @@ class PreContrat(models.Model):
         return status_classes.get(self.status, 'secondary')
     
     # ==========================================
-    # MÉTHODES D'ACTION
+    # MÉTHODES D'ACTION - VERSION CORRIGÉE
     # ==========================================
     
     def soumettre(self, user=None):
         """Soumet le précontrat pour validation"""
-        if not self.peut_etre_soumis:
-            raise ValidationError("Ce précontrat ne peut pas être soumis.")
+        if self.status != 'DRAFT':
+            raise ValidationError("Seuls les précontrats en brouillon peuvent être soumis")
+        
+        if not self.modules_proposes.exists():
+            raise ValidationError("Aucun module n'a été ajouté au précontrat")
         
         self.status = 'SUBMITTED'
         self.date_soumission = timezone.now()
         self.save(update_fields=['status', 'date_soumission'])
         
-        # Log l'action
-        self.log_action(user, 'SOUMISSION', "Précontrat soumis pour validation")
-    
-    def mettre_en_revision(self, user=None):
-        """Met le précontrat en révision"""
-        if self.status != 'SUBMITTED':
-            raise ValidationError("Seuls les précontrats soumis peuvent être mis en révision.")
+        # Log de l'action
+        ActionLog.objects.create(
+            pre_contrat=self,
+            action='SUBMITTED',
+            user=user,
+            details="Précontrat soumis pour validation"
+        )
         
-        self.status = 'UNDER_REVIEW'
-        self.save(update_fields=['status'])
-        
-        # Log l'action
-        self.log_action(user, 'REVISION', "Précontrat mis en révision")
+        logger.info(f"📨 Précontrat {self.reference} soumis par {user}")
     
     def valider(self, user=None, notes=""):
-        """Valide le précontrat"""
-        if not self.peut_etre_valide:
-            raise ValidationError("Ce précontrat ne peut pas être validé.")
+        """Valide le précontrat et crée automatiquement les contrats"""
+        if self.status != 'SUBMITTED':
+            raise ValidationError("Seuls les précontrats soumis peuvent être validés")
+        
+        if not user or user.role not in ['RESP_RH', 'ADMIN']:
+            raise ValidationError("Seuls les responsables RH peuvent valider les précontrats")
         
         self.status = 'VALIDATED'
         self.date_validation = timezone.now()
         self.valide_par = user
-        self.save(update_fields=['status', 'date_validation', 'valide_par'])
+        self.notes_validation = notes
+        self.save(update_fields=['status', 'date_validation', 'valide_par', 'notes_validation'])
         
-        # Log l'action
-        self.log_action(user, 'VALIDATION', "Précontrat validé")
+        # ⭐⭐ CORRECTION : APPELER LA MÉTHODE POUR CRÉER LES CONTRATS ⭐⭐
+        self.creer_contrats_automatiquement(user)
+        
+        # Log de l'action
+        ActionLog.objects.create(
+            pre_contrat=self,
+            action='VALIDATED',
+            user=user,
+            details=f"Précontrat validé avec {self.modules_valides_count} module(s) validé(s)"
+        )
+        
+        logger.info(f"✅ Précontrat {self.reference} validé par {user}")
+    
+    def creer_contrats_automatiquement(self, user):
+        """Crée automatiquement les contrats pour tous les modules validés"""
+        from .utils import create_contrat_from_module
+        
+        contrats_crees = 0
+        modules_valides = self.modules_proposes.filter(est_valide=True)
+        
+        logger.info(f"🔄 Début création automatique des contrats pour {modules_valides.count()} module(s) validé(s)")
+        
+        for module in modules_valides:
+            if not hasattr(module, 'contrat'):
+                try:
+                    logger.info(f"🔄 Création contrat pour module: {module.nom_module}")
+                    create_contrat_from_module(module, user)
+                    contrats_crees += 1
+                    logger.info(f"✅ Contrat créé pour le module {module.nom_module}")
+                except Exception as e:
+                    logger.error(f"❌ Erreur création contrat pour module {module.id}: {e}", exc_info=True)
+            else:
+                logger.info(f"ℹ️ Contrat existe déjà pour le module {module.nom_module}")
+        
+        logger.info(f"✅ {contrats_crees} contrat(s) créé(s) automatiquement pour le précontrat {self.reference}")
+        return contrats_crees
     
     def rejeter(self, user=None, raison=""):
         """Rejette le précontrat"""
-        if not self.peut_etre_valide:
-            raise ValidationError("Ce précontrat ne peut pas être rejeté.")
+        if self.status != 'SUBMITTED':
+            raise ValidationError("Seuls les précontrats soumis peuvent être rejetés")
+        
+        if not user or user.role not in ['RESP_RH', 'ADMIN']:
+            raise ValidationError("Seuls les responsables RH peuvent rejeter les précontrats")
         
         if not raison:
             raise ValidationError("Une raison de rejet est requise.")
         
         self.status = 'REJECTED'
         self.raison_rejet = raison
-        self.save(update_fields=['status', 'raison_rejet'])
+        self.date_validation = timezone.now()
+        self.valide_par = user
+        self.save(update_fields=['status', 'raison_rejet', 'date_validation', 'valide_par'])
         
-        # Log l'action
-        self.log_action(user, 'REJET', f"Précontrat rejeté: {raison}")
+        # Log de l'action
+        ActionLog.objects.create(
+            pre_contrat=self,
+            action='REJECTED',
+            user=user,
+            details=f"Précontrat rejeté: {raison}"
+        )
+        
+        logger.info(f"❌ Précontrat {self.reference} rejeté par {user}")
     
-    def annuler(self, user=None, raison=""):
-        """Annule le précontrat"""
-        self.status = 'CANCELLED'
+    def update_status(self):
+        """Met à jour le statut du précontrat en fonction des modules"""
+        if self.modules_valides_count == self.nombre_modules and self.nombre_modules > 0:
+            self.status = 'VALIDATED'
+        elif self.modules_valides_count > 0:
+            self.status = 'UNDER_REVIEW'
+        else:
+            self.status = 'DRAFT'
         self.save(update_fields=['status'])
-        
-        # Log l'action
-        self.log_action(user, 'ANNULATION', f"Précontrat annulé: {raison}")
     
-    def log_action(self, user, action_type, description):
-        """Enregistre une action dans les logs"""
-        try:
-            from .models import ActionLog
-            ActionLog.objects.create(
-                precontrat=self,
-                user=user,
-                action_type=action_type,
-                description=description
-            )
-        except Exception as e:
-            # Si ActionLog n'existe pas encore, on ignore
-            pass
+    # ==========================================
+    # MÉTHODES DE RAPPORT ET STATISTIQUES
+    # ==========================================
+    
+    def get_resume(self):
+        """Retourne un résumé détaillé du précontrat"""
+        volumes = self.get_volume_total()
+        montant_total = self.get_montant_total()
+        
+        return {
+            'reference': self.reference,
+            'professeur': self.professeur.get_full_name(),
+            'classe': self.classe_nom,
+            'statut': self.get_status_display(),
+            'modules_total': self.nombre_modules,
+            'modules_valides': self.modules_valides_count,
+            'progression': f"{self.progression_pourcentage:.1f}%",
+            'volumes': volumes,
+            'montant_total': montant_total,
+            'date_creation': self.date_creation.strftime('%d/%m/%Y'),
+            'date_soumission': self.date_soumission.strftime('%d/%m/%Y') if self.date_soumission else None,
+            'date_validation': self.date_validation.strftime('%d/%m/%Y') if self.date_validation else None,
+        }
 
+    def get_modules_details(self):
+        """Retourne les détails de tous les modules"""
+        modules_details = []
+        for module in self.modules_proposes.all():
+            modules_details.append({
+                'id': module.id,
+                'code': module.code_module,
+                'nom': module.nom_module,
+                'ue': module.ue_nom,
+                'volume_cm': float(module.volume_heure_cours),
+                'volume_td': float(module.volume_heure_td),
+                'taux_cm': float(module.taux_horaire_cours),
+                'taux_td': float(module.taux_horaire_td),
+                'montant_total': float(module.get_montant_total()),
+                'est_valide': module.est_valide,
+                'contrat_existe': hasattr(module, 'contrat'),
+                'contrat_id': module.contrat.id if hasattr(module, 'contrat') else None,
+            })
+        return modules_details
+
+    # ==========================================
+    # MÉTHODES DE VÉRIFICATION D'ÉTAT
+    # ==========================================
+    
+    def peut_etre_modifie(self):
+        """Vérifie si le précontrat peut être modifié"""
+        return self.status in ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW']
+    
+    def peut_etre_supprime(self):
+        """Vérifie si le précontrat peut être supprimé"""
+        return self.status == 'DRAFT'
+    
+    def tous_contrats_crees(self):
+        """Vérifie si tous les contrats ont été créés pour les modules validés"""
+        modules_valides = self.modules_proposes.filter(est_valide=True)
+        if not modules_valides.exists():
+            return False
+        
+        return all(hasattr(module, 'contrat') for module in modules_valides)
+
+    # ==========================================
+    # MÉTHODES POUR L'ADMIN
+    # ==========================================
+    
+    @classmethod
+    def get_statistiques(cls):
+        """Retourne les statistiques globales des précontrats"""
+        total = cls.objects.count()
+        return {
+            'total': total,
+            'draft': cls.objects.filter(status='DRAFT').count(),
+            'submitted': cls.objects.filter(status='SUBMITTED').count(),
+            'under_review': cls.objects.filter(status='UNDER_REVIEW').count(),
+            'validated': cls.objects.filter(status='VALIDATED').count(),
+            'rejected': cls.objects.filter(status='REJECTED').count(),
+            'cancelled': cls.objects.filter(status='CANCELLED').count(),
+        }
 
 # ==========================================
 # MODÈLE MODULE PROPOSÉ
@@ -901,6 +1064,14 @@ class Contrat(models.Model):
         related_name='contrat',
         verbose_name="Module proposé"
     )
+
+    reference = models.CharField(
+        max_length=30,
+        unique=True,
+        blank=True,
+        verbose_name="Référence du contrat",
+        help_text="Référence unique générée automatiquement"
+    )
     
     # Relations principales (dupliquées pour faciliter les requêtes)
     professeur = models.ForeignKey(
@@ -1056,6 +1227,7 @@ class Contrat(models.Model):
         verbose_name_plural = "Contrats"
         ordering = ['-date_validation']
         indexes = [
+            models.Index(fields=['reference']),  # ⭐ NOUVEAU INDEX
             models.Index(fields=['professeur', 'status']),
             models.Index(fields=['classe', 'status']),
             models.Index(fields=['status']),
@@ -1064,6 +1236,40 @@ class Contrat(models.Model):
     
     def __str__(self):
         return f"Contrat #{self.id} - {self.professeur} - {self.maquette}"
+
+    def generate_reference(self):
+        """
+        Génère une référence unique du type: CONT-IIPEA/2025/A1B2C
+        """
+        import random
+        import string
+        
+        # Obtenir l'année courante
+        year = timezone.now().year
+        
+        # Générer un code alphanumérique de 5 caractères
+        characters = string.ascii_uppercase + string.digits
+        code = ''.join(random.choices(characters, k=5))
+        
+        # Format: CONT-IIPEA/2025/A1B2C
+        reference = f"CONT-IIPEA/{year}/{code}"
+        
+        # Vérifier l'unicité
+        while Contrat.objects.filter(reference=reference).exists():
+            code = ''.join(random.choices(characters, k=5))
+            reference = f"CONT-IIPEA/{year}/{code}"
+        
+        return reference
+    
+    def save(self, *args, **kwargs):
+        """Sauvegarde avec génération automatique de la référence"""
+        # Générer la référence seulement pour les nouveaux contrats
+        if not self.reference:
+            self.reference = self.generate_reference()
+        
+        # Validation et sauvegarde
+        self.full_clean()
+        super().save(*args, **kwargs)
     
     @property
     def volume_total_contractuel(self):
@@ -1225,6 +1431,19 @@ class Contrat(models.Model):
             self.volume_total_effectue > 0
         )
     
+    @property
+    def volume_cours(self):
+        """Calcule le volume total des cours associés"""
+        try:
+            # Adaptez selon vos relations
+            if hasattr(self, 'cours_set'):
+                return self.cours_set.aggregate(total=models.Sum('volume'))['total'] or 0
+            elif hasattr(self, 'cours'):
+                return self.cours.volume if self.cours else 0
+            else:
+                return 0
+        except:
+            return 0   
 
 
 
@@ -1709,7 +1928,7 @@ class ActionLog(models.Model):
     # Relations (tous optionnels car l'action peut concerner différents objets)
     pre_contrat = models.ForeignKey(
         PreContrat,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,  # ✅ Correction
         null=True,
         blank=True,
         related_name='logs',
